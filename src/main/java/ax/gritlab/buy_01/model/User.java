@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Email;
 
-@Document(collection = "User")
+@Document(collection = "user")
 public class User {
 
 	public enum Role {

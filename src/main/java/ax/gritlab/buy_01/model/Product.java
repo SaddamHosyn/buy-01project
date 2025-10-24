@@ -6,7 +6,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-@Document(collection = "Product")
+@Document(collection = "product")
 public class Product {
     @Id
     private String id;

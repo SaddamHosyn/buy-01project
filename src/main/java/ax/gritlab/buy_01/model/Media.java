@@ -5,7 +5,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 import jakarta.validation.constraints.NotNull;
 
-@Document(collection = "Media")
+@Document(collection = "media")
 public class Media {
 
     @Id
