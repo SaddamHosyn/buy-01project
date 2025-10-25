@@ -11,8 +11,14 @@
 	<groupId>ax.gritlab</groupId>
 	<artifactId>buy-01</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>buy-01</name>
-	<description>grit:lab Java project buy-01: end-to-end e-commerce platform</description>
+	<packaging>pom</packaging>
+	<name>buy-01 (aggregator)</name>
+	<description>Aggregator POM for microservices: user-service, product-service, media-service</description>
+	<modules>
+		<module>user-service</module>
+		<module>product-service</module>
+		<module>media-service</module>
+	</modules>
 	<url/>
 	<licenses>
 		<license/>
@@ -30,64 +36,7 @@
 		<java.version>24</java.version>
 		<maven.compiler.release>24</maven.compiler.release>
 	</properties>
-	<dependencies>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-mongodb</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-security</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.kafka</groupId>
-			<artifactId>spring-kafka</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.kafka</groupId>
-			<artifactId>spring-kafka-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-            <groupId>org.mongodb</groupId>
-            <artifactId>mongodb-driver-bom</artifactId>
-            <version>5.5.1</version>
-            <type>pom</type>
-            <scope>import</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mongodb</groupId>
-            <artifactId>mongodb-driver-sync</artifactId>
-        </dependency>
-		<!-- Jakarta Bean Validation for @NotNull, @Size, @Email, etc. -->
-		<dependency>
-			<groupId>jakarta.validation</groupId>
-			<artifactId>jakarta.validation-api</artifactId>
-			<version>3.0.2</version>
-		</dependency>
-
-		<!-- Lombok for boilerplate reduction -->
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<version>1.18.26</version>
-			<scope>provided</scope>
-		</dependency>
-	</dependencies>
+	<!-- Dependencies should be declared in each service module. This root POM is an aggregator so it intentionally does not declare module-specific dependencies. -->
 
 	<build>
 		<plugins>
