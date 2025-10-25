@@ -1,4 +1,4 @@
-package ax.gritlab.buy_01.product.config;
+/* package ax.gritlab.buy_01.product.config;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -25,3 +25,4 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 }
+ */
