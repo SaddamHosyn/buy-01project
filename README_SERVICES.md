@@ -40,3 +40,25 @@ Start-Process powershell -ArgumentList '-NoExit','-Command','java -jar ..\buy-01
 Start-Process powershell -ArgumentList '-NoExit','-Command','java -jar ..\buy-01\media-service\target\media-service-0.0.1-SNAPSHOT.jar'
 Start-Process powershell -ArgumentList '-NoExit','-Command','java -jar ..\buy-01\api-gateway\target\api-gateway-0.0.1-SNAPSHOT.jar'
 ```
+
+for bash:
+
+```
+# Open a new terminal window for each service and run the following commands:
+
+# Service Registry
+bash -c "java -jar ../buy-01/service-registry/target/service-registry-0.0.1-SNAPSHOT.jar"
+
+# User Service
+bash -c "java -jar ../buy-01/user-service/target/user-service-0.0.1-SNAPSHOT.jar"
+
+# Product Service
+bash -c "java -jar ../buy-01/product-service/target/product-service-0.0.1-SNAPSHOT.jar"
+
+# Media Service
+bash -c "java -jar ../buy-01/media-service/target/media-service-0.0.1-SNAPSHOT.jar"
+
+# API Gateway
+bash -c "java -jar ../buy-01/api-gateway/target/api-gateway-0.0.1-SNAPSHOT.jar"
+
+```
