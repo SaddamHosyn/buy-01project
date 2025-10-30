@@ -1,14 +1,9 @@
-package ax.gritlab.buy_01.user.model;
+package ax.gritlab.buy_01.media.model;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,31 +11,19 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.List;
 
+// This is a local representation of the User model for Spring Security.
+// It is not persisted in this service's database.
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "users")
 public class User implements UserDetails {
 
-    @Id
     private String id;
-
-    @NotNull
-    @Size(min = 2, max = 50)
     private String name;
-
-    @NotNull
-    @Email(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", message = "Invalid email format")
     private String email;
-
-    @NotNull
-    @Size(min = 8, max = 100)
-    private String password;
-
-    @NotNull
+    private String password; // Will be null in this context
     private Role role;
-
     private String avatar;
 
     @Override
