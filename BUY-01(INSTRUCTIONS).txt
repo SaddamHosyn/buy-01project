@@ -1,0 +1,254 @@
+Perfect! Let's build this Angular project step-by-step from scratch. I'll guide you through each task clearly and concisely.
+
+---
+
+## **Step 1: Set Up Angular Project**
+
+### **1.1 Install Prerequisites**
+
+First, ensure you have Node.js and Angular CLI installed:
+
+```bash
+# Check if Node.js is installed (should be v18 or higher)
+node --version
+
+# Install Angular CLI globally
+npm install -g @angular/cli
+
+# Verify Angular CLI installation
+ng version
+```
+
+### **1.2 Create New Angular Project**
+
+```bash
+# Create new Angular project
+ng new buy-01-ui
+
+# When prompted, answer:
+# - Would you like to add Angular routing? → Yes
+# - Which stylesheet format would you like to use? → CSS (or SCSS if you prefer)
+
+# Navigate into the project
+cd buy-01-ui
+```
+
+### **1.3 Install Angular Material**
+
+```bash
+# Install Angular Material
+ng add @angular/material
+
+# When prompted, choose:
+# - Choose a prebuilt theme: Indigo/Pink (or your preference)
+# - Set up global Angular Material typography styles? → Yes
+# - Include the Angular animations module? → Yes
+```
+
+### **1.4 Test the Setup**
+
+```bash
+# Start the development server
+ng serve
+
+# Open browser at: http://localhost:4200
+# You should see the default Angular welcome page
+```
+
+***
+
+## **Step 2: Project Structure Setup**
+
+### **2.1 Generate Core Folders and Services**
+
+```bash
+# Create folder structure
+ng generate module core
+ng generate module shared
+ng generate module features
+
+# Generate authentication service
+ng generate service core/services/auth
+
+# Generate HTTP interceptor
+ng generate interceptor core/interceptors/auth
+
+# Generate route guards
+ng generate guard core/guards/auth
+ng generate guard core/guards/role
+```
+
+### **2.2 Create Feature Modules**
+
+```bash
+# Authentication module
+ng generate module features/auth --routing
+ng generate component features/auth/login
+ng generate component features/auth/register
+
+# Products module
+ng generate module features/products --routing
+ng generate component features/products/product-list
+ng generate component features/products/product-detail
+
+# Seller dashboard module
+ng generate module features/seller --routing
+ng generate component features/seller/dashboard
+ng generate component features/seller/product-form
+ng generate component features/seller/media-manager
+```
+
+***
+
+## **Step 3: Configure Routing**
+
+### **3.1 Update `app.routes.ts`** (or `app-routing.module.ts` if using modules)
+
+Create/update the main routing file:
+
+```typescript
+// src/app/app.routes.ts
+import { Routes } from '@angular/router';
+
+export const routes: Routes = [
+  { path: '', redirectTo: '/products', pathMatch: 'full' },
+  
+  // Lazy load auth module
+  {
+    path: 'auth',
+    loadChildren: () => import('./features/auth/auth.module').then(m => m.AuthModule)
+  },
+  
+  // Lazy load products module (public)
+  {
+    path: 'products',
+    loadChildren: () => import('./features/products/products.module').then(m => m.ProductsModule)
+  },
+  
+  // Lazy load seller dashboard (protected)
+  {
+    path: 'seller',
+    loadChildren: () => import('./features/seller/seller.module').then(m => m.SellerModule)
+  },
+  
+  { path: '**', redirectTo: '/products' }
+];
+```
+
+***
+
+## **Step 4: Set Up Mock Backend (json-server)**
+
+### **4.1 Install json-server**
+
+```bash
+# Install json-server as dev dependency
+npm install --save-dev json-server
+```
+
+### **4.2 Create Mock Database**
+
+Create a file `db.json` in the project root:
+
+```json
+{
+  "users": [
+    {
+      "id": "1",
+      "email": "seller@test.com",
+      "password": "password123",
+      "role": "SELLER",
+      "name": "John Seller"
+    },
+    {
+      "id": "2",
+      "email": "client@test.com",
+      "password": "password123",
+      "role": "CLIENT",
+      "name": "Jane Client"
+    }
+  ],
+  "products": [
+    {
+      "id": "1",
+      "name": "Laptop",
+      "description": "High-performance laptop",
+      "price": 999.99,
+      "sellerId": "1",
+      "imageUrls": ["https://via.placeholder.com/300"]
+    },
+    {
+      "id": "2",
+      "name": "Mouse",
+      "description": "Wireless mouse",
+      "price": 29.99,
+      "sellerId": "1",
+      "imageUrls": ["https://via.placeholder.com/300"]
+    }
+  ],
+  "media": []
+}
+```
+
+### **4.3 Add Script to package.json**
+
+```json
+{
+  "scripts": {
+    "start": "ng serve",
+    "mock-api": "json-server --watch db.json --port 3000"
+  }
+}
+```
+
+### **4.4 Start Mock Server**
+
+```bash
+# In a separate terminal, run:
+npm run mock-api
+
+# Mock API will be available at: http://localhost:3000
+```
+
+***
+
+## **Step 5: Create Environment Configuration**
+
+### **5.1 Update Environment Files**
+
+```typescript
+// src/environments/environment.development.ts
+export const environment = {
+  production: false,
+  apiUrl: 'http://localhost:3000'
+};
+
+// src/environments/environment.ts
+export const environment = {
+  production: true,
+  apiUrl: 'https://your-production-api.com'
+};
+```
+
+***
+
+## **Next Steps Preview**
+
+Now that your project foundation is ready, we'll move to:
+
+1. **Building the Authentication Service** (login, register, token management)
+2. **Creating Login/Register Pages**
+3. **Implementing Route Guards**
+4. **Building Product List & Seller Dashboard**
+
+***
+
+**✅ Checkpoint:** 
+
+- [ ] Angular project created and running at `http://localhost:4200`
+- [ ] Angular Material installed
+- [ ] Mock API running at `http://localhost:3000`
+- [ ] Folder structure generated
+- [ ] Routing configured
+
+Let me know when you've completed Step 1-5, and we'll move to **building the authentication system**!

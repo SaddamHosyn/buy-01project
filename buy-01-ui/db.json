@@ -1,0 +1,126 @@
+{
+  "users": [
+    {
+      "id": "1",
+      "email": "seller@test.com",
+      "password": "password123",
+      "name": "John Seller",
+      "role": "SELLER",
+      "avatar": "https://i.pravatar.cc/150?img=12",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "2",
+      "email": "client@test.com",
+      "password": "password123",
+      "name": "Jane Client",
+      "role": "CLIENT",
+      "createdAt": "2025-01-02T00:00:00.000Z"
+    },
+    {
+      "id": "3",
+      "email": "seller2@test.com",
+      "password": "password123",
+      "name": "Mike Trader",
+      "role": "SELLER",
+      "avatar": "https://i.pravatar.cc/150?img=33",
+      "createdAt": "2025-01-03T00:00:00.000Z"
+    }
+  ],
+  "products": [
+    {
+      "id": "1",
+      "name": "Premium Laptop",
+      "description": "High-performance laptop for professionals with 16GB RAM and 512GB SSD",
+      "price": 1299.99,
+      "sellerId": "1",
+      "imageUrls": [
+        "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800",
+        "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800"
+      ],
+      "createdAt": "2025-01-10T00:00:00.000Z",
+      "updatedAt": "2025-01-10T00:00:00.000Z"
+    },
+    {
+      "id": "2",
+      "name": "Wireless Mouse",
+      "description": "Ergonomic wireless mouse with precision tracking",
+      "price": 49.99,
+      "sellerId": "1",
+      "imageUrls": [
+        "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=800"
+      ],
+      "createdAt": "2025-01-11T00:00:00.000Z",
+      "updatedAt": "2025-01-11T00:00:00.000Z"
+    },
+    {
+      "id": "3",
+      "name": "Mechanical Keyboard",
+      "description": "RGB mechanical gaming keyboard with cherry MX switches",
+      "price": 129.99,
+      "sellerId": "1",
+      "imageUrls": [
+        "https://images.unsplash.com/photo-1595225476474-87563907a212?w=800",
+        "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=800"
+      ],
+      "createdAt": "2025-01-12T00:00:00.000Z",
+      "updatedAt": "2025-01-12T00:00:00.000Z"
+    },
+    {
+      "id": "4",
+      "name": "4K Monitor",
+      "description": "27-inch 4K UHD monitor with HDR support",
+      "price": 399.99,
+      "sellerId": "3",
+      "imageUrls": [
+        "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=800"
+      ],
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z"
+    },
+    {
+      "id": "5",
+      "name": "Webcam HD",
+      "description": "1080p HD webcam with auto-focus and built-in microphone",
+      "price": 79.99,
+      "sellerId": "3",
+      "imageUrls": [
+        "https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?w=800"
+      ],
+      "createdAt": "2025-01-14T00:00:00.000Z",
+      "updatedAt": "2025-01-14T00:00:00.000Z"
+    }
+  ],
+  "media": [
+    {
+      "id": "1",
+      "url": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800",
+      "fileName": "laptop-1.jpg",
+      "size": 524288,
+      "contentType": "image/jpeg",
+      "sellerId": "1",
+      "productId": "1",
+      "createdAt": "2025-01-10T00:00:00.000Z"
+    },
+    {
+      "id": "2",
+      "url": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800",
+      "fileName": "laptop-2.jpg",
+      "size": 612352,
+      "contentType": "image/jpeg",
+      "sellerId": "1",
+      "productId": "1",
+      "createdAt": "2025-01-10T00:00:00.000Z"
+    },
+    {
+      "id": "3",
+      "url": "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=800",
+      "fileName": "mouse-1.jpg",
+      "size": 445678,
+      "contentType": "image/jpeg",
+      "sellerId": "1",
+      "productId": "2",
+      "createdAt": "2025-01-11T00:00:00.000Z"
+    }
+  ]
+}
