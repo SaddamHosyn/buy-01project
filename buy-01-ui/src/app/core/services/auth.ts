@@ -174,7 +174,8 @@ export class Auth {
           token: fakeToken
         };
         
-        this.setAuth(response.user, response.token);
+        // DON'T automatically log in - let user login manually
+        // this.setAuth(response.user, response.token);
         this.loadingSignal.set(false);
         
         observer.next(response);

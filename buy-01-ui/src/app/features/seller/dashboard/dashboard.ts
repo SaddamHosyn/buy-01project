@@ -61,6 +61,21 @@ export class Dashboard implements OnInit {
   }
   
   /**
+   * Navigate to home page (products list)
+   */
+  goBack(): void {
+    this.router.navigate(['/products']);
+  }
+  
+  /**
+   * Logout user and redirect to login page
+   */
+  logout(): void {
+    this.authService.logout();
+    this.router.navigate(['/auth/login']);
+  }
+  
+  /**
    * Load seller's products
    */
   loadMyProducts(): void {

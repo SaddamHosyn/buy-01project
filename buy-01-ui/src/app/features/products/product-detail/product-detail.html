@@ -124,12 +124,12 @@
             <div class="price-section">
               <div class="price-container">
                 <span class="price-label">Price:</span>
-                <span class="price">${{ product()!.price.toFixed(2) }}</span>
+                <span class="price">€{{ product()!.price.toFixed(2) }}</span>
               </div>
               @if (quantity() > 1) {
               <div class="total-price">
                 <span class="total-label">Total:</span>
-                <span class="total">${{ totalPrice().toFixed(2) }}</span>
+                <span class="total">€{{ totalPrice().toFixed(2) }}</span>
               </div>
               }
             </div>
@@ -154,11 +154,17 @@
                 Seller Information
               </h3>
               <div class="seller-info">
+                @if (seller()) {
+                <mat-chip color="primary">
+                  <mat-icon>person</mat-icon>
+                  {{ seller()!.name }}
+                </mat-chip>
+                } @else {
                 <mat-chip color="primary">
                   <mat-icon>person</mat-icon>
                   Seller ID: {{ product()!.sellerId }}
                 </mat-chip>
-                @if (isOwnProduct()) {
+                } @if (isOwnProduct()) {
                 <mat-chip color="accent">
                   <mat-icon>verified</mat-icon>
                   Your Product

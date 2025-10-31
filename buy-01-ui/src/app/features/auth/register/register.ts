@@ -2,6 +2,7 @@ import { Component, inject, signal, computed } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Auth } from '../../../core/services/auth';
+import { NotificationService } from '../../../core/services/notification.service';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -37,6 +38,7 @@ export class Register {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(Auth);
   private readonly router = inject(Router);
+  private readonly notification = inject(NotificationService);
   
   // Modern signals for avatar upload
   readonly errorMessage = signal<string>('');
@@ -134,12 +136,11 @@ export class Register {
     
     this.authService.register(registerData).subscribe({
       next: () => {
-        // Redirect based on user role
-        if (this.authService.isSeller()) {
-          this.router.navigate(['/seller/dashboard']);
-        } else {
-          this.router.navigate(['/products']);
-        }
+        // Show success message
+        this.notification.success('Registration successful! Please log in with your credentials.');
+        
+        // Redirect to login page
+        this.router.navigate(['/auth/login']);
       },
       error: (error) => {
         console.error('Registration error:', error);

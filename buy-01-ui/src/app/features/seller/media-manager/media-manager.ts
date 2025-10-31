@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -43,6 +43,7 @@ export class MediaManager implements OnInit {
   private readonly mediaService = inject(MediaService);
   private readonly productService = inject(ProductService);
   private readonly authService = inject(Auth);
+  private readonly location = inject(Location);
   private readonly notification = inject(NotificationService);
   private readonly dialogService = inject(DialogService);
   
@@ -78,6 +79,13 @@ export class MediaManager implements OnInit {
   ngOnInit(): void {
     this.loadMedia();
     this.loadMyProducts();
+  }
+  
+  /**
+   * Navigate back to previous page
+   */
+  goBack(): void {
+    this.location.back();
   }
   
   /**

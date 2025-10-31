@@ -1,6 +1,7 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,7 +12,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatDialog } from '@angular/material/dialog';
 import { ProductService, Product } from '../../../core/services/product.service';
-import { Auth } from '../../../core/services/auth';
+import { Auth, User } from '../../../core/services/auth';
 import { ImageLightbox } from '../../../shared/components/image-lightbox/image-lightbox';
 
 @Component({
@@ -36,10 +37,12 @@ export class ProductDetail implements OnInit {
   private readonly router = inject(Router);
   private readonly productService = inject(ProductService);
   private readonly authService = inject(Auth);
+  private readonly http = inject(HttpClient);
   private readonly dialog = inject(MatDialog);
   
   // Signals for reactive state
   readonly product = signal<Product | null>(null);
+  readonly seller = signal<User | null>(null);
   readonly isLoading = signal<boolean>(true);
   readonly errorMessage = signal<string>('');
   readonly selectedImageIndex = signal<number>(0);
@@ -89,11 +92,33 @@ export class ProductDetail implements OnInit {
     this.productService.getProductById(id).subscribe({
       next: (product) => {
         this.product.set(product);
-        this.isLoading.set(false);
+        // Load seller information
+        if (product.sellerId) {
+          this.loadSeller(product.sellerId);
+        } else {
+          this.isLoading.set(false);
+        }
       },
       error: (error) => {
         console.error('Error loading product:', error);
         this.errorMessage.set('Product not found');
+        this.isLoading.set(false);
+      }
+    });
+  }
+  
+  /**
+   * Load seller information
+   */
+  loadSeller(sellerId: string): void {
+    this.http.get<User>(`http://localhost:3000/users/${sellerId}`).subscribe({
+      next: (seller) => {
+        this.seller.set(seller);
+        this.isLoading.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading seller:', error);
+        // Still show product even if seller info fails
         this.isLoading.set(false);
       }
     });

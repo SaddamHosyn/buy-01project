@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -10,6 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Auth } from '../../core/services/auth';
 import { NotificationService } from '../../core/services/notification.service';
 import { validateFile, ValidationPresets } from '../../core/validators/file-upload.validator';
@@ -27,7 +28,8 @@ import { validateFile, ValidationPresets } from '../../core/validators/file-uplo
     MatIconModule,
     MatProgressSpinnerModule,
     MatTabsModule,
-    MatDividerModule
+    MatDividerModule,
+    MatTooltipModule
   ],
   templateUrl: './profile.html',
   styleUrl: './profile.css',
@@ -36,6 +38,7 @@ export class Profile implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(Auth);
   private readonly router = inject(Router);
+  private readonly location = inject(Location);
   private readonly notification = inject(NotificationService);
   
   // Signals for state management
@@ -88,6 +91,13 @@ export class Profile implements OnInit {
       // Redirect to login if not authenticated
       this.router.navigate(['/auth/login']);
     }
+  }
+  
+  /**
+   * Navigate back to previous page
+   */
+  goBack(): void {
+    this.location.back();
   }
   
   /**

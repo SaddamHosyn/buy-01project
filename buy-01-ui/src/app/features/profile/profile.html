@@ -1,9 +1,14 @@
 <div class="profile-container">
   <mat-card class="profile-card">
-    <mat-card-header>
-      <mat-card-title>My Profile</mat-card-title>
-      <mat-card-subtitle>Manage your profile and account settings</mat-card-subtitle>
-    </mat-card-header>
+    <div class="header-with-back">
+      <button mat-icon-button (click)="goBack()" matTooltip="Go Back" class="back-button">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <mat-card-header>
+        <mat-card-title>My Profile</mat-card-title>
+        <mat-card-subtitle>Manage your profile and account settings</mat-card-subtitle>
+      </mat-card-header>
+    </div>
 
     <mat-card-content>
       <mat-tab-group>

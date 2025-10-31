@@ -37,7 +37,7 @@ export function priceValidator(
         minPrice: {
           min: min,
           actual: numValue,
-          message: `Price must be at least $${min.toFixed(2)}`
+          message: `Price must be at least €${min.toFixed(2)}`
         }
       };
     }
@@ -48,7 +48,7 @@ export function priceValidator(
         maxPrice: {
           max: max,
           actual: numValue,
-          message: `Price cannot exceed $${max.toFixed(2)}`
+          message: `Price cannot exceed €${max.toFixed(2)}`
         }
       };
     }

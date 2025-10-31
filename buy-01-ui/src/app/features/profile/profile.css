@@ -13,6 +13,18 @@
   padding: 30px;
 }
 
+.header-with-back {
+  position: relative;
+  width: 100%;
+}
+
+.back-button {
+  position: absolute;
+  top: 0;
+  left: -10px;
+  z-index: 1;
+}
+
 mat-card-header {
   display: flex;
   flex-direction: column;
