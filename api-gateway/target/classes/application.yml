@@ -24,7 +24,6 @@ spring:
             - Path=/api/users/**
           filters:
             - RewritePath=/api/(?<segment>.*), /$\{segment}
-        
 
         - id: product-service
           uri: lb://PRODUCT-SERVICE
@@ -53,7 +52,7 @@ spring:
             - "DELETE"
           allowCredentials: true # Allows cookies and other credentials to be included in cross-origin requests.
           maxAge: 30 # specifies the maximum time (in seconds) that the browser should cache the preflight response.
-        
+          
 
 eureka:
   client:
