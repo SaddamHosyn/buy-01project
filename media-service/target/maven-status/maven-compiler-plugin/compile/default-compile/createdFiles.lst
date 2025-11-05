@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ax/gritlab/buy_01/media/model/User$UserBuilder.class
 ax/gritlab/buy_01/media/repository/MediaRepository.class
 ax/gritlab/buy_01/media/model/Role.class
@@ -12,3 +13,5 @@ ax/gritlab/buy_01/media/controller/MediaController.class
 ax/gritlab/buy_01/media/config/SecurityConfig.class
 ax/gritlab/buy_01/media/model/Media.class
 ax/gritlab/buy_01/media/service/MediaService$MediaResource.class
+=======
+>>>>>>> origin/main

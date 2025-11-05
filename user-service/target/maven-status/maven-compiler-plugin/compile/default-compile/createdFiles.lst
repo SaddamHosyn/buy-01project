@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ax/gritlab/buy_01/user/dto/UpdateProfileRequest.class
 ax/gritlab/buy_01/user/dto/AuthenticationRequest$AuthenticationRequestBuilder.class
 ax/gritlab/buy_01/user/repository/UserRepository.class
@@ -21,3 +22,5 @@ ax/gritlab/buy_01/user/dto/AuthenticationResponse$AuthenticationResponseBuilder.
 ax/gritlab/buy_01/user/dto/UpdateProfileRequest$UpdateProfileRequestBuilder.class
 ax/gritlab/buy_01/user/service/JwtService.class
 ax/gritlab/buy_01/user/controller/UserController.class
+=======
+>>>>>>> origin/main
