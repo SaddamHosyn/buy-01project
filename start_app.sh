@@ -53,6 +53,6 @@ echo $! >> "$PID_FILE"
 
 echo ""
 echo "--- All services started successfully! ---"
-echo "API Gateway is running on port 8080."
+echo "API Gateway is running on port 8443."
 echo "You can view logs in the *.log files (e.g., 'tail -f api-gateway.log')."
 echo "PIDs of running services are stored in .pids"
