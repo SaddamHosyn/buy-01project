@@ -1,54 +1,29 @@
 package ax.gritlab.buy_01.media.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
 
-import jakarta.validation.constraints.NotNull;
-
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Document(collection = "media")
 public class Media {
 
     @Id
     private String id;
 
-    @NotNull
-    @Field("imagePath")
-    private String imagePath;
+    private String originalFilename;
 
-    @NotNull
-    @Field("productId")
-    private String productId;
+    private String contentType;
 
-    public Media(String id, String imagePath, String productId) {
-        super();
-        this.id = id;
-        this.imagePath = imagePath;
-        this.productId = productId;
-    }
+    private long size;
 
-    // Getters and setters
-    public String getId() {
-        return id;
-    }
+    private String filePath; // Path to the file on disk or key in object storage
 
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getImagePath() {
-        return imagePath;
-    }
-
-    public void setImagePath(String imagePath) {
-        this.imagePath = imagePath;
-    }
-
-    public String getProductId() {
-        return productId;
-    }
-
-    public void setProductId(String productId) {
-        this.productId = productId;
-    }
+    private String userId; // The user (seller) who owns this media
 }

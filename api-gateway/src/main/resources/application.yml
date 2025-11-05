@@ -6,22 +6,32 @@ spring:
     name: api-gateway
   cloud:
     gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
       routes:
         - id: user-service
           uri: lb://user-service
           predicates:
             - Path=/api/users/**
-            - Path=/api/user/**
+            - Path=/api/auth/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /${segment}
+
         - id: product-service
           uri: lb://product-service
           predicates:
             - Path=/api/products/**
-            - Path=/api/product/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /${segment}
+
         - id: media-service
           uri: lb://media-service
           predicates:
             - Path=/api/media/**
-            - Path=/api/medias/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /${segment}
     globalcors:
       corsConfigurations:
         '[/**]': # Applies to all paths

@@ -35,8 +35,8 @@
 		<url/>
 	</scm>
 	<properties>
-		<java.version>24</java.version>
-		<maven.compiler.release>24</maven.compiler.release>
+		<java.version>17</java.version>
+		<maven.compiler.release>17</maven.compiler.release>
 	</properties>
 	<!-- Dependencies should be declared in each service module. This root POM is an aggregator so it intentionally does not declare module-specific dependencies. -->
 
