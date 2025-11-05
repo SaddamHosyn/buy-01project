@@ -11,41 +11,33 @@ spring:
           enabled: true
           lower-case-service-id: true
       routes:
-        - id: user-service
-          uri: lb://user-service
+        - id: user-service-auth
+          uri: lb://USER-SERVICE
           predicates:
-            - Path=/api/users/**
             - Path=/api/auth/**
           filters:
-            - RewritePath=/api/(?<segment>.*), /${segment}
+            - RewritePath=/api/(?<segment>.*), /$\{segment}
+        
+        - id: user-service-users
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /$\{segment}
 
         - id: product-service
-          uri: lb://product-service
+          uri: lb://PRODUCT-SERVICE
           predicates:
             - Path=/api/products/**
           filters:
-            - RewritePath=/api/(?<segment>.*), /${segment}
+            - RewritePath=/api/(?<segment>.*), /$\{segment}
 
         - id: media-service
-          uri: lb://media-service
+          uri: lb://MEDIA-SERVICE
           predicates:
             - Path=/api/media/**
           filters:
-            - RewritePath=/api/(?<segment>.*), /${segment}
-    globalcors:
-      corsConfigurations:
-        '[/**]': # Applies to all paths
-          allowedOrigins: "*" # for dev only: Allows requests from any origin; replace with explicit domain from where CORS requests are allowed to originate.
-          allowedHeaders: # "*" Allows all headers.
-            - "Content-Type"
-            - "Authorization"
-          allowedMethods:
-            - "GET"
-            - "POST"
-            - "PUT"
-            - "DELETE"
-          allowCredentials: true # Allows cookies and other credentials to be included in cross-origin requests.
-          maxAge: 30 # specifies the maximum time (in seconds) that the browser should cache the preflight response.
+            - RewritePath=/api/(?<segment>.*), /$\{segment}
 
 eureka:
   client:
