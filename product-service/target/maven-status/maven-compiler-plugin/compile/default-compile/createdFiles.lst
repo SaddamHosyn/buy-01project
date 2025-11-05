@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 ax/gritlab/buy_01/product/controller/ProductController.class
 ax/gritlab/buy_01/product/service/ProductService.class
 ax/gritlab/buy_01/product/dto/ProductRequest$ProductRequestBuilder.class
@@ -13,5 +12,3 @@ ax/gritlab/buy_01/product/model/Product.class
 ax/gritlab/buy_01/product/config/JwtAuthenticationFilter.class
 ax/gritlab/buy_01/product/model/Product$ProductBuilder.class
 ax/gritlab/buy_01/product/repository/ProductRepository.class
-=======
->>>>>>> origin/main
