@@ -22,6 +22,20 @@ spring:
           predicates:
             - Path=/api/media/**
             - Path=/api/medias/**
+    globalcors:
+      corsConfigurations:
+        '[/**]': # Applies to all paths
+          allowedOrigins: "*" # for dev only: Allows requests from any origin; replace with explicit domain from where CORS requests are allowed to originate.
+          allowedHeaders: # "*" Allows all headers.
+            - "Content-Type"
+            - "Authorization"
+          allowedMethods:
+            - "GET"
+            - "POST"
+            - "PUT"
+            - "DELETE"
+          allowCredentials: true # Allows cookies and other credentials to be included in cross-origin requests.
+          maxAge: 30 # specifies the maximum time (in seconds) that the browser should cache the preflight response.
 
 eureka:
   client:
