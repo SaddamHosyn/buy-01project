@@ -4,7 +4,21 @@
 set -e
 
 echo "--- Building all microservices. This may take a moment... ---"
-mvn clean install -DskipTests
+# Prefer system 'mvn' when available, otherwise fall back to the project's './mvnw' wrapper.
+if command -v mvn >/dev/null 2>&1; then
+	MVN_CMD="mvn"
+elif [ -x "./mvnw" ]; then
+	MVN_CMD="./mvnw"
+elif [ -f "./mvnw" ]; then
+	# wrapper exists but not executable; make it executable and use it
+	chmod +x ./mvnw
+	MVN_CMD="./mvnw"
+else
+	echo "Error: 'mvn' not found and './mvnw' is not available. Please install Maven or include the Maven wrapper." >&2
+	exit 1
+fi
+
+$MVN_CMD clean install -DskipTests
 echo "--- Build complete ---"
 
 # Create a file to store PIDs for the stop script
