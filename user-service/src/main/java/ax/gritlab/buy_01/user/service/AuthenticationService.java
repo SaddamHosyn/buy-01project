@@ -3,6 +3,7 @@ package ax.gritlab.buy_01.user.service;
 import ax.gritlab.buy_01.user.dto.AuthenticationRequest;
 import ax.gritlab.buy_01.user.dto.AuthenticationResponse;
 import ax.gritlab.buy_01.user.dto.RegisterRequest;
+import ax.gritlab.buy_01.user.dto.UserProfileResponse;
 import ax.gritlab.buy_01.user.model.User;
 import ax.gritlab.buy_01.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,17 +21,20 @@ public class AuthenticationService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
-    public AuthenticationResponse register(RegisterRequest request) {
+    public UserProfileResponse register(RegisterRequest request) {
         var user = User.builder()
                 .name(request.getName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(request.getRole())
                 .build();
-        userRepository.save(user);
-        var jwtToken = jwtService.generateToken(user);
-        return AuthenticationResponse.builder()
-                .token(jwtToken)
+        User savedUser = userRepository.save(user);
+        return UserProfileResponse.builder()
+                .id(savedUser.getId())
+                .name(savedUser.getName())
+                .email(savedUser.getEmail())
+                .role(savedUser.getRole())
+                .avatar(savedUser.getAvatar())
                 .build();
     }
 

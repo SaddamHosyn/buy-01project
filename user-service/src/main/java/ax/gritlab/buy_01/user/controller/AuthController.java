@@ -3,8 +3,10 @@ package ax.gritlab.buy_01.user.controller;
 import ax.gritlab.buy_01.user.dto.AuthenticationRequest;
 import ax.gritlab.buy_01.user.dto.AuthenticationResponse;
 import ax.gritlab.buy_01.user.dto.RegisterRequest;
+import ax.gritlab.buy_01.user.dto.UserProfileResponse;
 import ax.gritlab.buy_01.user.service.AuthenticationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,10 +21,10 @@ public class AuthController {
     private final AuthenticationService authenticationService;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthenticationResponse> register(
+    public ResponseEntity<UserProfileResponse> register(
             @RequestBody RegisterRequest request
     ) {
-        return ResponseEntity.ok(authenticationService.register(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(authenticationService.register(request));
     }
 
     @PostMapping("/login")
