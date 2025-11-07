@@ -11,33 +11,51 @@ spring:
           enabled: true
           lower-case-service-id: true
       routes:
-        - id: user-service-auth
+        # --- User Service Routes ---
+        - id: user-service-actuator
           uri: lb://USER-SERVICE
           predicates:
-            - Path=/api/auth/**
+            - Path=/api/users/actuator/**
           filters:
-            - RewritePath=/api/(?<segment>.*), /$\{segment}
-        
-        - id: user-service-users
+            - RewritePath=/api/users/(?<segment>.*), /$\{segment}
+
+        - id: user-service-api
           uri: lb://USER-SERVICE
           predicates:
-            - Path=/api/users/**
+            - Path=/api/auth/**, /api/users/**
           filters:
             - RewritePath=/api/(?<segment>.*), /$\{segment}
 
-        - id: product-service
+        # --- Product Service Routes ---
+        - id: product-service-actuator
+          uri: lb://PRODUCT-SERVICE
+          predicates:
+            - Path=/api/products/actuator/**
+          filters:
+            - RewritePath=/api/products/(?<segment>.*), /$\{segment}
+
+        - id: product-service-api
           uri: lb://PRODUCT-SERVICE
           predicates:
             - Path=/api/products/**
           filters:
             - RewritePath=/api/(?<segment>.*), /$\{segment}
 
-        - id: media-service
+        # --- Media Service Routes ---
+        - id: media-service-actuator
+          uri: lb://MEDIA-SERVICE
+          predicates:
+            - Path=/api/media/actuator/**
+          filters:
+            - RewritePath=/api/media/(?<segment>.*), /$\{segment}
+
+        - id: media-service-api
           uri: lb://MEDIA-SERVICE
           predicates:
             - Path=/api/media/**
           filters:
             - RewritePath=/api/(?<segment>.*), /$\{segment}
+
     globalcors:
       corsConfigurations:
         '[/**]': # Applies to all paths
