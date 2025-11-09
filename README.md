@@ -155,7 +155,7 @@ Once all services are running via `./start_app.sh`, you can use `curl` (or Postm
     ```
   - **`curl` Command:**
     ```bash
-    curl -X POST https://localhost:8443/api/auth/register \
+    curl -k -X POST https://localhost:8443/api/auth/register \
     -H "Content-Type: application/json" \
     -d '{"name": "Client User", "email": "client@example.com", "password": "password", "role": "CLIENT"}'
     ```
@@ -177,7 +177,7 @@ Once all services are running via `./start_app.sh`, you can use `curl` (or Postm
     ```
   - **`curl` Command:**
     ```bash
-    curl -X POST https://localhost:8443/api/auth/register \
+    curl -k -X POST https://localhost:8443/api/auth/register \
     -H "Content-Type: application/json" \
     -d '{"name": "Seller User", "email": "seller@example.com", "password": "password", "role": "SELLER"}'
     ```
@@ -197,7 +197,7 @@ Once all services are running via `./start_app.sh`, you can use `curl` (or Postm
     ```
   - **`curl` Command:**
     ```bash
-    curl -X POST https://localhost:8443/api/auth/login \
+    curl -k -X POST https://localhost:8443/api/auth/login \
     -H "Content-Type: application/json" \
     -d '{"email": "seller@example.com", "password": "password"}'
     ```
@@ -210,7 +210,7 @@ Once all services are running via `./start_app.sh`, you can use `curl` (or Postm
   - **Headers:** `Authorization: Bearer <SELLER_TOKEN>`
   - **`curl` Command:**
     ```bash
-    curl -X GET https://localhost:8443/api/users/me \
+    curl -k -X GET https://localhost:8443/api/users/me \
     -H "Authorization: Bearer <SELLER_TOKEN>"
     ```
   - **Expected Response:** `HTTP 200 OK` with a JSON body containing seller user details.
@@ -228,7 +228,7 @@ Once all services are running via `./start_app.sh`, you can use `curl` (or Postm
     ```
   - **`curl` Command:**
     ```bash
-    curl -X PUT https://localhost:8443/api/users/me \
+    curl -k -X PUT https://localhost:8443/api/users/me \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer <SELLER_TOKEN>" \
     -d '{"name": "Updated Seller Name", "avatar": "http://example.com/new_avatar.png"}'
@@ -247,7 +247,7 @@ Once all services are running via `./start_app.sh`, you can use `curl` (or Postm
   - **Body:** `multipart/form-data` with a file named `file`. (Replace `/path/to/your/image.jpg` with a real image path)
   - **`curl` Command:**
     ```bash
-    curl -X POST https://localhost:8443/api/media/images \
+    curl -k -X POST https://localhost:8443/api/media/images \
     -H "Authorization: Bearer <SELLER_TOKEN>" \
     -F "file=@/path/to/your/image.jpg"
     ```
@@ -259,7 +259,7 @@ Once all services are running via `./start_app.sh`, you can use `curl` (or Postm
   - **Method:** `GET`
   - **`curl` Command:**
     ```bash
-    curl -X GET https://localhost:8443/api/media/images/<MEDIA_ID> \
+    curl -k -X GET https://localhost:8443/api/media/images/<MEDIA_ID> \
     --output downloaded_image.jpg
     ```
   - **Expected Response:** `HTTP 200 OK`. An image file should be downloaded to `downloaded_image.jpg` in your current directory.
@@ -270,7 +270,7 @@ Once all services are running via `./start_app.sh`, you can use `curl` (or Postm
   - **Headers:** `Authorization: Bearer <SELLER_TOKEN>`
   - **`curl` Command:**
     ```bash
-    curl -X DELETE https://localhost:8443/api/media/images/<MEDIA_ID> \
+    curl -k -X DELETE https://localhost:8443/api/media/images/<MEDIA_ID> \
     -H "Authorization: Bearer <SELLER_TOKEN>"
     ```
   - **Expected Response:** `HTTP 204 No Content`.
@@ -285,7 +285,7 @@ Once all services are running via `./start_app.sh`, you can use `curl` (or Postm
   - **Method:** `GET`
   - **`curl` Command:**
     ```bash
-    curl -X GET https://localhost:8443/api/products
+    curl -k -X GET https://localhost:8443/api/products
     ```
   - **Expected Response:** `HTTP 200 OK` with a JSON array of products (initially empty).
 
@@ -305,7 +305,7 @@ Once all services are running via `./start_app.sh`, you can use `curl` (or Postm
     ```
   - **`curl` Command:**
     ```bash
-    curl -X POST https://localhost:8443/api/products \
+    curl -k -X POST https://localhost:8443/api/products \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer <SELLER_TOKEN>" \
     -d '{"name": "My Awesome Product", "description": "A very cool product.", "price": 99.99, "quantity": 100}'
@@ -319,7 +319,7 @@ Once all services are running via `./start_app.sh`, you can use `curl` (or Postm
   - **Headers:** `Authorization: Bearer <SELLER_TOKEN>`
   - **`curl` Command:**
     ```bash
-    curl -X POST https://localhost:8443/api/products/<PRODUCT_ID>/media/<MEDIA_ID> \
+    curl -k -X POST https://localhost:8443/api/products/<PRODUCT_ID>/media/<MEDIA_ID> \
     -H "Authorization: Bearer <SELLER_TOKEN>"
     ```
   - **Expected Response:** `HTTP 200 OK` with a JSON body containing the updated `Product` object. The `mediaIds` list within the `Product` object should now include your `MEDIA_ID`.
@@ -330,7 +330,7 @@ Once all services are running via `./start_app.sh`, you can use `curl` (or Postm
   - **Method:** `GET`
   - **`curl` Command:**
     ```bash
-    curl -X GET https://localhost:8443/api/products/<PRODUCT_ID>
+    curl -k -X GET https://localhost:8443/api/products/<PRODUCT_ID>
     ```
   - **Expected Response:** `HTTP 200 OK` with a JSON body containing the product details.
 
@@ -350,7 +350,7 @@ Once all services are running via `./start_app.sh`, you can use `curl` (or Postm
     ```
   - **`curl` Command:**
     ```bash
-    curl -X PUT https://localhost:8443/api/products/<PRODUCT_ID> \
+    curl -k -X PUT https://localhost:8443/api/products/<PRODUCT_ID> \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer <SELLER_TOKEN>" \
     -d '{"name": "Updated Product Name", "description": "Even cooler product.", "price": 120.00, "quantity": 90}'
@@ -363,7 +363,7 @@ Once all services are running via `./start_app.sh`, you can use `curl` (or Postm
   - **Headers:** `Authorization: Bearer <SELLER_TOKEN>`
   - **`curl` Command:**
     ```bash
-    curl -X DELETE https://localhost:8443/api/products/<PRODUCT_ID> \
+    curl -k -X DELETE https://localhost:8443/api/products/<PRODUCT_ID> \
     -H "Authorization: Bearer <SELLER_TOKEN>"
     ```
   - **Expected Response:** `HTTP 204 No Content`.
@@ -378,7 +378,7 @@ Once all services are running via `./start_app.sh`, you can use `curl` (or Postm
   - **Method:** `GET`
   - **`curl` Command:**
     ```bash
-    curl -X GET https://localhost:8443/api/users/actuator/health
+    curl -k -X GET https://localhost:8443/api/users/actuator/health
     ```
   - **Expected Response:** `HTTP 200 OK` with `{"status":"UP"}`.
 
@@ -388,7 +388,7 @@ Once all services are running via `./start_app.sh`, you can use `curl` (or Postm
   - **Method:** `GET`
   - **`curl` Command:**
     ```bash
-    curl -X GET https://localhost:8443/api/products/actuator/health
+    curl -k -X GET https://localhost:8443/api/products/actuator/health
     ```
   - **Expected Response:** `HTTP 200 OK` with `{"status":"UP"}`.
 
@@ -397,7 +397,7 @@ Once all services are running via `./start_app.sh`, you can use `curl` (or Postm
   - **Method:** `GET`
   - **`curl` Command:**
     ```bash
-    curl -X GET https://localhost:8443/api/media/actuator/health
+    curl -k -X GET https://localhost:8443/api/media/actuator/health
     ```
   - **Expected Response:** `HTTP 200 OK` with `{"status":"UP"}`.
 

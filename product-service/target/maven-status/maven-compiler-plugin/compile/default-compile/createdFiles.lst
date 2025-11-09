@@ -8,6 +8,7 @@ ax\gritlab\buy_01\product\service\JwtService.class
 ax\gritlab\buy_01\product\config\SecurityConfig.class
 ax\gritlab\buy_01\product\model\Product$ProductBuilder.class
 ax\gritlab\buy_01\product\dto\ProductRequest.class
+ax\gritlab\buy_01\product\config\KafkaTopicConfig.class
 ax\gritlab\buy_01\product\config\JwtAuthenticationFilter.class
 ax\gritlab\buy_01\product\model\User.class
 ax\gritlab\buy_01\product\model\Role.class

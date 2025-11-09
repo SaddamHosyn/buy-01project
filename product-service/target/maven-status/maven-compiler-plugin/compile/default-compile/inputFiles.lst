@@ -3,6 +3,7 @@ C:\gritlab_local\buy-01\product-service\src\main\java\ax\gritlab\buy_01\product\
 C:\gritlab_local\buy-01\product-service\src\main\java\ax\gritlab\buy_01\product\ProductServiceApplication.java
 C:\gritlab_local\buy-01\product-service\src\main\java\ax\gritlab\buy_01\product\model\Product.java
 C:\gritlab_local\buy-01\product-service\src\main\java\ax\gritlab\buy_01\product\model\Role.java
+C:\gritlab_local\buy-01\product-service\src\main\java\ax\gritlab\buy_01\product\config\KafkaTopicConfig.java
 C:\gritlab_local\buy-01\product-service\src\main\java\ax\gritlab\buy_01\product\controller\ProductController.java
 C:\gritlab_local\buy-01\product-service\src\main\java\ax\gritlab\buy_01\product\model\User.java
 C:\gritlab_local\buy-01\product-service\src\main\java\ax\gritlab\buy_01\product\config\DataInitializer.java

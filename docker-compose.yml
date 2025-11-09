@@ -1,4 +1,23 @@
-version: '3.8'
+# ---
+# How to run Docker Compose:
+#   docker-compose up -d
+# How to stop:
+#   docker-compose down
+# How to check running/stopped containers:
+#   docker ps -a
+# How to check last 20 lines of logs:
+#   docker-compose logs --tail=20 <product-service>
+#
+# How to view Kafka topics (after containers are running):
+#   docker exec -it buy-01-kafka-1 bash
+#   /usr/bin/kafka-topics --list --bootstrap-server localhost:9092
+#
+# How to create a topic manually:
+#   /usr/bin/kafka-topics --create --topic test-topic --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
+#
+# How to consume messages from a topic:
+#   /usr/bin/kafka-console-consumer --bootstrap-server localhost:9092 --topic test-topic --from-beginning
+# ---
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper
@@ -17,11 +36,61 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENERS: PLAINTEXT://localhost:9092,CONTROLLER://localhost:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://kafka:9092,CONTROLLER://kafka:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_PROCESS_ROLES: "broker,controller"
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8443:8443"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - kafka
+  product-service:
+    build: ./product-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/productdb
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://service-registry:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: product-service
+    depends_on:
+      - kafka
+      - service-registry
+  user-service:
+    build: ./user-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/userdb
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://service-registry:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: user-service
+    depends_on:
+      - kafka
+      - service-registry
+
+  media-service:
+    build: ./media-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/mediadb
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://service-registry:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: media-service
+    depends_on:
+      - kafka
+      - service-registry
+  service-registry:
+    build: ./service-registry
+    ports:
+      - "8761:8761"
