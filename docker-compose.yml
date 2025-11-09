@@ -27,6 +27,17 @@ services:
     ports:
       - "2181:2181"
 
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - ./uploads:/data/db
+
   kafka:
     image: confluentinc/cp-kafka
     depends_on:
@@ -59,24 +70,26 @@ services:
       - "8082:8082"
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/productdb
+      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/productdb
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://service-registry:8761/eureka/
       EUREKA_INSTANCE_HOSTNAME: product-service
     depends_on:
       - kafka
       - service-registry
+      - mongodb
   user-service:
     build: ./user-service
     ports:
       - "8081:8081"
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/userdb
+      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/userdb
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://service-registry:8761/eureka/
       EUREKA_INSTANCE_HOSTNAME: user-service
     depends_on:
       - kafka
       - service-registry
+      - mongodb
 
   media-service:
     build: ./media-service
@@ -84,12 +97,13 @@ services:
       - "8083:8083"
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/mediadb
+      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/mediadb
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://service-registry:8761/eureka/
       EUREKA_INSTANCE_HOSTNAME: media-service
     depends_on:
       - kafka
       - service-registry
+      - mongodb
   service-registry:
     build: ./service-registry
     ports:
