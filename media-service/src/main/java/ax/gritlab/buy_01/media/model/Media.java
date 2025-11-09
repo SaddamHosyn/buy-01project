@@ -26,4 +26,6 @@ public class Media {
     private String filePath; // Path to the file on disk or key in object storage
 
     private String userId; // The user (seller) who owns this media
+
+    private String productId; // The product this media is associated with
 }

@@ -25,6 +25,10 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class MediaService {
+    // Delete all media associated with a product
+    public void deleteMediaByProductId(String productId) {
+        mediaRepository.deleteByProductId(productId);
+    }
 
     private static final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 

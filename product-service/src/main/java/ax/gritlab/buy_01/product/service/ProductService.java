@@ -11,8 +11,17 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ProductService {
+    // Delete all products for a user and publish product.deleted events
+    public void deleteProductsByUserId(String userId) {
+        List<Product> products = productRepository.findByUserId(userId);
+        for (Product product : products) {
+            productRepository.delete(product);
+            kafkaTemplate.send("product.deleted", product.getId());
+        }
+    }
 
     private final ProductRepository productRepository;
+    private final org.springframework.kafka.core.KafkaTemplate<String, String> kafkaTemplate;
 
     public List<Product> getAllProducts() {
         return productRepository.findAll();
@@ -51,6 +60,8 @@ public class ProductService {
             throw new RuntimeException("User does not have permission to delete this product");
         }
         productRepository.delete(product);
+        // Publish Kafka event for product deletion
+        kafkaTemplate.send("product.deleted", id);
     }
 
     public Product associateMedia(String productId, String mediaId, String userId) {
