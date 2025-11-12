@@ -1,0 +1,247 @@
+<div class="media-manager-container">
+  <!-- Header -->
+  <mat-toolbar color="primary" class="manager-header">
+    <button mat-icon-button (click)="goBack()" matTooltip="Go Back">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <span>Media Manager</span>
+    <span class="spacer"></span>
+
+    <!-- Product Filter -->
+    <mat-form-field appearance="outline" class="product-filter">
+      <mat-label>Filter by Product</mat-label>
+      <mat-select [value]="filterByProduct()" (selectionChange)="filterMedia($event.value)">
+        <mat-option value="all">All Images</mat-option>
+        <mat-option value="unassigned">Unassigned</mat-option>
+        @for (product of myProducts(); track product.id) {
+        <mat-option [value]="product.id">{{ product.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    @if (hasSelectedMedia()) {
+    <button mat-raised-button color="warn" (click)="deleteSelected()">
+      <mat-icon>delete</mat-icon>
+      Delete Selected ({{ selectedCount() }})
+    </button>
+    <button mat-button (click)="deselectAll()">
+      <mat-icon>clear</mat-icon>
+      Deselect All
+    </button>
+    } @else { @if (allMedia().length > 0) {
+    <button mat-button (click)="selectAll()">
+      <mat-icon>select_all</mat-icon>
+      Select All
+    </button>
+    } }
+
+    <button mat-raised-button color="accent" (click)="fileInput.click()" [disabled]="isUploading()">
+      <mat-icon>cloud_upload</mat-icon>
+      Upload Images
+    </button>
+
+    <input
+      #fileInput
+      type="file"
+      multiple
+      accept="image/jpeg,image/jpg,image/png,image/webp"
+      (change)="onFilesSelected($event)"
+      style="display: none"
+    />
+  </mat-toolbar>
+
+  <!-- Upload Configuration Bar -->
+  <div class="config-bar">
+    <mat-card class="config-card">
+      <mat-card-content>
+        <mat-form-field appearance="outline" class="product-selector">
+          <mat-label>
+            <mat-icon>link</mat-icon>
+            Link to Product (Optional)
+          </mat-label>
+          <mat-select
+            [value]="selectedProductId()"
+            (selectionChange)="selectedProductId.set($event.value)"
+          >
+            <mat-option [value]="undefined">None - General Media</mat-option>
+            @for (product of myProducts(); track product.id) {
+            <mat-option [value]="product.id">{{ product.name }}</mat-option>
+            }
+          </mat-select>
+          <mat-hint>Images will be associated with selected product</mat-hint>
+        </mat-form-field>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Stats Bar -->
+  <div class="stats-bar">
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-label">
+          @if (filterByProduct() === 'all') { Total Images } @else { Filtered Images }
+        </div>
+        <div class="stat-value">{{ filteredMedia().length }}</div>
+        @if (filterByProduct() !== 'all') {
+        <div class="stat-sublabel">of {{ allMedia().length }} total</div>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-label">Total Size</div>
+        <div class="stat-value">{{ formatSize(totalSize()) }}</div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-label">Max File Size</div>
+        <div class="stat-value">{{ formatSize(maxFileSize) }}</div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-label">Allowed Types</div>
+        <div class="stat-types">
+          @for (ext of allowedExtensions; track ext) {
+          <mat-chip>{{ ext }}</mat-chip>
+          }
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Upload Progress Section -->
+  @if (uploadProgress().length > 0) {
+  <div class="upload-progress-section">
+    <h3>Upload Progress</h3>
+
+    @for (progress of uploadProgress(); track progress.fileName) {
+    <mat-card class="progress-card">
+      <mat-card-content>
+        <div class="progress-header">
+          <div class="progress-info">
+            <mat-icon
+              [class]="
+                progress.status === 'completed'
+                  ? 'success-icon'
+                  : progress.status === 'error'
+                  ? 'error-icon'
+                  : 'uploading-icon'
+              "
+            >
+              @if (progress.status === 'completed') { check_circle } @else if (progress.status ===
+              'error') { error } @else { cloud_upload }
+            </mat-icon>
+            <span class="file-name">{{ progress.fileName }}</span>
+          </div>
+          <span class="progress-percent">{{ progress.progress }}%</span>
+        </div>
+
+        @if (progress.status === 'uploading') {
+        <mat-progress-bar mode="determinate" [value]="progress.progress"></mat-progress-bar>
+        } @else if (progress.status === 'completed') {
+        <mat-progress-bar mode="determinate" [value]="100" color="accent"></mat-progress-bar>
+        } @else if (progress.status === 'error') {
+        <div class="error-message">
+          <mat-icon>error_outline</mat-icon>
+          {{ progress.error }}
+        </div>
+        }
+      </mat-card-content>
+    </mat-card>
+    }
+  </div>
+  }
+
+  <!-- Media Grid -->
+  <div class="media-content">
+    @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner></mat-spinner>
+      <p>Loading media...</p>
+    </div>
+    } @else if (allMedia().length === 0) {
+    <div class="empty-state">
+      <mat-icon>photo_library</mat-icon>
+      <h2>No images uploaded yet</h2>
+      <p>Click "Upload Images" to add your first image</p>
+      <button mat-raised-button color="primary" (click)="fileInput.click()">
+        <mat-icon>cloud_upload</mat-icon>
+        Upload Images
+      </button>
+    </div>
+    } @else {
+    <div class="media-grid">
+      @for (media of filteredMedia(); track media.id) {
+      <mat-card class="media-card" [class.selected]="isSelected(media.id)">
+        <!-- Selection Checkbox -->
+        <div class="selection-overlay">
+          <mat-checkbox
+            [checked]="isSelected(media.id)"
+            (change)="toggleSelection(media.id)"
+            (click)="$event.stopPropagation()"
+          ></mat-checkbox>
+        </div>
+
+        <!-- Image -->
+        <div class="media-image-container" (click)="toggleSelection(media.id)">
+          <img [src]="media.url" [alt]="media.fileName" class="media-image" />
+        </div>
+
+        <!-- Media Info -->
+        <mat-card-content class="media-info">
+          <div class="media-name" [matTooltip]="media.fileName">
+            {{ media.fileName }}
+          </div>
+
+          <div class="media-details">
+            <span class="detail-item">
+              <mat-icon>insert_drive_file</mat-icon>
+              {{ formatSize(media.size) }}
+            </span>
+            <span class="detail-item">
+              <mat-icon>schedule</mat-icon>
+              {{ formatDate(media.createdAt) }}
+            </span>
+          </div>
+
+          <div class="product-tag">
+            @if (media.productId) {
+            <mat-chip color="primary">
+              <mat-icon>shopping_bag</mat-icon>
+              {{ getProductName(media.productId) }}
+            </mat-chip>
+            } @else {
+            <mat-chip>
+              <mat-icon>label_off</mat-icon>
+              Unassigned
+            </mat-chip>
+            }
+          </div>
+        </mat-card-content>
+
+        <!-- Actions -->
+        <mat-card-actions class="media-actions">
+          <button mat-icon-button [matTooltip]="'Copy URL'" (click)="copyUrl(media.url)">
+            <mat-icon>content_copy</mat-icon>
+          </button>
+
+          <button
+            mat-icon-button
+            color="warn"
+            [matTooltip]="'Delete'"
+            (click)="deleteMedia(media.id)"
+          >
+            <mat-icon>delete</mat-icon>
+          </button>
+        </mat-card-actions>
+      </mat-card>
+      }
+    </div>
+    }
+  </div>
+</div>

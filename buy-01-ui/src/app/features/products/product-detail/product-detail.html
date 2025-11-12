@@ -1,0 +1,245 @@
+<div class="product-detail-container">
+  <!-- Loading State -->
+  @if (isLoading()) {
+  <div class="loading-container">
+    <mat-spinner diameter="60"></mat-spinner>
+    <p>Loading product details...</p>
+  </div>
+  }
+
+  <!-- Error State -->
+  @if (errorMessage() && !isLoading()) {
+  <div class="error-container">
+    <mat-icon>error_outline</mat-icon>
+    <h2>{{ errorMessage() }}</h2>
+    <p>The product you're looking for could not be found.</p>
+    <button mat-raised-button color="primary" (click)="goBack()">
+      <mat-icon>arrow_back</mat-icon>
+      Back to Products
+    </button>
+  </div>
+  }
+
+  <!-- Product Detail -->
+  @if (product() && !isLoading()) {
+  <div class="product-content">
+    <!-- Back Button -->
+    <button mat-icon-button class="back-button" (click)="goBack()" matTooltip="Back to Products">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+
+    <div class="product-grid">
+      <!-- Image Gallery Section -->
+      <div class="gallery-section">
+        <mat-card class="gallery-card">
+          <!-- Main Image Display -->
+          <div class="main-image-container">
+            @if (hasImages()) {
+            <img
+              [src]="selectedImage()"
+              [alt]="product()!.name"
+              class="main-image clickable"
+              (click)="openImageLightbox(selectedImageIndex())"
+              matTooltip="Click to enlarge"
+            />
+
+            <!-- Navigation Arrows (if multiple images) -->
+            @if (product()!.imageUrls!.length > 1) {
+            <button
+              mat-icon-button
+              class="nav-button prev-button"
+              (click)="previousImage()"
+              matTooltip="Previous image"
+            >
+              <mat-icon>chevron_left</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              class="nav-button next-button"
+              (click)="nextImage()"
+              matTooltip="Next image"
+            >
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+
+            <!-- Image Counter -->
+            <div class="image-counter">
+              {{ selectedImageIndex() + 1 }} / {{ product()!.imageUrls!.length }}
+            </div>
+            } } @else {
+            <div class="no-image-placeholder">
+              <mat-icon>image</mat-icon>
+              <p>No image available</p>
+            </div>
+            }
+          </div>
+
+          <!-- Thumbnail Gallery -->
+          @if (product()!.imageUrls && product()!.imageUrls!.length > 1) {
+          <div class="thumbnail-gallery">
+            @for (imageUrl of product()!.imageUrls; track imageUrl; let i = $index) {
+            <div
+              class="thumbnail"
+              [class.active]="i === selectedImageIndex()"
+              (click)="selectImage(i)"
+              matTooltip="Click to select or enlarge"
+            >
+              <img
+                [src]="imageUrl"
+                [alt]="'Thumbnail ' + (i + 1)"
+                (click)="openImageLightbox(i); $event.stopPropagation()"
+              />
+            </div>
+            }
+          </div>
+          }
+        </mat-card>
+      </div>
+
+      <!-- Product Info Section -->
+      <div class="info-section">
+        <mat-card class="info-card">
+          <mat-card-header>
+            <mat-card-title>
+              <h1>{{ product()!.name }}</h1>
+            </mat-card-title>
+            <mat-card-subtitle>
+              <div class="meta-info">
+                <span>
+                  <mat-icon>schedule</mat-icon>
+                  Listed on {{ formatDate(product()!.createdAt) }}
+                </span>
+                @if (product()!.updatedAt !== product()!.createdAt) {
+                <span>
+                  <mat-icon>update</mat-icon>
+                  Updated {{ formatDate(product()!.updatedAt) }}
+                </span>
+                }
+              </div>
+            </mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content>
+            <!-- Price Section -->
+            <div class="price-section">
+              <div class="price-container">
+                <span class="price-label">Price:</span>
+                <span class="price">€{{ product()!.price.toFixed(2) }}</span>
+              </div>
+              @if (quantity() > 1) {
+              <div class="total-price">
+                <span class="total-label">Total:</span>
+                <span class="total">€{{ totalPrice().toFixed(2) }}</span>
+              </div>
+              }
+            </div>
+
+            <mat-divider></mat-divider>
+
+            <!-- Description -->
+            <div class="description-section">
+              <h3>
+                <mat-icon>description</mat-icon>
+                Description
+              </h3>
+              <p class="description">{{ product()!.description }}</p>
+            </div>
+
+            <mat-divider></mat-divider>
+
+            <!-- Seller Information -->
+            <div class="seller-section">
+              <h3>
+                <mat-icon>store</mat-icon>
+                Seller Information
+              </h3>
+              <div class="seller-info">
+                @if (seller()) {
+                <mat-chip color="primary">
+                  <mat-icon>person</mat-icon>
+                  {{ seller()!.name }}
+                </mat-chip>
+                } @else {
+                <mat-chip color="primary">
+                  <mat-icon>person</mat-icon>
+                  Seller ID: {{ product()!.sellerId }}
+                </mat-chip>
+                } @if (isOwnProduct()) {
+                <mat-chip color="accent">
+                  <mat-icon>verified</mat-icon>
+                  Your Product
+                </mat-chip>
+                }
+              </div>
+            </div>
+
+            <mat-divider></mat-divider>
+
+            <!-- Quantity Selector (for buyers) -->
+            @if (!isOwnProduct()) {
+            <div class="quantity-section">
+              <h3>
+                <mat-icon>shopping_cart</mat-icon>
+                Quantity
+              </h3>
+              <div class="quantity-controls">
+                <button mat-icon-button (click)="decreaseQuantity()" [disabled]="quantity() === 1">
+                  <mat-icon>remove</mat-icon>
+                </button>
+                <span class="quantity-value">{{ quantity() }}</span>
+                <button mat-icon-button (click)="increaseQuantity()">
+                  <mat-icon>add</mat-icon>
+                </button>
+              </div>
+            </div>
+            }
+          </mat-card-content>
+
+          <mat-card-actions class="action-buttons">
+            @if (isOwnProduct()) {
+            <!-- Seller Actions -->
+            <button mat-raised-button color="primary" (click)="editProduct()" class="full-width">
+              <mat-icon>edit</mat-icon>
+              Edit Product
+            </button>
+            } @else {
+            <!-- Buyer Actions -->
+            <button mat-raised-button color="primary" (click)="addToCart()" class="action-button">
+              <mat-icon>add_shopping_cart</mat-icon>
+              Add to Cart
+            </button>
+            <button mat-raised-button color="accent" (click)="buyNow()" class="action-button">
+              <mat-icon>shopping_bag</mat-icon>
+              Buy Now
+            </button>
+            }
+          </mat-card-actions>
+        </mat-card>
+
+        <!-- Additional Info Card -->
+        <mat-card class="additional-info-card">
+          <mat-card-content>
+            <h3>Product Details</h3>
+            <div class="detail-row">
+              <span class="detail-label">Product ID:</span>
+              <span class="detail-value">{{ product()!.id }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Total Images:</span>
+              <span class="detail-value">{{ product()!.imageUrls?.length || 0 }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Category:</span>
+              <span class="detail-value">General</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Availability:</span>
+              <mat-chip color="accent">In Stock</mat-chip>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+  </div>
+  }
+</div>

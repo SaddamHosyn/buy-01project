@@ -1,0 +1,117 @@
+/* You can add global styles to this file, and also import other style files */
+
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+/* ====================================
+   NOTIFICATION SNACKBAR STYLES
+   ==================================== */
+
+/* Success Snackbar (Green) */
+.success-snackbar {
+  --mdc-snackbar-container-color: #4caf50 !important;
+  --mdc-snackbar-supporting-text-color: #ffffff !important;
+  --mat-snack-bar-button-color: #ffffff !important;
+}
+
+.success-snackbar .mat-mdc-snack-bar-label {
+  color: white !important;
+}
+
+.success-snackbar .mat-mdc-button {
+  color: white !important;
+}
+
+/* Error Snackbar (Red) */
+.error-snackbar {
+  --mdc-snackbar-container-color: #f44336 !important;
+  --mdc-snackbar-supporting-text-color: #ffffff !important;
+  --mat-snack-bar-button-color: #ffffff !important;
+}
+
+.error-snackbar .mat-mdc-snack-bar-label {
+  color: white !important;
+}
+
+.error-snackbar .mat-mdc-button {
+  color: white !important;
+}
+
+/* Warning Snackbar (Orange) */
+.warning-snackbar {
+  --mdc-snackbar-container-color: #ff9800 !important;
+  --mdc-snackbar-supporting-text-color: #ffffff !important;
+  --mat-snack-bar-button-color: #ffffff !important;
+}
+
+.warning-snackbar .mat-mdc-snack-bar-label {
+  color: white !important;
+}
+
+.warning-snackbar .mat-mdc-button {
+  color: white !important;
+}
+
+/* Info Snackbar (Blue) */
+.info-snackbar {
+  --mdc-snackbar-container-color: #2196f3 !important;
+  --mdc-snackbar-supporting-text-color: #ffffff !important;
+  --mat-snack-bar-button-color: #ffffff !important;
+}
+
+.info-snackbar .mat-mdc-snack-bar-label {
+  color: white !important;
+}
+
+.info-snackbar .mat-mdc-button {
+  color: white !important;
+}
+
+/* Snackbar positioning and animations */
+.mat-mdc-snack-bar-container {
+  margin: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+}
+
+/* Smooth animations */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* ====================================
+   IMAGE LIGHTBOX DIALOG STYLES
+   ==================================== */
+
+/* Remove default dialog padding and set full-screen black background */
+.lightbox-dialog .mat-mdc-dialog-container {
+  padding: 0 !important;
+  background: #000 !important;
+  overflow: hidden !important;
+  border-radius: 0 !important;
+}
+
+/* Ensure dialog content takes full space */
+.lightbox-dialog .mat-mdc-dialog-surface {
+  background: transparent !important;
+  box-shadow: none !important;
+}

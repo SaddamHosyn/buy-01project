@@ -1,0 +1,253 @@
+<div class="profile-container">
+  <mat-card class="profile-card">
+    <div class="header-with-back">
+      <button mat-icon-button (click)="goBack()" matTooltip="Go Back" class="back-button">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <mat-card-header>
+        <mat-card-title>My Profile</mat-card-title>
+        <mat-card-subtitle>Manage your profile and account settings</mat-card-subtitle>
+      </mat-card-header>
+    </div>
+
+    <mat-card-content>
+      <mat-tab-group>
+        <!-- Profile Information Tab -->
+        <mat-tab label="Profile Information">
+          <div class="tab-content">
+            <!-- Avatar Section -->
+            <div class="avatar-section">
+              @if (displayAvatar()) {
+              <div class="avatar-container">
+                <img [src]="displayAvatar()" alt="Profile avatar" class="profile-avatar" />
+                <button
+                  mat-mini-fab
+                  color="warn"
+                  type="button"
+                  (click)="removeAvatar()"
+                  class="remove-avatar-btn"
+                  matTooltip="Remove avatar"
+                >
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+              } @else {
+              <div class="no-avatar">
+                <mat-icon>account_circle</mat-icon>
+                <p>No avatar set</p>
+              </div>
+              }
+
+              <!-- Upload Button -->
+              <div class="upload-section">
+                <input
+                  #avatarInput
+                  type="file"
+                  accept="image/*"
+                  (change)="onFileSelected($event)"
+                  hidden
+                />
+                <button
+                  mat-stroked-button
+                  color="primary"
+                  type="button"
+                  (click)="avatarInput.click()"
+                >
+                  <mat-icon>cloud_upload</mat-icon>
+                  {{ displayAvatar() ? 'Change Avatar' : 'Upload Avatar' }}
+                </button>
+                <p class="upload-hint">Max 2MB • JPEG, PNG, WebP</p>
+              </div>
+
+              <!-- Upload Error -->
+              @if (uploadError()) {
+              <div class="upload-error">
+                <mat-icon>error</mat-icon>
+                {{ uploadError() }}
+              </div>
+              }
+            </div>
+
+            <mat-divider class="section-divider"></mat-divider>
+
+            <!-- Profile Form -->
+            <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="profile-form">
+              <!-- Name Field -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Full Name</mat-label>
+                <input matInput type="text" formControlName="name" />
+                <mat-icon matPrefix>person</mat-icon>
+                @if (profileForm.get('name')?.invalid && profileForm.get('name')?.touched) {
+                <mat-error>{{ getErrorMessage('name') }}</mat-error>
+                }
+              </mat-form-field>
+
+              <!-- Email Field -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Email</mat-label>
+                <input matInput type="email" formControlName="email" />
+                <mat-icon matPrefix>email</mat-icon>
+                @if (profileForm.get('email')?.invalid && profileForm.get('email')?.touched) {
+                <mat-error>{{ getErrorMessage('email') }}</mat-error>
+                }
+              </mat-form-field>
+
+              <!-- Role Display -->
+              <div class="role-display">
+                <mat-icon>{{
+                  currentUser()?.role === 'SELLER' ? 'store' : 'shopping_cart'
+                }}</mat-icon>
+                <span>{{ currentUser()?.role }}</span>
+              </div>
+
+              <!-- Submit Button -->
+              <button
+                mat-raised-button
+                color="primary"
+                type="submit"
+                class="full-width submit-btn"
+                [disabled]="isLoading() || profileForm.invalid"
+              >
+                @if (isLoading()) {
+                <mat-spinner diameter="20"></mat-spinner>
+                <span>Saving...</span>
+                } @else {
+                <ng-container>
+                  <mat-icon>save</mat-icon>
+                  <span>Save Changes</span>
+                </ng-container>
+                }
+              </button>
+            </form>
+          </div>
+        </mat-tab>
+
+        <!-- Security Tab -->
+        <mat-tab label="Security">
+          <div class="tab-content">
+            <!-- Change Password Section -->
+            <div class="security-section">
+              <div class="section-header">
+                <div>
+                  <h3>Change Password</h3>
+                  <p>Update your password to keep your account secure</p>
+                </div>
+                <button mat-icon-button (click)="togglePasswordFields()">
+                  <mat-icon>{{ showPasswordFields() ? 'expand_less' : 'expand_more' }}</mat-icon>
+                </button>
+              </div>
+
+              @if (showPasswordFields()) {
+              <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="password-form">
+                <!-- Current Password -->
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Current Password</mat-label>
+                  <input matInput type="password" formControlName="currentPassword" />
+                  <mat-icon matPrefix>lock</mat-icon>
+                  @if (passwordForm.get('currentPassword')?.invalid &&
+                  passwordForm.get('currentPassword')?.touched) {
+                  <mat-error>{{ getErrorMessage('currentPassword') }}</mat-error>
+                  }
+                </mat-form-field>
+
+                <!-- New Password -->
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>New Password</mat-label>
+                  <input matInput type="password" formControlName="newPassword" />
+                  <mat-icon matPrefix>lock_outline</mat-icon>
+                  @if (passwordForm.get('newPassword')?.invalid &&
+                  passwordForm.get('newPassword')?.touched) {
+                  <mat-error>{{ getErrorMessage('newPassword') }}</mat-error>
+                  }
+                </mat-form-field>
+
+                <!-- Confirm Password -->
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Confirm New Password</mat-label>
+                  <input matInput type="password" formControlName="confirmPassword" />
+                  <mat-icon matPrefix>lock_outline</mat-icon>
+                  @if (passwordForm.get('confirmPassword')?.invalid &&
+                  passwordForm.get('confirmPassword')?.touched) {
+                  <mat-error>{{ getErrorMessage('confirmPassword') }}</mat-error>
+                  } @if (passwordForm.hasError('passwordMismatch') &&
+                  passwordForm.get('confirmPassword')?.touched) {
+                  <mat-error>Passwords do not match</mat-error>
+                  }
+                </mat-form-field>
+
+                <button
+                  mat-raised-button
+                  color="primary"
+                  type="submit"
+                  class="full-width"
+                  [disabled]="isLoading() || passwordForm.invalid"
+                >
+                  <mat-icon>vpn_key</mat-icon>
+                  Update Password
+                </button>
+              </form>
+              }
+            </div>
+
+            <mat-divider class="section-divider"></mat-divider>
+
+            <!-- Change Email Section -->
+            <div class="security-section">
+              <div class="section-header">
+                <div>
+                  <h3>Change Email</h3>
+                  <p>Update your email address for account notifications</p>
+                </div>
+                <button mat-icon-button (click)="toggleEmailFields()">
+                  <mat-icon>{{ showEmailFields() ? 'expand_less' : 'expand_more' }}</mat-icon>
+                </button>
+              </div>
+
+              @if (showEmailFields()) {
+              <form [formGroup]="emailForm" (ngSubmit)="changeEmail()" class="email-form">
+                <!-- Current Email Display -->
+                <div class="current-email">
+                  <mat-icon>email</mat-icon>
+                  <span>Current: {{ currentUser()?.email }}</span>
+                </div>
+
+                <!-- New Email -->
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>New Email Address</mat-label>
+                  <input matInput type="email" formControlName="newEmail" />
+                  <mat-icon matPrefix>alternate_email</mat-icon>
+                  @if (emailForm.get('newEmail')?.invalid && emailForm.get('newEmail')?.touched) {
+                  <mat-error>{{ getErrorMessage('newEmail') }}</mat-error>
+                  }
+                </mat-form-field>
+
+                <!-- Password Confirmation -->
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Confirm Password</mat-label>
+                  <input matInput type="password" formControlName="password" />
+                  <mat-icon matPrefix>lock</mat-icon>
+                  <mat-hint>Enter your password to confirm this change</mat-hint>
+                  @if (emailForm.get('password')?.invalid && emailForm.get('password')?.touched) {
+                  <mat-error>Password is required</mat-error>
+                  }
+                </mat-form-field>
+
+                <button
+                  mat-raised-button
+                  color="primary"
+                  type="submit"
+                  class="full-width"
+                  [disabled]="isLoading() || emailForm.invalid"
+                >
+                  <mat-icon>email</mat-icon>
+                  Update Email
+                </button>
+              </form>
+              }
+            </div>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </mat-card-content>
+  </mat-card>
+</div>

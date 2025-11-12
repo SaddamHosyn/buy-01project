@@ -1,0 +1,159 @@
+<div class="register-container">
+  <mat-card class="register-card">
+    <mat-card-header>
+      <mat-card-title>Create Account</mat-card-title>
+      <mat-card-subtitle>Join our marketplace today</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+        <!-- Name Field -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Full Name</mat-label>
+          <input matInput type="text" formControlName="name" placeholder="Enter your name" />
+          @if (registerForm.get('name')?.invalid && registerForm.get('name')?.touched) {
+          <mat-error>{{ getErrorMessage('name') }}</mat-error>
+          }
+        </mat-form-field>
+
+        <!-- Email Field -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Email</mat-label>
+          <input
+            matInput
+            type="email"
+            formControlName="email"
+            placeholder="Enter your email"
+            autocomplete="email"
+          />
+          @if (registerForm.get('email')?.invalid && registerForm.get('email')?.touched) {
+          <mat-error>{{ getErrorMessage('email') }}</mat-error>
+          }
+        </mat-form-field>
+
+        <!-- Password Field -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Password</mat-label>
+          <input
+            matInput
+            type="password"
+            formControlName="password"
+            placeholder="Choose a password"
+            autocomplete="new-password"
+          />
+          @if (registerForm.get('password')?.invalid && registerForm.get('password')?.touched) {
+          <mat-error>{{ getErrorMessage('password') }}</mat-error>
+          }
+        </mat-form-field>
+
+        <!-- Confirm Password Field -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Confirm Password</mat-label>
+          <input
+            matInput
+            type="password"
+            formControlName="confirmPassword"
+            placeholder="Confirm your password"
+            autocomplete="new-password"
+          />
+          @if (registerForm.get('confirmPassword')?.invalid &&
+          registerForm.get('confirmPassword')?.touched) {
+          <mat-error>{{ getErrorMessage('confirmPassword') }}</mat-error>
+          }
+        </mat-form-field>
+
+        <!-- Role Selection -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>I want to</mat-label>
+          <mat-select formControlName="role">
+            <mat-option value="CLIENT">Buy Products (Client)</mat-option>
+            <mat-option value="SELLER">Sell Products (Seller)</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <!-- Avatar Upload (Sellers Only) -->
+        @if (showAvatarUpload()) {
+        <div class="avatar-upload-section">
+          <h3>Profile Picture (Optional)</h3>
+
+          @if (!imagePreview()) {
+          <!-- File Input -->
+          <div class="file-input-wrapper">
+            <input
+              #avatarInput
+              type="file"
+              id="avatarInput"
+              accept="image/*"
+              (change)="onFileSelected($event)"
+              hidden
+            />
+            <button
+              mat-stroked-button
+              type="button"
+              color="primary"
+              (click)="avatarInput.click()"
+              class="upload-btn"
+            >
+              <mat-icon>cloud_upload</mat-icon>
+              Upload Avatar
+            </button>
+            <p class="upload-hint">Max 2MB • JPEG, PNG, GIF, WebP</p>
+          </div>
+          } @else {
+          <!-- Image Preview -->
+          <div class="image-preview-container">
+            <img [src]="imagePreview()" alt="Avatar preview" class="avatar-preview" />
+            <button
+              mat-icon-button
+              type="button"
+              color="warn"
+              (click)="removeAvatar()"
+              class="remove-btn"
+              matTooltip="Remove avatar"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+          }
+
+          <!-- Upload Error -->
+          @if (uploadError()) {
+          <div class="upload-error">
+            <mat-icon>error</mat-icon>
+            {{ uploadError() }}
+          </div>
+          }
+        </div>
+        }
+
+        <!-- Error Message -->
+        @if (errorMessage()) {
+        <div class="error-message">
+          {{ errorMessage() }}
+        </div>
+        }
+
+        <!-- Submit Button -->
+        <button
+          mat-raised-button
+          color="primary"
+          type="submit"
+          class="full-width submit-btn"
+          [disabled]="isLoading()"
+        >
+          @if (isLoading()) {
+          <mat-spinner diameter="20"></mat-spinner>
+          <span>Creating account...</span>
+          } @else {
+          <span>Create Account</span>
+          }
+        </button>
+      </form>
+
+      <!-- Login Link -->
+      <div class="login-link">
+        <p>Already have an account? <a routerLink="/auth/login">Login here</a></p>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
