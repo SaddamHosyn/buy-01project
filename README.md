@@ -415,6 +415,81 @@ Once all services are running via `./start_app.sh`, you can use `curl` (or Postm
 
 ---
 
+## Running in Docker
+
+This repository includes a Docker Compose setup for local development. Use the compose stack when you want an isolated environment for MongoDB, Zookeeper, Kafka and the microservices.
+
+Start the full Docker Compose stack (builds images if necessary):
+
+```bash
+./start_docker.sh
+```
+
+Tail logs for a single service (replace <service> with `product-service`, `user-service`, `api-gateway`, etc.):
+
+```bash
+docker compose logs -f <service>
+```
+
+Or just show the last 10 lines:
+
+```bash
+docker compose logs --tail=10 product-service             
+docker compose logs --tail=10 kafka
+```
+
+
+Stop only the Docker Compose stack (safe):
+
+```bash
+./shutdown_all.sh
+```
+
+Stop and also remove local images and volumes (destructive):
+
+```bash
+./shutdown_all.sh --cleanup
+```
+
+Notes:
+- If you previously used `start_app.sh`/`stop_app.sh` to run services as host processes, those scripts manage JVM PIDs under `.pids`. `shutdown_all.sh` only affects the Docker Compose stack and will not kill JVM processes started by `start_app.sh`.
+- If ports are already in use on your machine (e.g., host Zookeeper or Kafka), stop the host services (e.g. `brew services stop zookeeper kafka`) or remap the ports in `docker-compose.yml`.
+
+## Kafka — implementation and how to inspect topics/messages
+
+Overview:
+- Kafka is used for domain events such as product deletion. In `product-service` a `KafkaTemplate<String,String>` is used to publish events to the `product.deleted` topic. The service currently publishes the product id (string) as the message payload and logs deletion events.
+
+How Kafka is configured (local dev):
+- Kafka runs in the compose stack (image: `confluentinc/cp-kafka`) and is wired to Zookeeper in the same compose network.
+- The broker is configured to listen on `0.0.0.0:9092` inside the container and advertised as `kafka:9092` for container-to-container communication.
+
+Inspect topics and messages (recommended commands to run from your host):
+
+### List topics from inside the kafka container
+```bash
+docker exec -it buy-01-kafka-1 /bin/bash -c \
+  "/usr/bin/kafka-topics --bootstrap-server localhost:9092 --list"
+```
+
+### Consume messages from `product.deleted` (prints headers too)
+```bash
+docker exec -it buy-01-kafka-1 /bin/bash -c \
+  "/usr/bin/kafka-console-consumer --bootstrap-server localhost:9092 --topic product.deleted --from-beginning --property print.headers=true"
+```
+
+### Produce a test message (quick check)
+```bash
+docker exec -it buy-01-kafka-1 /bin/bash -c \
+  "echo 'test-product-id' | /usr/bin/kafka-console-producer --broker-list localhost:9092 --topic product.deleted"
+```
+
+Notes on what you will see:
+- The `kafka-console-consumer` with `--property print.headers=true` prints message headers (if present) alongside the payload. Currently you will likely see only the message payload (product id string).
+- `product-service` publishes a simple string payload (the product id) by default.
+- Correlate messages to logs by searching the product id in the `product-service` logs (the service logs delete operations).
+
+
 ## License
 
 [Add your license information here]
