@@ -1,7 +1,8 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, catchError, of, BehaviorSubject } from 'rxjs';
+import { Observable, tap, catchError, throwError } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 // Modern interface definitions
 export interface User {
@@ -25,9 +26,23 @@ export interface RegisterRequest {
   avatarUrl?: string | null;
 }
 
+// Backend response for login
 export interface AuthResponse {
-  user: User;
   token: string;
+  id: string;
+  email: string;
+  name: string;
+  role: 'SELLER' | 'CLIENT' | 'ADMIN';
+  avatarUrl?: string | null;
+}
+
+// Backend response for registration
+export interface RegisterResponse {
+  id: string;
+  email: string;
+  name: string;
+  role: 'SELLER' | 'CLIENT' | 'ADMIN';
+  avatarUrl?: string | null;
 }
 
 @Injectable({
@@ -53,9 +68,8 @@ export class Auth {
   readonly isClient = computed(() => this.currentUserSignal()?.role === 'CLIENT');
   readonly isAdmin = computed(() => this.currentUserSignal()?.role === 'ADMIN');
   
-  // API URL - JSON Server for development, Spring Boot for production
-  private readonly API_URL = 'http://localhost:3000/api/auth';
-  // When backend is ready, change to: 'http://localhost:8080/api/auth'
+  // API URL from environment configuration
+  private readonly API_URL = environment.authUrl;
   
   constructor() {
     this.loadUserFromStorage();
@@ -82,118 +96,48 @@ export class Auth {
   
   /**
    * Login with email and password
-   * DEVELOPMENT ONLY: Using localStorage simulation
-   * TODO: Replace with real API call when backend is ready
+   * Calls backend API: POST /api/auth/login
    */
   login(credentials: LoginRequest): Observable<AuthResponse> {
     this.loadingSignal.set(true);
     
-    // DEVELOPMENT ONLY: Simulate login without backend
-    return new Observable<AuthResponse>(observer => {
-      setTimeout(() => {
-        // Get registered users from localStorage
-        const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '[]');
-        
-        // Find user by email (we're not checking password in dev mode for simplicity)
-        const user = registeredUsers.find((u: User) => u.email === credentials.email);
-        
-        if (!user) {
-          this.loadingSignal.set(false);
-          observer.error({ error: { message: 'Invalid email or password' } });
-          return;
-        }
-        
-        // Create fake token
-        const fakeToken = `fake_token_${Date.now()}`;
-        
-        const response: AuthResponse = {
-          user: user,
-          token: fakeToken
+    return this.http.post<AuthResponse>(`${this.API_URL}/login`, credentials).pipe(
+      tap((response: AuthResponse) => {
+        // Map backend response to User object
+        const user: User = {
+          id: response.id,
+          email: response.email,
+          name: response.name,
+          role: response.role,
+          avatarUrl: response.avatarUrl
         };
         
-        this.setAuth(response.user, response.token);
+        this.setAuth(user, response.token);
         this.loadingSignal.set(false);
-        
-        observer.next(response);
-        observer.complete();
-      }, 500); // Simulate network delay
-    });
-    
-    // PRODUCTION: Use real backend API
-    // return this.http.post<AuthResponse>(`${this.API_URL}/login`, credentials).pipe(
-    //   tap(response => {
-    //     this.setAuth(response.user, response.token);
-    //     this.loadingSignal.set(false);
-    //   }),
-    //   catchError(error => {
-    //     this.loadingSignal.set(false);
-    //     throw error;
-    //   })
-    // );
+      }),
+      catchError((error: any) => {
+        this.loadingSignal.set(false);
+        return throwError(() => error);
+      })
+    );
   }
   
   /**
    * Register new user
-   * DEVELOPMENT ONLY: Using localStorage simulation
-   * TODO: Replace with real API call when backend is ready
+   * Calls backend API: POST /api/auth/register
    */
-  register(data: RegisterRequest): Observable<AuthResponse> {
+  register(data: RegisterRequest): Observable<RegisterResponse> {
     this.loadingSignal.set(true);
     
-    // DEVELOPMENT ONLY: Simulate registration without backend
-    return new Observable<AuthResponse>(observer => {
-      setTimeout(() => {
-        // Check if email already exists (basic validation)
-        const existingUsers = JSON.parse(localStorage.getItem('registered_users') || '[]');
-        const emailExists = existingUsers.some((u: User) => u.email === data.email);
-        
-        if (emailExists) {
-          this.loadingSignal.set(false);
-          observer.error({ error: { message: 'Email already registered' } });
-          return;
-        }
-        
-        // Create new user
-        const newUser: User = {
-          id: Date.now().toString(), // Simple ID generation
-          email: data.email,
-          name: data.name,
-          role: data.role,
-          avatarUrl: data.avatarUrl || null
-        };
-        
-        // Store in "database" (localStorage)
-        existingUsers.push(newUser);
-        localStorage.setItem('registered_users', JSON.stringify(existingUsers));
-        
-        // Create fake token
-        const fakeToken = `fake_token_${Date.now()}`;
-        
-        const response: AuthResponse = {
-          user: newUser,
-          token: fakeToken
-        };
-        
-        // DON'T automatically log in - let user login manually
-        // this.setAuth(response.user, response.token);
+    return this.http.post<RegisterResponse>(`${this.API_URL}/register`, data).pipe(
+      tap(() => {
         this.loadingSignal.set(false);
-        
-        observer.next(response);
-        observer.complete();
-      }, 500); // Simulate network delay
-    });
-    
-    // PRODUCTION: Use real backend API
-    // return this.http.post<AuthResponse>(`${this.API_URL}/register`, data).pipe(
-    //   tap(response => {
-    //     this.setAuth(response.user, response.token);
-    //     this.loadingSignal.set(false);
-    //   }),
-    //   catchError(error => {
-    //     this.loadingSignal.set(false);
-    //     throw error;
-    //   })
-    // );
+      }),
+      catchError((error: any) => {
+        this.loadingSignal.set(false);
+        return throwError(() => error);
+      })
+    );
   }
   
   /**

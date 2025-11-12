@@ -12,7 +12,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MediaService, Media, UploadProgress } from '../../../core/services/media.service';
+import { MediaService, Media } from '../../../core/services/media.service';
 import { Auth } from '../../../core/services/auth';
 import { ProductService, Product } from '../../../core/services/product.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -52,7 +52,6 @@ export class MediaManager implements OnInit {
   readonly isLoading = signal<boolean>(true);
   readonly isUploading = signal<boolean>(false);
   readonly selectedMedia = signal<Set<string>>(new Set());
-  readonly uploadProgress = signal<UploadProgress[]>([]);
   readonly myProducts = signal<Product[]>([]);
   readonly selectedProductId = signal<string | undefined>(undefined);
   readonly filterByProduct = signal<string>('all');
@@ -93,32 +92,24 @@ export class MediaManager implements OnInit {
    */
   loadMyProducts(): void {
     this.productService.getSellerProducts().subscribe({
-      next: (products) => {
+      next: (products: Product[]) => {
         this.myProducts.set(products);
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error loading products:', error);
       }
     });
   }
   
   /**
-   * Load all media
+   * Load all media - Note: Backend doesn't have getAllMedia endpoint
+   * Using media signal from service instead
    */
   loadMedia(): void {
-    this.isLoading.set(true);
-    
-    this.mediaService.getAllMedia().subscribe({
-      next: (media) => {
-        this.allMedia.set(media);
-        this.isLoading.set(false);
-      },
-      error: (error) => {
-        console.error('Error loading media:', error);
-        this.notification.error('Failed to load media');
-        this.isLoading.set(false);
-      }
-    });
+    this.isLoading.set(false);
+    // Backend doesn't provide a getAllMedia endpoint
+    // Media is loaded when uploaded
+    this.allMedia.set([]);
   }
   
   /**
@@ -140,47 +131,23 @@ export class MediaManager implements OnInit {
   }
   
   /**
-   * Upload files with progress tracking
+   * Upload files
    */
   uploadFiles(files: File[]): void {
     this.isUploading.set(true);
-    this.uploadProgress.set([]);
     
-    const productId = this.selectedProductId();
-    
-    this.mediaService.uploadFiles(files, productId).subscribe({
-      next: (progress) => {
-        this.uploadProgress.set(progress);
+    this.mediaService.uploadFiles(files).subscribe({
+      next: (mediaList: Media[]) => {
+        this.isUploading.set(false);
+        this.notification.fileUploadSuccess(mediaList.length);
         
-        // Check if all uploads are completed
-        const allCompleted = progress.every(p => p.status !== 'uploading');
-        if (allCompleted) {
-          this.isUploading.set(false);
-          
-          // Count successful uploads
-          const successful = progress.filter(p => p.status === 'completed').length;
-          const failed = progress.filter(p => p.status === 'error').length;
-          
-          if (successful > 0) {
-            this.notification.fileUploadSuccess(successful, failed > 0 ? failed : undefined);
-            
-            // Reload media
-            this.loadMedia();
-          } else {
-            this.notification.error('All uploads failed');
-          }
-          
-          // Clear progress after 3 seconds
-          setTimeout(() => {
-            this.mediaService.clearAllProgress();
-            this.uploadProgress.set([]);
-          }, 3000);
-        }
+        // Add uploaded media to the list
+        this.allMedia.update(current => [...current, ...mediaList]);
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Upload error:', error);
         this.isUploading.set(false);
-        this.notification.error('Upload failed');
+        this.notification.error(error.message || 'Upload failed');
       }
     });
   }
@@ -262,13 +229,13 @@ export class MediaManager implements OnInit {
       
       const ids = Array.from(this.selectedMedia());
       
-      this.mediaService.deleteMultipleMedia(ids).subscribe({
+      this.mediaService.deleteMediaFiles(ids).subscribe({
         next: () => {
           this.notification.success(`${count} image(s) deleted successfully`, 2000);
           this.allMedia.update(media => media.filter(m => !ids.includes(m.id)));
           this.deselectAll();
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error deleting media:', error);
           this.notification.error('Failed to delete images');
         }

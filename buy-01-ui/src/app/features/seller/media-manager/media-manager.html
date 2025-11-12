@@ -114,49 +114,6 @@
     </mat-card>
   </div>
 
-  <!-- Upload Progress Section -->
-  @if (uploadProgress().length > 0) {
-  <div class="upload-progress-section">
-    <h3>Upload Progress</h3>
-
-    @for (progress of uploadProgress(); track progress.fileName) {
-    <mat-card class="progress-card">
-      <mat-card-content>
-        <div class="progress-header">
-          <div class="progress-info">
-            <mat-icon
-              [class]="
-                progress.status === 'completed'
-                  ? 'success-icon'
-                  : progress.status === 'error'
-                  ? 'error-icon'
-                  : 'uploading-icon'
-              "
-            >
-              @if (progress.status === 'completed') { check_circle } @else if (progress.status ===
-              'error') { error } @else { cloud_upload }
-            </mat-icon>
-            <span class="file-name">{{ progress.fileName }}</span>
-          </div>
-          <span class="progress-percent">{{ progress.progress }}%</span>
-        </div>
-
-        @if (progress.status === 'uploading') {
-        <mat-progress-bar mode="determinate" [value]="progress.progress"></mat-progress-bar>
-        } @else if (progress.status === 'completed') {
-        <mat-progress-bar mode="determinate" [value]="100" color="accent"></mat-progress-bar>
-        } @else if (progress.status === 'error') {
-        <div class="error-message">
-          <mat-icon>error_outline</mat-icon>
-          {{ progress.error }}
-        </div>
-        }
-      </mat-card-content>
-    </mat-card>
-    }
-  </div>
-  }
-
   <!-- Media Grid -->
   <div class="media-content">
     @if (isLoading()) {
