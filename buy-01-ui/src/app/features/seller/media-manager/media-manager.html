@@ -34,45 +34,7 @@
       Select All
     </button>
     } }
-
-    <button mat-raised-button color="accent" (click)="fileInput.click()" [disabled]="isUploading()">
-      <mat-icon>cloud_upload</mat-icon>
-      Upload Images
-    </button>
-
-    <input
-      #fileInput
-      type="file"
-      multiple
-      accept="image/jpeg,image/jpg,image/png,image/webp"
-      (change)="onFilesSelected($event)"
-      style="display: none"
-    />
   </mat-toolbar>
-
-  <!-- Upload Configuration Bar -->
-  <div class="config-bar">
-    <mat-card class="config-card">
-      <mat-card-content>
-        <mat-form-field appearance="outline" class="product-selector">
-          <mat-label>
-            <mat-icon>link</mat-icon>
-            Link to Product (Optional)
-          </mat-label>
-          <mat-select
-            [value]="selectedProductId()"
-            (selectionChange)="selectedProductId.set($event.value)"
-          >
-            <mat-option [value]="undefined">None - General Media</mat-option>
-            @for (product of myProducts(); track product.id) {
-            <mat-option [value]="product.id">{{ product.name }}</mat-option>
-            }
-          </mat-select>
-          <mat-hint>Images will be associated with selected product</mat-hint>
-        </mat-form-field>
-      </mat-card-content>
-    </mat-card>
-  </div>
 
   <!-- Stats Bar -->
   <div class="stats-bar">
@@ -125,11 +87,7 @@
     <div class="empty-state">
       <mat-icon>photo_library</mat-icon>
       <h2>No images uploaded yet</h2>
-      <p>Click "Upload Images" to add your first image</p>
-      <button mat-raised-button color="primary" (click)="fileInput.click()">
-        <mat-icon>cloud_upload</mat-icon>
-        Upload Images
-      </button>
+      <p>Upload images through the product creation form to see them here</p>
     </div>
     } @else {
     <div class="media-grid">
@@ -146,13 +104,13 @@
 
         <!-- Image -->
         <div class="media-image-container" (click)="toggleSelection(media.id)">
-          <img [src]="media.url" [alt]="media.fileName" class="media-image" />
+          <img [src]="media.url" [alt]="media.originalFilename" class="media-image" />
         </div>
 
         <!-- Media Info -->
         <mat-card-content class="media-info">
-          <div class="media-name" [matTooltip]="media.fileName">
-            {{ media.fileName }}
+          <div class="media-name" [matTooltip]="media.originalFilename">
+            {{ media.originalFilename }}
           </div>
 
           <div class="media-details">

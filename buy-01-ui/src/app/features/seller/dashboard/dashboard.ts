@@ -140,8 +140,15 @@ export class Dashboard implements OnInit {
   /**
    * Format date for display
    */
-  formatDate(dateStr: string): string {
+  formatDate(dateStr: string | undefined): string {
+    if (!dateStr) {
+      return 'N/A';
+    }
     const date = new Date(dateStr);
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
     return date.toLocaleDateString('en-US', { 
       year: 'numeric', 
       month: 'short', 

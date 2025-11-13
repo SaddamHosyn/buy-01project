@@ -9,3 +9,4 @@
 /Users/saddam.hussain/Desktop/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/model/Media.java
 /Users/saddam.hussain/Desktop/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/controller/MediaController.java
 /Users/saddam.hussain/Desktop/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/model/Role.java
+/Users/saddam.hussain/Desktop/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/config/MongoConfig.java

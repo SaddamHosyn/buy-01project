@@ -2,6 +2,7 @@ ax/gritlab/buy_01/media/model/User$UserBuilder.class
 ax/gritlab/buy_01/media/repository/MediaRepository.class
 ax/gritlab/buy_01/media/model/Role.class
 ax/gritlab/buy_01/media/service/MediaService.class
+ax/gritlab/buy_01/media/config/MongoConfig.class
 ax/gritlab/buy_01/media/config/StorageProperties.class
 ax/gritlab/buy_01/media/MediaServiceApplication.class
 ax/gritlab/buy_01/media/service/JwtService.class

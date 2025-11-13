@@ -12,12 +12,22 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/media")
 @RequiredArgsConstructor
 public class MediaController {
 
     private final MediaService mediaService;
+
+    @GetMapping("/images")
+    @PreAuthorize("hasAuthority('SELLER')")
+    public ResponseEntity<List<Media>> getAllUserMedia(Authentication authentication) {
+        String userId = ((User) authentication.getPrincipal()).getId();
+        List<Media> mediaList = mediaService.findAllByUserId(userId);
+        return ResponseEntity.ok(mediaList);
+    }
 
     @PostMapping("/images")
     @PreAuthorize("hasAuthority('SELLER')")
@@ -41,5 +51,11 @@ public class MediaController {
         String userId = ((User) authentication.getPrincipal()).getId();
         mediaService.delete(id, (User) authentication.getPrincipal());
         return ResponseEntity.noContent().build();
+    }
+    
+    @PutMapping("/images/{id}/product/{productId}")
+    public ResponseEntity<Media> associateWithProduct(@PathVariable String id, @PathVariable String productId, @RequestParam String userId) {
+        Media updatedMedia = mediaService.associateWithProduct(id, productId, userId);
+        return ResponseEntity.ok(updatedMedia);
     }
 }

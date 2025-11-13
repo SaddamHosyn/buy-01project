@@ -12,6 +12,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { forkJoin } from 'rxjs';
 import { MediaService, Media } from '../../../core/services/media.service';
 import { Auth } from '../../../core/services/auth';
 import { ProductService, Product } from '../../../core/services/product.service';
@@ -106,10 +107,18 @@ export class MediaManager implements OnInit {
    * Using media signal from service instead
    */
   loadMedia(): void {
-    this.isLoading.set(false);
-    // Backend doesn't provide a getAllMedia endpoint
-    // Media is loaded when uploaded
-    this.allMedia.set([]);
+    this.isLoading.set(true);
+    this.mediaService.getAllMedia().subscribe({
+      next: (media: Media[]) => {
+        this.allMedia.set(media);
+        this.isLoading.set(false);
+      },
+      error: (error: any) => {
+        console.error('Error loading media:', error);
+        this.isLoading.set(false);
+        this.notification.error('Failed to load media');
+      }
+    });
   }
   
   /**
@@ -138,16 +147,63 @@ export class MediaManager implements OnInit {
     
     this.mediaService.uploadFiles(files).subscribe({
       next: (mediaList: Media[]) => {
-        this.isUploading.set(false);
-        this.notification.fileUploadSuccess(mediaList.length);
+        const productId = this.selectedProductId();
         
-        // Add uploaded media to the list
-        this.allMedia.update(current => [...current, ...mediaList]);
+        // If a product is selected, associate the uploaded media with it
+        if (productId) {
+          this.associateMediaWithProduct(productId, mediaList);
+        } else {
+          this.isUploading.set(false);
+          this.notification.fileUploadSuccess(mediaList.length);
+          
+          // Add uploaded media to the list
+          this.allMedia.update(current => [...current, ...mediaList]);
+        }
       },
       error: (error: any) => {
         console.error('Upload error:', error);
         this.isUploading.set(false);
         this.notification.error(error.message || 'Upload failed');
+      }
+    });
+  }
+  
+  /**
+   * Associate uploaded media with a product
+   */
+  private associateMediaWithProduct(productId: string, mediaList: Media[]): void {
+    const mediaIds = mediaList.map(m => m.id);
+    
+    // Create an array of observables for parallel requests
+    const associationRequests = mediaIds.map(mediaId =>
+      this.productService.associateMedia(productId, mediaId)
+    );
+    
+    forkJoin(associationRequests).subscribe({
+      next: () => {
+        this.isUploading.set(false);
+        this.notification.success(
+          `${mediaList.length} image(s) uploaded and linked to product`,
+          3000
+        );
+        
+        // Update the media list with productId
+        const updatedMedia = mediaList.map(m => ({...m, productId}));
+        this.allMedia.update(current => [...current, ...updatedMedia]);
+        
+        // Reset product selection
+        this.selectedProductId.set(undefined);
+      },
+      error: (error: any) => {
+        console.error('Error associating media:', error);
+        this.isUploading.set(false);
+        
+        // Still add the uploaded media, but show a warning
+        this.allMedia.update(current => [...current, ...mediaList]);
+        this.notification.warning(
+          `Images uploaded but failed to link to product: ${error.message}`,
+          4000
+        );
       }
     });
   }

@@ -11,11 +11,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { ProductService, Product } from '../../../core/services/product.service';
+import { ProductService, Product, ProductRequest } from '../../../core/services/product.service';
+import { MediaService, Media } from '../../../core/services/media.service';
 import { Auth } from '../../../core/services/auth';
 import { priceValidator, getValidationMessage } from '../../../core/validators/form.validators';
 import { validateFile, validateFiles, ValidationPresets } from '../../../core/validators/file-upload.validator';
 import { DialogService } from '../../../shared/services/dialog.service';
+import { forkJoin } from 'rxjs';
 
 @Component({
   selector: 'app-product-form',
@@ -40,6 +42,7 @@ import { DialogService } from '../../../shared/services/dialog.service';
 export class ProductForm implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly productService = inject(ProductService);
+  private readonly mediaService = inject(MediaService);
   private readonly authService = inject(Auth);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -215,22 +218,78 @@ export class ProductForm implements OnInit {
    * Create new product
    */
   private createProduct(productData: Partial<Product>): void {
-    // Add timestamps and generate temporary ID
-    const now = new Date().toISOString();
-    const newProduct: Product = {
-      id: Date.now().toString(), // Temporary ID (JSON Server will assign proper ID)
+    // First, upload any new images to the media service
+    const selectedFiles = this.selectedImages();
+    
+    if (selectedFiles.length > 0) {
+      // Upload files first, then create product with media IDs
+      this.mediaService.uploadFiles(selectedFiles).subscribe({
+        next: (mediaList) => {
+          // Get media IDs from uploaded files
+          const mediaIds = mediaList.map(m => m.id);
+          
+          // Create product with media IDs
+          this.createProductWithMedia(productData, mediaIds);
+        },
+        error: (error) => {
+          console.error('Error uploading images:', error);
+          this.errorMessage.set('Failed to upload images. Please try again.');
+          this.isSaving.set(false);
+        }
+      });
+    } else {
+      // No images to upload, create product directly
+      this.createProductWithMedia(productData, []);
+    }
+  }
+  
+  /**
+   * Create product with media IDs
+   */
+  private createProductWithMedia(productData: Partial<Product>, mediaIds: string[]): void {
+    const productRequest: ProductRequest = {
       name: productData.name!,
       description: productData.description!,
       price: productData.price!,
-      sellerId: productData.sellerId!,
-      imageUrls: productData.imageUrls || [],
-      createdAt: now,
-      updatedAt: now
+      quantity: 10 // Default quantity
     };
     
-    this.productService.createProduct(newProduct).subscribe({
+    this.productService.createProduct(productRequest).subscribe({
       next: (product) => {
-        this.successMessage.set('Product created successfully!');
+        // Associate media with the product if there are any
+        if (mediaIds.length > 0) {
+          this.associateMediaWithProduct(product.id, mediaIds);
+        } else {
+          this.successMessage.set('Product created successfully!');
+          this.isSaving.set(false);
+          
+          // Redirect to dashboard after 1 second
+          setTimeout(() => {
+            this.router.navigate(['/seller/dashboard']);
+          }, 1000);
+        }
+      },
+      error: (error) => {
+        console.error('Error creating product:', error);
+        this.errorMessage.set('Failed to create product. Please try again.');
+        this.isSaving.set(false);
+      }
+    });
+  }
+  
+  /**
+   * Associate media files with product
+   */
+  private associateMediaWithProduct(productId: string, mediaIds: string[]): void {
+    // Associate each media with the product
+    const associations = mediaIds.map(mediaId => 
+      this.productService.associateMedia(productId, mediaId)
+    );
+    
+    // Wait for all associations to complete
+    forkJoin(associations).subscribe({
+      next: () => {
+        this.successMessage.set('Product created successfully with images!');
         this.isSaving.set(false);
         
         // Redirect to dashboard after 1 second
@@ -239,8 +298,8 @@ export class ProductForm implements OnInit {
         }, 1000);
       },
       error: (error) => {
-        console.error('Error creating product:', error);
-        this.errorMessage.set('Failed to create product. Please try again.');
+        console.error('Error associating media:', error);
+        this.errorMessage.set('Product created but failed to associate images.');
         this.isSaving.set(false);
       }
     });

@@ -1,40 +1,61 @@
 package ax.gritlab.buy_01.product.service;
 
 import ax.gritlab.buy_01.product.dto.ProductRequest;
+import ax.gritlab.buy_01.product.dto.ProductResponse;
 import ax.gritlab.buy_01.product.model.Product;
 import ax.gritlab.buy_01.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final RestTemplate restTemplate;
 
-    public List<Product> getAllProducts() {
-        return productRepository.findAll();
+    @Value("${media.service.url:http://localhost:8080/api/media}")
+    private String mediaServiceUrl;
+
+    public List<ProductResponse> getAllProducts() {
+        return productRepository.findAll().stream()
+                .map(this::toProductResponse)
+                .collect(Collectors.toList());
     }
 
-    public Product getProductById(String id) {
-        return productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));
+    public ProductResponse getProductById(String id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+        return toProductResponse(product);
     }
 
-    public Product createProduct(ProductRequest request, String userId) {
+    public ProductResponse createProduct(ProductRequest request, String userId) {
+        LocalDateTime now = LocalDateTime.now();
         Product product = Product.builder()
                 .name(request.getName())
                 .description(request.getDescription())
                 .price(request.getPrice())
                 .quantity(request.getQuantity())
                 .userId(userId)
+                .createdAt(now)
+                .updatedAt(now)
                 .build();
-        return productRepository.save(product);
+        Product saved = productRepository.save(product);
+        return toProductResponse(saved);
     }
 
-    public Product updateProduct(String id, ProductRequest request, String userId) {
-        Product product = getProductById(id);
+    public ProductResponse updateProduct(String id, ProductRequest request, String userId) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
         if (!product.getUserId().equals(userId)) {
             throw new RuntimeException("User does not have permission to update this product");
         }
@@ -42,25 +63,61 @@ public class ProductService {
         product.setDescription(request.getDescription());
         product.setPrice(request.getPrice());
         product.setQuantity(request.getQuantity());
-        return productRepository.save(product);
+        product.setUpdatedAt(LocalDateTime.now());
+        Product saved = productRepository.save(product);
+        return toProductResponse(saved);
     }
 
     public void deleteProduct(String id, String userId) {
-        Product product = getProductById(id);
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
         if (!product.getUserId().equals(userId)) {
             throw new RuntimeException("User does not have permission to delete this product");
         }
         productRepository.delete(product);
     }
 
-    public Product associateMedia(String productId, String mediaId, String userId) {
-        Product product = getProductById(productId);
+    public ProductResponse associateMedia(String productId, String mediaId, String userId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
         if (!product.getUserId().equals(userId)) {
             throw new RuntimeException("User does not have permission to modify this product");
         }
-        // In a real microservice, we might call the media-service to validate the mediaId
-        // For now, we trust the ID provided by the authenticated user.
         product.getMediaIds().add(mediaId);
-        return productRepository.save(product);
+        Product saved = productRepository.save(product);
+        
+        // Call Media Service to update the productId in the media record
+        try {
+            String url = mediaServiceUrl + "/images/" + mediaId + "/product/" + productId + "?userId=" + userId;
+            restTemplate.put(url, null);
+        } catch (Exception e) {
+            // Log the error but don't fail the product update
+            System.err.println("Failed to update media productId: " + e.getMessage());
+        }
+        
+        return toProductResponse(saved);
+    }
+
+    /**
+     * Convert Product entity to ProductResponse DTO with imageUrls
+     */
+    private ProductResponse toProductResponse(Product product) {
+        // Convert mediaIds to image URLs
+        List<String> imageUrls = product.getMediaIds().stream()
+                .map(mediaId -> mediaServiceUrl + "/images/" + mediaId)
+                .collect(Collectors.toList());
+
+        return ProductResponse.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .description(product.getDescription())
+                .price(product.getPrice())
+                .stock(product.getQuantity())
+                .sellerId(product.getUserId())
+                .mediaIds(product.getMediaIds())
+                .imageUrls(imageUrls)
+                .createdAt(product.getCreatedAt() != null ? product.getCreatedAt().toString() : null)
+                .updatedAt(product.getUpdatedAt() != null ? product.getUpdatedAt().toString() : null)
+                .build();
     }
 }

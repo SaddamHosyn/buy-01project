@@ -6,12 +6,13 @@ import { environment } from '../../../environments/environment';
 export interface Media {
   id: string;
   url: string;
-  fileName: string;
+  originalFilename: string;
   size: number;
   contentType: string;
-  sellerId?: string;
+  userId?: string;
   productId?: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 @Injectable({

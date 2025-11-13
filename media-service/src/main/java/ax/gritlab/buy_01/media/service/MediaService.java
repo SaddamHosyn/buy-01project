@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,6 +20,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -31,6 +34,9 @@ public class MediaService {
     private final MediaRepository mediaRepository;
     private final StorageProperties storageProperties;
     private Path rootLocation;
+    
+    @Value("${api.gateway.url:http://localhost:8080/api/media}")
+    private String apiGatewayUrl;
 
     @Getter
     @RequiredArgsConstructor
@@ -77,15 +83,23 @@ public class MediaService {
                 Files.copy(inputStream, destinationFile, StandardCopyOption.REPLACE_EXISTING);
             }
 
+            LocalDateTime now = LocalDateTime.now();
+            
             Media media = Media.builder()
                     .originalFilename(originalFilename)
                     .contentType(file.getContentType())
                     .size(file.getSize())
                     .filePath(uniqueFilename)
                     .userId(user.getId())
+                    .createdAt(now)
+                    .updatedAt(now)
                     .build();
 
-            return mediaRepository.save(media);
+            Media savedMedia = mediaRepository.save(media);
+            
+            // Set the URL after saving to get the ID
+            savedMedia.setUrl(apiGatewayUrl + "/images/" + savedMedia.getId());
+            return mediaRepository.save(savedMedia);
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to store file.", e);
@@ -102,6 +116,13 @@ public class MediaService {
 
     public Resource loadAsResource(String filename) {
         try {
+            // Check if it's an external URL (starts with http:// or https://)
+            if (filename.startsWith("http://") || filename.startsWith("https://")) {
+                // Return external URL as resource
+                return new UrlResource(filename);
+            }
+
+            // Otherwise, load from local filesystem
             Path file = rootLocation.resolve(filename);
             Resource resource = new UrlResource(file.toUri());
             if (resource.exists() || resource.isReadable()) {
@@ -131,5 +152,22 @@ public class MediaService {
         }
 
         mediaRepository.delete(media);
+    }
+
+    public List<Media> findAllByUserId(String userId) {
+        return mediaRepository.findByUserId(userId);
+    }
+    
+    public Media associateWithProduct(String mediaId, String productId, String userId) {
+        Media media = mediaRepository.findById(mediaId)
+                .orElseThrow(() -> new RuntimeException("Media not found"));
+        
+        if (!media.getUserId().equals(userId)) {
+            throw new RuntimeException("User does not have permission to modify this media");
+        }
+        
+        media.setProductId(productId);
+        media.setUpdatedAt(LocalDateTime.now());
+        return mediaRepository.save(media);
     }
 }

@@ -9,7 +9,9 @@ export interface Product {
   name: string;
   description: string;
   price: number;
+  stock?: number;
   sellerId?: string;
+  mediaIds?: string[];
   imageUrls?: string[];
   createdAt?: string;
   updatedAt?: string;
@@ -20,6 +22,7 @@ export interface ProductRequest {
   name: string;
   description: string;
   price: number;
+  quantity: number;
 }
 
 @Injectable({
