@@ -27,8 +27,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/media/images/**").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/media/images/*/product/*").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

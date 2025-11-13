@@ -42,10 +42,10 @@ public class Product {
 
     @Builder.Default
     private List<String> mediaIds = new ArrayList<>();
-    
+
     @CreatedDate
     private LocalDateTime createdAt;
-    
+
     @LastModifiedDate
     private LocalDateTime updatedAt;
 }

@@ -34,7 +34,7 @@ public class MediaService {
     private final MediaRepository mediaRepository;
     private final StorageProperties storageProperties;
     private Path rootLocation;
-    
+
     @Value("${api.gateway.url:http://localhost:8080/api/media}")
     private String apiGatewayUrl;
 
@@ -84,7 +84,7 @@ public class MediaService {
             }
 
             LocalDateTime now = LocalDateTime.now();
-            
+
             Media media = Media.builder()
                     .originalFilename(originalFilename)
                     .contentType(file.getContentType())
@@ -96,7 +96,7 @@ public class MediaService {
                     .build();
 
             Media savedMedia = mediaRepository.save(media);
-            
+
             // Set the URL after saving to get the ID
             savedMedia.setUrl(apiGatewayUrl + "/images/" + savedMedia.getId());
             return mediaRepository.save(savedMedia);
@@ -157,15 +157,15 @@ public class MediaService {
     public List<Media> findAllByUserId(String userId) {
         return mediaRepository.findByUserId(userId);
     }
-    
+
     public Media associateWithProduct(String mediaId, String productId, String userId) {
         Media media = mediaRepository.findById(mediaId)
                 .orElseThrow(() -> new RuntimeException("Media not found"));
-        
+
         if (!media.getUserId().equals(userId)) {
             throw new RuntimeException("User does not have permission to modify this media");
         }
-        
+
         media.setProductId(productId);
         media.setUpdatedAt(LocalDateTime.now());
         return mediaRepository.save(media);

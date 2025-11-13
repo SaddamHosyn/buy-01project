@@ -85,7 +85,7 @@ public class ProductService {
         }
         product.getMediaIds().add(mediaId);
         Product saved = productRepository.save(product);
-        
+
         // Call Media Service to update the productId in the media record
         try {
             String url = mediaServiceUrl + "/images/" + mediaId + "/product/" + productId + "?userId=" + userId;
@@ -94,7 +94,7 @@ public class ProductService {
             // Log the error but don't fail the product update
             System.err.println("Failed to update media productId: " + e.getMessage());
         }
-        
+
         return toProductResponse(saved);
     }
 

@@ -8,7 +8,7 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 @EnableMongoAuditing
 public class MongoConfig {
-    
+
     @Bean
     public RestTemplate restTemplate() {
         return new RestTemplate();

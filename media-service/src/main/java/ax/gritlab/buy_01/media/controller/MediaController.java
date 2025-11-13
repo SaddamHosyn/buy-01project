@@ -52,9 +52,10 @@ public class MediaController {
         mediaService.delete(id, (User) authentication.getPrincipal());
         return ResponseEntity.noContent().build();
     }
-    
+
     @PutMapping("/images/{id}/product/{productId}")
-    public ResponseEntity<Media> associateWithProduct(@PathVariable String id, @PathVariable String productId, @RequestParam String userId) {
+    public ResponseEntity<Media> associateWithProduct(@PathVariable String id, @PathVariable String productId,
+            @RequestParam String userId) {
         Media updatedMedia = mediaService.associateWithProduct(id, productId, userId);
         return ResponseEntity.ok(updatedMedia);
     }
