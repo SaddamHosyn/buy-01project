@@ -13,6 +13,12 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/users")
 @RequiredArgsConstructor
 public class UserController {
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteMyAccount(Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        userService.deleteUser(user);
+        return ResponseEntity.noContent().build();
+    }
 
     private final UserService userService;
 

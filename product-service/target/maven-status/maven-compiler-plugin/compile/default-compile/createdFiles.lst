@@ -1,6 +1,8 @@
 ax/gritlab/buy_01/product/controller/ProductController.class
 ax/gritlab/buy_01/product/service/ProductService.class
 ax/gritlab/buy_01/product/dto/ProductRequest$ProductRequestBuilder.class
+ax/gritlab/buy_01/product/service/UserDeleteKafkaConsumer.class
+ax/gritlab/buy_01/product/config/KafkaTopicConfig.class
 ax/gritlab/buy_01/product/config/SecurityConfig.class
 ax/gritlab/buy_01/product/dto/ProductResponse.class
 ax/gritlab/buy_01/product/dto/ProductResponse$ProductResponseBuilder.class

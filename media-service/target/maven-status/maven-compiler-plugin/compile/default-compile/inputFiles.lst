@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /Users/saddam.hussain/Desktop/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/config/JwtAuthenticationFilter.java
 /Users/saddam.hussain/Desktop/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/config/StorageProperties.java
 /Users/saddam.hussain/Desktop/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/model/User.java
@@ -10,3 +11,17 @@
 /Users/saddam.hussain/Desktop/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/controller/MediaController.java
 /Users/saddam.hussain/Desktop/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/model/Role.java
 /Users/saddam.hussain/Desktop/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/config/MongoConfig.java
+=======
+/Users/jedi.reston/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/model/Media.java
+/Users/jedi.reston/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/model/Role.java
+/Users/jedi.reston/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/service/ProductDeleteKafkaConsumer.java
+/Users/jedi.reston/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/model/User.java
+/Users/jedi.reston/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/service/MediaService.java
+/Users/jedi.reston/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/config/SecurityConfig.java
+/Users/jedi.reston/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/config/JwtAuthenticationFilter.java
+/Users/jedi.reston/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/MediaServiceApplication.java
+/Users/jedi.reston/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/service/JwtService.java
+/Users/jedi.reston/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/repository/MediaRepository.java
+/Users/jedi.reston/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/controller/MediaController.java
+/Users/jedi.reston/buy-01/media-service/src/main/java/ax/gritlab/buy_01/media/config/StorageProperties.java
+>>>>>>> origin/kafka2

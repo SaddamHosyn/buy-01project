@@ -19,9 +19,21 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ProductService {
+    // Delete all products for a user and publish product.deleted events
+    public void deleteProductsByUserId(String userId) {
+        List<Product> products = productRepository.findByUserId(userId);
+        for (Product product : products) {
+            productRepository.delete(product);
+            kafkaTemplate.send("product.deleted", product.getId());
+        }
+    }
 
     private final ProductRepository productRepository;
+<<<<<<< HEAD
     private final RestTemplate restTemplate;
+=======
+    private final org.springframework.kafka.core.KafkaTemplate<String, String> kafkaTemplate;
+>>>>>>> origin/kafka2
 
     @Value("${media.service.url:http://localhost:8080/api/media}")
     private String mediaServiceUrl;
@@ -75,6 +87,8 @@ public class ProductService {
             throw new RuntimeException("User does not have permission to delete this product");
         }
         productRepository.delete(product);
+        // Publish Kafka event for product deletion
+        kafkaTemplate.send("product.deleted", id);
     }
 
     public ProductResponse associateMedia(String productId, String mediaId, String userId) {

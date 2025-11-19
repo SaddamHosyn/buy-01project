@@ -29,3 +29,19 @@ replay_pid*
 
 # To load env file it manually: `export $(cat .env | xargs)`
 
+# Maven build output
+target/
+**/target/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Uploads directory
+uploads/
+

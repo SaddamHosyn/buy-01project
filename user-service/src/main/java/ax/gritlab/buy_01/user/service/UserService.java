@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class UserService {
+    private final org.springframework.kafka.core.KafkaTemplate<String, String> kafkaTemplate;
 
     private final UserRepository userRepository;
 
@@ -32,5 +33,11 @@ public class UserService {
         }
         User updatedUser = userRepository.save(user);
         return getProfile(updatedUser);
+    }
+
+    public void deleteUser(User user) {
+        userRepository.delete(user);
+        // Publish Kafka event for user deletion
+        kafkaTemplate.send("user.deleted", user.getId());
     }
 }
