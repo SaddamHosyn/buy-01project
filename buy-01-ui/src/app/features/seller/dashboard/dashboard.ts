@@ -34,7 +34,7 @@ import { DialogService } from '../../../shared/services/dialog.service';
 export class Dashboard implements OnInit {
   private readonly authService = inject(Auth);
   private readonly productService = inject(ProductService);
-  private readonly router = inject(Router);
+  private readonly router = inject<Router>(Router);
   private readonly dialogService = inject(DialogService);
   
   // Signals for reactive state
