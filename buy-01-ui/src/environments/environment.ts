@@ -4,14 +4,14 @@
  */
 export const environment = {
   production: true,
-  apiUrl: 'http://localhost:8080/api', // API Gateway URL
-  apiGatewayUrl: 'http://localhost:8080',
+  apiUrl: 'https://localhost:8443/api', // API Gateway URL
+  apiGatewayUrl: 'https://localhost:8443',
   
   // Service endpoints (routed through API Gateway)
-  authUrl: 'http://localhost:8080/api/auth',
-  usersUrl: 'http://localhost:8080/api/users',
-  productsUrl: 'http://localhost:8080/api/products',
-  mediaUrl: 'http://localhost:8080/api/media',
+  authUrl: 'https://localhost:8443/api/auth',
+  usersUrl: 'https://localhost:8443/api/users',
+  productsUrl: 'https://localhost:8443/api/products',
+  mediaUrl: 'https://localhost:8443/api/media',
   
   // Feature flags
   enableMockData: false,

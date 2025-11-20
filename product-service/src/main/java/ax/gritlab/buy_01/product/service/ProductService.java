@@ -6,9 +6,6 @@ import ax.gritlab.buy_01.product.model.Product;
 import ax.gritlab.buy_01.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -29,13 +26,10 @@ public class ProductService {
     }
 
     private final ProductRepository productRepository;
-<<<<<<< HEAD
     private final RestTemplate restTemplate;
-=======
     private final org.springframework.kafka.core.KafkaTemplate<String, String> kafkaTemplate;
->>>>>>> origin/kafka2
 
-    @Value("${media.service.url:http://localhost:8080/api/media}")
+    @Value("${media.service.url:https://localhost:8443/api/media}")
     private String mediaServiceUrl;
 
     public List<ProductResponse> getAllProducts() {

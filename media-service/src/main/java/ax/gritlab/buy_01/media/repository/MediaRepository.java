@@ -6,9 +6,6 @@ import ax.gritlab.buy_01.media.model.Media;
 import java.util.List;
 
 public interface MediaRepository extends MongoRepository<Media, String> {
-<<<<<<< HEAD
     List<Media> findByUserId(String userId);
-=======
 	void deleteByProductId(String productId);
->>>>>>> origin/kafka2
 }

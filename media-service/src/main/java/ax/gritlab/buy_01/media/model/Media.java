@@ -31,7 +31,6 @@ public class Media {
 
     private String userId; // The user (seller) who owns this media
 
-<<<<<<< HEAD
     private String productId; // Optional: The product this media is associated with
 
     private String url; // The public URL to access this media
@@ -41,7 +40,4 @@ public class Media {
 
     @LastModifiedDate
     private LocalDateTime updatedAt;
-=======
-    private String productId; // The product this media is associated with
->>>>>>> origin/kafka2
 }
