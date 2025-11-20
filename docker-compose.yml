@@ -110,3 +110,10 @@ services:
     build: ./service-registry
     ports:
       - "8761:8761"
+
+  frontend:
+    build: ./buy-01-ui
+    ports:
+      - "4200:80"
+    depends_on:
+      - api-gateway

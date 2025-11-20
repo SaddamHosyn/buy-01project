@@ -149,10 +149,13 @@ export class Dashboard implements OnInit {
     if (isNaN(date.getTime())) {
       return 'Invalid Date';
     }
-    return date.toLocaleDateString('en-US', { 
+    return date.toLocaleString('en-US', { 
       year: 'numeric', 
       month: 'short', 
-      day: 'numeric' 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
     });
   }
 }

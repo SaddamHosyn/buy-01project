@@ -9,7 +9,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,8 +30,11 @@ public class ProductService {
     private final RestTemplate restTemplate;
     private final org.springframework.kafka.core.KafkaTemplate<String, String> kafkaTemplate;
 
-    @Value("${media.service.url:https://localhost:8443/api/media}")
+    @Value("${media.service.url:http://media-service:8083/media}")
     private String mediaServiceUrl;
+
+    @Value("${media.public.url:https://localhost:8443/api/media}")
+    private String mediaPublicUrl;
 
     public List<ProductResponse> getAllProducts() {
         return productRepository.findAll().stream()
@@ -45,15 +49,15 @@ public class ProductService {
     }
 
     public ProductResponse createProduct(ProductRequest request, String userId) {
-        LocalDateTime now = LocalDateTime.now();
+        ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
         Product product = Product.builder()
                 .name(request.getName())
                 .description(request.getDescription())
                 .price(request.getPrice())
                 .quantity(request.getQuantity())
                 .userId(userId)
-                .createdAt(now)
-                .updatedAt(now)
+                .createdAt(now.toLocalDateTime())
+                .updatedAt(now.toLocalDateTime())
                 .build();
         Product saved = productRepository.save(product);
         return toProductResponse(saved);
@@ -69,7 +73,7 @@ public class ProductService {
         product.setDescription(request.getDescription());
         product.setPrice(request.getPrice());
         product.setQuantity(request.getQuantity());
-        product.setUpdatedAt(LocalDateTime.now());
+        product.setUpdatedAt(ZonedDateTime.now(ZoneOffset.UTC).toLocalDateTime());
         Product saved = productRepository.save(product);
         return toProductResponse(saved);
     }
@@ -110,9 +114,9 @@ public class ProductService {
      * Convert Product entity to ProductResponse DTO with imageUrls
      */
     private ProductResponse toProductResponse(Product product) {
-        // Convert mediaIds to image URLs
+        // Convert mediaIds to image URLs using public URL for browser access
         List<String> imageUrls = product.getMediaIds().stream()
-                .map(mediaId -> mediaServiceUrl + "/images/" + mediaId)
+                .map(mediaId -> mediaPublicUrl + "/images/" + mediaId)
                 .collect(Collectors.toList());
 
         return ProductResponse.builder()
@@ -124,8 +128,10 @@ public class ProductService {
                 .sellerId(product.getUserId())
                 .mediaIds(product.getMediaIds())
                 .imageUrls(imageUrls)
-                .createdAt(product.getCreatedAt() != null ? product.getCreatedAt().toString() : null)
-                .updatedAt(product.getUpdatedAt() != null ? product.getUpdatedAt().toString() : null)
+                .createdAt(product.getCreatedAt() != null ? product.getCreatedAt().atZone(ZoneOffset.UTC).toString()
+                        : null)
+                .updatedAt(product.getUpdatedAt() != null ? product.getUpdatedAt().atZone(ZoneOffset.UTC).toString()
+                        : null)
                 .build();
     }
 }

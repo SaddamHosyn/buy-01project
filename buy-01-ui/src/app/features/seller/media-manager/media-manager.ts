@@ -18,6 +18,7 @@ import { Auth } from '../../../core/services/auth';
 import { ProductService, Product } from '../../../core/services/product.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { DialogService } from '../../../shared/services/dialog.service';
+import { ValidationPresets } from '../../../core/validators/file-upload.validator';
 
 @Component({
   selector: 'app-media-manager',
@@ -71,10 +72,10 @@ export class MediaManager implements OnInit {
     return this.allMedia().filter(m => m.productId === filter);
   });
   
-  // Validation info
-  readonly maxFileSize = this.mediaService.getMaxFileSize();
-  readonly allowedTypes = this.mediaService.getAllowedTypes();
-  readonly allowedExtensions = this.mediaService.getAllowedExtensions();
+  // Validation info from ValidationPresets
+  readonly maxFileSize = ValidationPresets.PRODUCT_IMAGE.maxSize;
+  readonly allowedTypes = ValidationPresets.PRODUCT_IMAGE.allowedTypes;
+  readonly allowedExtensions = ValidationPresets.PRODUCT_IMAGE.allowedExtensions;
   
   ngOnInit(): void {
     this.loadMedia();
