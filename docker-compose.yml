@@ -102,6 +102,8 @@ services:
       SPRING_DATA_MONGODB_URI: mongodb://root:example@mongodb:27017/mediadb?authSource=admin
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://service-registry:8761/eureka/
       EUREKA_INSTANCE_HOSTNAME: media-service
+    volumes:
+      - ./media-service/uploads:/app/uploads
     depends_on:
       - kafka
       - service-registry

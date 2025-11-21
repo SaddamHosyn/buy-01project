@@ -39,6 +39,7 @@ public class MediaController {
 
     @GetMapping("/images/{id}")
     public ResponseEntity<Resource> serveImage(@PathVariable String id) {
+        System.out.println("Serving media with ID: " + id);
         MediaService.MediaResource mediaResource = mediaService.getResourceById(id);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_TYPE, mediaResource.getContentType())
