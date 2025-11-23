@@ -24,22 +24,19 @@ public class MediaController {
     @GetMapping("/images")
     @PreAuthorize("hasAuthority('SELLER')")
     public ResponseEntity<List<Media>> getAllUserMedia(Authentication authentication) {
-        String userId = ((User) authentication.getPrincipal()).getId();
-        List<Media> mediaList = mediaService.findAllByUserId(userId);
+        List<Media> mediaList = mediaService.findAllByUserId(((User) authentication.getPrincipal()).getId());
         return ResponseEntity.ok(mediaList);
     }
 
     @PostMapping("/images")
     @PreAuthorize("hasAuthority('SELLER')")
     public ResponseEntity<Media> uploadImage(@RequestParam("file") MultipartFile file, Authentication authentication) {
-        String userId = ((User) authentication.getPrincipal()).getId();
         Media savedMedia = mediaService.save(file, (User) authentication.getPrincipal());
         return ResponseEntity.ok(savedMedia);
     }
 
     @GetMapping("/images/{id}")
     public ResponseEntity<Resource> serveImage(@PathVariable String id) {
-        System.out.println("Serving media with ID: " + id);
         MediaService.MediaResource mediaResource = mediaService.getResourceById(id);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_TYPE, mediaResource.getContentType())
@@ -49,14 +46,18 @@ public class MediaController {
     @DeleteMapping("/images/{id}")
     @PreAuthorize("hasAuthority('SELLER')")
     public ResponseEntity<Void> deleteImage(@PathVariable String id, Authentication authentication) {
-        String userId = ((User) authentication.getPrincipal()).getId();
         mediaService.delete(id, (User) authentication.getPrincipal());
         return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/images/{id}/product/{productId}")
-    public ResponseEntity<Media> associateWithProduct(@PathVariable String id, @PathVariable String productId,
-            @RequestParam String userId) {
+    @PreAuthorize("hasAuthority('SELLER')")
+    public ResponseEntity<Media> associateWithProduct(
+            @PathVariable String id, 
+            @PathVariable String productId,
+            Authentication authentication
+    ) {
+        String userId = ((User) authentication.getPrincipal()).getId();
         Media updatedMedia = mediaService.associateWithProduct(id, productId, userId);
         return ResponseEntity.ok(updatedMedia);
     }

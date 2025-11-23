@@ -2,9 +2,9 @@ package ax.gritlab.buy_01.product.controller;
 
 import ax.gritlab.buy_01.product.dto.ProductRequest;
 import ax.gritlab.buy_01.product.dto.ProductResponse;
-import ax.gritlab.buy_01.product.model.Product;
 import ax.gritlab.buy_01.product.model.User;
 import ax.gritlab.buy_01.product.service.ProductService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,7 +32,7 @@ public class ProductController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('SELLER')")
-    public ResponseEntity<ProductResponse> createProduct(@RequestBody ProductRequest request,
+    public ResponseEntity<ProductResponse> createProduct(@Valid @RequestBody ProductRequest request,
             Authentication authentication) {
         String userId = ((User) authentication.getPrincipal()).getId();
         ProductResponse createdProduct = productService.createProduct(request, userId);
@@ -41,7 +41,7 @@ public class ProductController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('SELLER')")
-    public ResponseEntity<ProductResponse> updateProduct(@PathVariable String id, @RequestBody ProductRequest request,
+    public ResponseEntity<ProductResponse> updateProduct(@PathVariable String id, @Valid @RequestBody ProductRequest request,
             Authentication authentication) {
         String userId = ((User) authentication.getPrincipal()).getId();
         ProductResponse updatedProduct = productService.updateProduct(id, request, userId);

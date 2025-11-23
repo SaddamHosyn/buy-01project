@@ -2,6 +2,8 @@ package ax.gritlab.buy_01.product.service;
 
 import ax.gritlab.buy_01.product.dto.ProductRequest;
 import ax.gritlab.buy_01.product.dto.ProductResponse;
+import ax.gritlab.buy_01.product.exception.ResourceNotFoundException;
+import ax.gritlab.buy_01.product.exception.UnauthorizedException;
 import ax.gritlab.buy_01.product.model.Product;
 import ax.gritlab.buy_01.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -44,7 +46,7 @@ public class ProductService {
 
     public ProductResponse getProductById(String id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
         return toProductResponse(product);
     }
 
@@ -65,9 +67,9 @@ public class ProductService {
 
     public ProductResponse updateProduct(String id, ProductRequest request, String userId) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
         if (!product.getUserId().equals(userId)) {
-            throw new RuntimeException("User does not have permission to update this product");
+            throw new UnauthorizedException("You do not have permission to update this product");
         }
         product.setName(request.getName());
         product.setDescription(request.getDescription());
@@ -80,9 +82,9 @@ public class ProductService {
 
     public void deleteProduct(String id, String userId) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
         if (!product.getUserId().equals(userId)) {
-            throw new RuntimeException("User does not have permission to delete this product");
+            throw new UnauthorizedException("You do not have permission to delete this product");
         }
         productRepository.delete(product);
         // Publish Kafka event for product deletion
@@ -91,9 +93,9 @@ public class ProductService {
 
     public ProductResponse associateMedia(String productId, String mediaId, String userId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
         if (!product.getUserId().equals(userId)) {
-            throw new RuntimeException("User does not have permission to modify this product");
+            throw new UnauthorizedException("You do not have permission to modify this product");
         }
         product.getMediaIds().add(mediaId);
         Product saved = productRepository.save(product);

@@ -1,6 +1,9 @@
 package ax.gritlab.buy_01.media.service;
 
 import ax.gritlab.buy_01.media.config.StorageProperties;
+import ax.gritlab.buy_01.media.exception.InvalidFileTypeException;
+import ax.gritlab.buy_01.media.exception.ResourceNotFoundException;
+import ax.gritlab.buy_01.media.exception.UnauthorizedException;
 import ax.gritlab.buy_01.media.model.Media;
 import ax.gritlab.buy_01.media.model.User;
 import ax.gritlab.buy_01.media.repository.MediaRepository;
@@ -61,16 +64,16 @@ public class MediaService {
 
     public Media save(MultipartFile file, User user) {
         if (file.isEmpty()) {
-            throw new RuntimeException("Failed to store empty file.");
+            throw new InvalidFileTypeException("Failed to store empty file.");
         }
 
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new RuntimeException("File exceeds maximum size of 2MB.");
+            throw new InvalidFileTypeException("File exceeds maximum size of 2MB.");
         }
 
         String contentType = file.getContentType();
         if (contentType == null || !contentType.startsWith("image/")) {
-            throw new RuntimeException("Invalid file type. Only images are allowed.");
+            throw new InvalidFileTypeException("Invalid file type. Only images are allowed.");
         }
 
         try {
@@ -80,7 +83,7 @@ public class MediaService {
 
             Path destinationFile = this.rootLocation.resolve(Paths.get(uniqueFilename)).normalize().toAbsolutePath();
             if (!destinationFile.getParent().equals(this.rootLocation.toAbsolutePath())) {
-                throw new RuntimeException("Cannot store file outside current directory.");
+                throw new InvalidFileTypeException("Cannot store file outside current directory.");
             }
 
             try (InputStream inputStream = file.getInputStream()) {
@@ -112,7 +115,7 @@ public class MediaService {
 
     public MediaResource getResourceById(String id) {
         Media media = mediaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Media not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Media not found with id: " + id));
 
         Resource resource = loadAsResource(media.getFilePath());
         return new MediaResource(resource, media.getContentType());
@@ -132,19 +135,19 @@ public class MediaService {
             if (resource.exists() || resource.isReadable()) {
                 return resource;
             } else {
-                throw new RuntimeException("Could not read file: " + filename);
+                throw new ResourceNotFoundException("Could not read file: " + filename);
             }
         } catch (MalformedURLException e) {
-            throw new RuntimeException("Could not read file: " + filename, e);
+            throw new ResourceNotFoundException("Could not read file: " + filename);
         }
     }
 
     public void delete(String id, User user) {
         Media media = mediaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Media not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Media not found with id: " + id));
 
         if (!media.getUserId().equals(user.getId())) {
-            throw new RuntimeException("User does not have permission to delete this media");
+            throw new UnauthorizedException("You do not have permission to delete this media");
         }
 
         try {
@@ -164,10 +167,10 @@ public class MediaService {
 
     public Media associateWithProduct(String mediaId, String productId, String userId) {
         Media media = mediaRepository.findById(mediaId)
-                .orElseThrow(() -> new RuntimeException("Media not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Media not found with id: " + mediaId));
 
         if (!media.getUserId().equals(userId)) {
-            throw new RuntimeException("User does not have permission to modify this media");
+            throw new UnauthorizedException("You do not have permission to modify this media");
         }
 
         media.setProductId(productId);
