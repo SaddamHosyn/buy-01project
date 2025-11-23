@@ -64,8 +64,11 @@ services:
       - "8443:8443"
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://service-registry:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: api-gateway
     depends_on:
       - kafka
+      - service-registry
   product-service:
     build: ./product-service
     ports:
