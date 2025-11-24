@@ -85,6 +85,33 @@ public class MediaService {
         }
     }
 
+    // Delete all media owned by a user (used when user.deleted events are received)
+    public void deleteMediaByUserId(String userId) {
+        if (userId == null) return;
+
+        // Ensure rootLocation is initialized
+        if (this.rootLocation == null) {
+            this.rootLocation = Paths.get(storageProperties.getLocation());
+        }
+
+        List<Media> medias = mediaRepository.findByUserId(userId);
+        for (Media media : medias) {
+            try {
+                String filePath = media.getFilePath();
+                if (filePath != null && !filePath.startsWith("http://") && !filePath.startsWith("https://")) {
+                    Path file = rootLocation.resolve(filePath);
+                    Files.deleteIfExists(file);
+                }
+            } catch (IOException e) {
+                System.err.println("Failed to delete file: " + media.getFilePath());
+            }
+        }
+
+        if (!medias.isEmpty()) {
+            mediaRepository.deleteAll(medias);
+        }
+    }
+
     private static final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 
     private final MediaRepository mediaRepository;
