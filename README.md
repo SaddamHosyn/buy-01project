@@ -170,6 +170,85 @@ User Deletion → Kafka Topic: user.deleted → Product Service
                                               Delete Product Media Files
 ```
 
+## Kafka & MongoDB
+
+### Kafka Overview
+
+- **Producers:** `user-service` publishes `user.deleted` (minimal payload, typically the user id). `product-service` deletes products and publishes `product.deleted` events (preferred payload is JSON with `id` and `mediaIds`).
+- **Consumers:** `product-service` listens for `user.deleted` and deletes the user's products. `media-service` listens for `product.deleted` and deletes media. `media-service` also listens for `user.deleted` as a fallback to remove user-owned media.
+- **Topics:** `user.deleted`, `product.deleted` (created by each service via `KafkaTopicConfig` beans).
+- **Message formats:** prefer small, typed JSON events like `{ "id": "<productId>", "mediaIds": ["<mediaId>", ...] }`. Consumers also accept older plain-string messages containing the product id.
+
+**Kafka - Docker commands (list topics, consume, produce)**
+- **List all topics:**
+
+```bash
+docker exec -it buy-01-kafka-1 /bin/bash -c \
+  "/usr/bin/kafka-topics --bootstrap-server localhost:9092 --list"
+```
+
+- **Consume messages from a topic (show headers):**
+
+```bash
+docker exec -it buy-01-kafka-1 /bin/bash -c \
+  "/usr/bin/kafka-console-consumer --bootstrap-server localhost:9092 --topic product.deleted --from-beginning --property print.headers=true"
+```
+
+- **Produce a JSON message to a topic (useful for tests):**
+
+```bash
+echo '{"id":"69246f37ee23ecd66ed8ca65","mediaIds":["69246f370ca32276270f8123"]}' \
+  | docker exec -i buy-01-kafka-1 /usr/bin/kafka-console-producer --bootstrap-server localhost:9092 --topic product.deleted
+```
+
+- **Produce a plain product id (legacy):**
+
+```bash
+echo "69246f37ee23ecd66ed8ca65" | docker exec -i buy-01-kafka-1 /usr/bin/kafka-console-producer --bootstrap-server localhost:9092 --topic product.deleted
+```
+
+### MongoDB
+
+- **Connect using `mongosh` from your host (local port mapping):**
+
+```bash
+mongosh "mongodb://root:example@localhost:27017/?authSource=admin"
+```
+
+- **Or exec into the MongoDB container and launch `mongosh`:**
+
+```bash
+docker exec -it mongodb mongosh -u root -p example --authenticationDatabase admin
+```
+
+- **Inspect media DB and collection (example):**
+
+```bash
+// list databases
+show dbs
+
+// switch to the product DB
+use productdb
+
+// list collections
+show collections
+
+// show a few documents
+db.products.find().limit(5).pretty()
+
+// find media by userId
+db.media.find({ userId: "69244af654df39660cbd3294" }).pretty()
+
+// delete media by ObjectId (if _id is an ObjectId)
+db.media.deleteOne({ _id: ObjectId("69246f370ca32276270f8123") })
+
+// Count all documents in the collection
+db.media.countDocuments({})
+
+// Count documents matching a filter (e.g. media owned by a user)
+db.media.countDocuments({ userId: "69244af654df39660cbd3294" })
+```
+
 ## 🗂️ Project Structure
 
 ```
