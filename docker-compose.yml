@@ -62,10 +62,17 @@ services:
     build: ./api-gateway
     ports:
       - "8443:8443"
+    volumes:
+      - ./certs:/certs:ro
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://service-registry:8761/eureka/
       EUREKA_INSTANCE_HOSTNAME: api-gateway
+      # Spring Boot recognizes these env vars and maps them to server.ssl.* properties
+      SERVER_SSL_KEY_STORE: /certs/keystore.p12
+      SERVER_SSL_KEY_STORE_PASSWORD: changeit
+      SERVER_SSL_KEY_STORE_TYPE: PKCS12
+      SERVER_SSL_KEY_PASSWORD: changeit
     depends_on:
       - kafka
       - service-registry
