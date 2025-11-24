@@ -25,7 +25,13 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        // Public endpoints (Login, Register, Health checks)
                         .requestMatchers("/auth/**", "/actuator/**").permitAll()
+                        
+                        // Explicitly allow authenticated users to access /users/** (e.g., /users/me)
+                        .requestMatchers("/users/**").authenticated()
+                        
+                        // All other requests require authentication
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

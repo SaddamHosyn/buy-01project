@@ -1,10 +1,12 @@
 server:
-  port: 8443
+  port: 8080 # Port for local development (HTTP)
 
 spring:
   application:
     name: api-gateway
   cloud:
+    compatibility-verifier:
+      enabled: false # From your application.properties
     gateway:
       discovery:
         locator:
@@ -12,13 +14,6 @@ spring:
           lower-case-service-id: true
       routes:
         # --- User Service Routes ---
-        - id: user-service-actuator
-          uri: lb://USER-SERVICE
-          predicates:
-            - Path=/api/users/actuator/**
-          filters:
-            - RewritePath=/api/users/(?<segment>.*), /$\{segment}
-
         - id: user-service-api
           uri: lb://USER-SERVICE
           predicates:
@@ -27,13 +22,6 @@ spring:
             - RewritePath=/api/(?<segment>.*), /$\{segment}
 
         # --- Product Service Routes ---
-        - id: product-service-actuator
-          uri: lb://PRODUCT-SERVICE
-          predicates:
-            - Path=/api/products/actuator/**
-          filters:
-            - RewritePath=/api/products/(?<segment>.*), /$\{segment}
-
         - id: product-service-api
           uri: lb://PRODUCT-SERVICE
           predicates:
@@ -42,13 +30,6 @@ spring:
             - RewritePath=/api/(?<segment>.*), /$\{segment}
 
         # --- Media Service Routes ---
-        - id: media-service-actuator
-          uri: lb://MEDIA-SERVICE
-          predicates:
-            - Path=/api/media/actuator/**
-          filters:
-            - RewritePath=/api/media/(?<segment>.*), /$\{segment}
-
         - id: media-service-api
           uri: lb://MEDIA-SERVICE
           predicates:
@@ -61,7 +42,6 @@ spring:
           "[/**]":
             allowedOrigins:
               - "http://localhost:4200"
-              - "https://localhost:4200"
             allowedMethods:
               - GET
               - POST
@@ -72,12 +52,14 @@ spring:
               - "*"
             allowCredentials: true
             maxAge: 3600
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
 
 eureka:
   client:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: http://service-registry:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://localhost:8761/eureka/}
   instance:
-    hostname: localhost
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}

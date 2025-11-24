@@ -54,7 +54,7 @@ export class Dashboard implements OnInit {
   });
   
   // Table columns
-  readonly displayedColumns = ['image', 'name', 'price', 'createdAt', 'actions'];
+  readonly displayedColumns = ['image', 'name', 'price', 'stock', 'createdAt', 'actions'];
   
   ngOnInit(): void {
     this.loadMyProducts();

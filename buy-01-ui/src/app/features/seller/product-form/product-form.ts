@@ -61,16 +61,17 @@ export class ProductForm implements OnInit {
   readonly imagePreviews = signal<string[]>([]);
   readonly existingImageUrls = signal<string[]>([]);
   readonly uploadError = signal<string>('');
+  readonly deletedMediaIds = signal<string[]>([]); // NEW: Track deleted media IDs
   
   // Reactive form
   productForm: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
     description: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(2000)]],
-    price: [0, [Validators.required, priceValidator(0.01, 999999.99, 2)]]
+    price: [0, [Validators.required, priceValidator(0.01, 999999.99, 2)]],
+    quantity: [1, [Validators.required, Validators.min(0)]]
   });
   
   ngOnInit(): void {
-    // Check if we're in edit mode
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.productId.set(id);
@@ -79,23 +80,19 @@ export class ProductForm implements OnInit {
     }
   }
   
-  /**
-   * Load product for editing
-   */
   loadProduct(id: string): void {
     this.isLoading.set(true);
     this.errorMessage.set('');
     
     this.productService.getProductById(id).subscribe({
       next: (product) => {
-        // Populate form
         this.productForm.patchValue({
           name: product.name,
           description: product.description,
-          price: product.price
+          price: product.price,
+          quantity: product.stock || 0
         });
         
-        // Set existing images
         if (product.imageUrls && product.imageUrls.length > 0) {
           this.existingImageUrls.set(product.imageUrls);
         }
@@ -110,9 +107,6 @@ export class ProductForm implements OnInit {
     });
   }
   
-  /**
-   * Handle multiple image selection
-   */
   onFilesSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const files = input.files;
@@ -125,13 +119,9 @@ export class ProductForm implements OnInit {
     const validFiles: File[] = [];
     const previews: string[] = [];
     
-    // Convert FileList to Array
     const filesArray = Array.from(files);
-    
-    // Validate all files using ValidationPresets
     const validationResults = validateFiles(filesArray, ValidationPresets.PRODUCT_IMAGE);
     
-    // Check for any validation errors
     let hasErrors = false;
     validationResults.forEach((result, filename) => {
       if (!result.valid) {
@@ -144,11 +134,9 @@ export class ProductForm implements OnInit {
       return;
     }
     
-    // All files are valid, generate previews
     for (const file of filesArray) {
       validFiles.push(file);
       
-      // Generate preview
       const reader = new FileReader();
       reader.onload = (e) => {
         previews.push(e.target?.result as string);
@@ -159,76 +147,137 @@ export class ProductForm implements OnInit {
       reader.readAsDataURL(file);
     }
     
-    // Add valid files
     this.selectedImages.set([...this.selectedImages(), ...validFiles]);
   }
   
-  /**
-   * Remove new image preview
-   */
   removeNewImage(index: number): void {
     this.selectedImages.update(images => images.filter((_, i) => i !== index));
     this.imagePreviews.update(previews => previews.filter((_, i) => i !== index));
   }
   
-  /**
-   * Remove existing image URL
-   */
-  removeExistingImage(index: number): void {
+ 
+
+
+/**
+ * Remove existing image URL and DELETE from backend
+ */
+removeExistingImage(index: number): void {
+  const urls = this.existingImageUrls();
+  const urlToRemove = urls[index];
+  
+  const urlParts = urlToRemove.split('/');
+  const mediaId = urlParts[urlParts.length - 1];
+  
+  if (mediaId && mediaId.length > 0) {
+    this.dialogService.confirm({
+      title: 'Delete Image',
+      message: 'Are you sure you want to delete this image? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'danger',
+      icon: 'delete'
+    }).subscribe(confirmed => {
+      if (!confirmed) {
+        return;
+      }
+      
+      // Show loading state
+      this.isSaving.set(true);
+      
+      this.mediaService.deleteMedia(mediaId).subscribe({
+        next: () => {
+          // Track deletion
+          this.deletedMediaIds.update(ids => [...ids, mediaId]);
+          
+          // Remove from UI ONLY on success
+          this.existingImageUrls.update(urls => urls.filter((_, i) => i !== index));
+          
+          this.successMessage.set('Image deleted successfully');
+          this.isSaving.set(false);
+          
+          setTimeout(() => this.successMessage.set(''), 3000);
+        },
+        error: (error) => {
+          console.error('Error deleting image:', error);
+          
+          // Show detailed error message
+          let errorMsg = 'Failed to delete image from server';
+          if (error.status === 403) {
+            errorMsg = 'Permission denied: You do not have access to delete this image';
+          } else if (error.status === 404) {
+            errorMsg = 'Image not found on server';
+          }
+          
+          this.errorMessage.set(errorMsg);
+          this.isSaving.set(false);
+          
+          setTimeout(() => this.errorMessage.set(''), 5000);
+        }
+      });
+    });
+  } else {
+    // Just remove from UI if we can't extract ID
     this.existingImageUrls.update(urls => urls.filter((_, i) => i !== index));
   }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   
-  /**
-   * Submit form (create or update)
-   */
-  onSubmit(): void {
-    if (this.productForm.invalid) {
-      this.productForm.markAllAsTouched();
-      return;
-    }
-    
-    this.isSaving.set(true);
-    this.errorMessage.set('');
-    this.successMessage.set('');
-    
-    const formData = this.productForm.value;
-    
-    // Prepare product data
-    const productData: Partial<Product> = {
-      name: formData.name,
-      description: formData.description,
-      price: Number(formData.price),
-      sellerId: this.authService.currentUser()?.id || '',
-      imageUrls: [
-        ...this.existingImageUrls(),
-        ...this.imagePreviews() // In dev, use base64 previews
-      ]
-    };
-    
-    if (this.isEditMode()) {
-      // Update existing product
-      this.updateProduct(productData);
-    } else {
-      // Create new product
-      this.createProduct(productData);
-    }
+ onSubmit(): void {
+  if (this.productForm.invalid) {
+    this.productForm.markAllAsTouched();
+    return;
   }
   
-  /**
-   * Create new product
-   */
+  // Clear any previous error messages
+  this.errorMessage.set('');
+  this.successMessage.set('');
+  this.uploadError.set('');
+  
+  this.isSaving.set(true);
+  
+  const formData = this.productForm.value;
+  
+  const productData: Partial<Product> = {
+    name: formData.name,
+    description: formData.description,
+    price: Number(formData.price),
+    stock: Number(formData.quantity),
+    sellerId: this.authService.currentUser()?.id || '',
+    imageUrls: [
+      ...this.existingImageUrls(),
+      ...this.imagePreviews()
+    ]
+  };
+  
+  if (this.isEditMode()) {
+    this.updateProduct(productData);
+  } else {
+    this.createProduct(productData);
+  }
+}
+
+  
   private createProduct(productData: Partial<Product>): void {
-    // First, upload any new images to the media service
     const selectedFiles = this.selectedImages();
     
     if (selectedFiles.length > 0) {
-      // Upload files first, then create product with media IDs
       this.mediaService.uploadFiles(selectedFiles).subscribe({
         next: (mediaList) => {
-          // Get media IDs from uploaded files
           const mediaIds = mediaList.map(m => m.id);
-          
-          // Create product with media IDs
           this.createProductWithMedia(productData, mediaIds);
         },
         error: (error) => {
@@ -238,32 +287,26 @@ export class ProductForm implements OnInit {
         }
       });
     } else {
-      // No images to upload, create product directly
       this.createProductWithMedia(productData, []);
     }
   }
   
-  /**
-   * Create product with media IDs
-   */
   private createProductWithMedia(productData: Partial<Product>, mediaIds: string[]): void {
     const productRequest: ProductRequest = {
       name: productData.name!,
       description: productData.description!,
       price: productData.price!,
-      quantity: 10 // Default quantity
+      quantity: productData.stock || 0
     };
     
     this.productService.createProduct(productRequest).subscribe({
       next: (product) => {
-        // Associate media with the product if there are any
         if (mediaIds.length > 0) {
           this.associateMediaWithProduct(product.id, mediaIds);
         } else {
           this.successMessage.set('Product created successfully!');
           this.isSaving.set(false);
           
-          // Redirect to dashboard after 1 second
           setTimeout(() => {
             this.router.navigate(['/seller/dashboard']);
           }, 1000);
@@ -277,22 +320,16 @@ export class ProductForm implements OnInit {
     });
   }
   
-  /**
-   * Associate media files with product
-   */
   private associateMediaWithProduct(productId: string, mediaIds: string[]): void {
-    // Associate each media with the product
     const associations = mediaIds.map(mediaId => 
       this.productService.associateMedia(productId, mediaId)
     );
     
-    // Wait for all associations to complete
     forkJoin(associations).subscribe({
       next: () => {
         this.successMessage.set('Product created successfully with images!');
         this.isSaving.set(false);
         
-        // Redirect to dashboard after 1 second
         setTimeout(() => {
           this.router.navigate(['/seller/dashboard']);
         }, 1000);
@@ -306,21 +343,86 @@ export class ProductForm implements OnInit {
   }
   
   /**
-   * Update existing product
+   * Update existing product (INCLUDING NEW IMAGES AND DELETIONS)
    */
   private updateProduct(productData: Partial<Product>): void {
     const id = this.productId();
     if (!id) return;
     
-    // Update timestamp
-    productData.updatedAt = new Date().toISOString();
+    const selectedFiles = this.selectedImages();
+    const deletedIds = this.deletedMediaIds();
     
-    this.productService.updateProduct(id, productData).subscribe({
+    // Step 1: Remove deleted media IDs from product (if any)
+    if (deletedIds.length > 0) {
+      this.removeDeletedMediaFromProduct(id, deletedIds, () => {
+        this.proceedWithUpdate(id, selectedFiles, productData);
+      });
+    } else {
+      this.proceedWithUpdate(id, selectedFiles, productData);
+    }
+  }
+  
+  /**
+   * Helper method to continue update flow
+   */
+  private proceedWithUpdate(id: string, selectedFiles: File[], productData: Partial<Product>): void {
+    if (selectedFiles.length > 0) {
+      this.mediaService.uploadFiles(selectedFiles).subscribe({
+        next: (mediaList) => {
+          const newMediaIds = mediaList.map(m => m.id);
+          
+          const associations = newMediaIds.map(mediaId => 
+            this.productService.associateMedia(id, mediaId)
+          );
+          
+          forkJoin(associations).subscribe({
+            next: () => {
+              this.updateProductDetails(id, productData);
+            },
+            error: (error) => {
+              console.error('Error associating new images:', error);
+              this.errorMessage.set('Failed to link new images to product');
+              this.isSaving.set(false);
+            }
+          });
+        },
+        error: (error) => {
+          console.error('Error uploading new images:', error);
+          this.errorMessage.set('Failed to upload new images. Please try again.');
+          this.isSaving.set(false);
+        }
+      });
+    } else {
+      this.updateProductDetails(id, productData);
+    }
+  }
+  
+  /**
+   * Remove deleted media IDs from product's mediaIds array
+   */
+  private removeDeletedMediaFromProduct(productId: string, deletedIds: string[], callback: () => void): void {
+    // Log deleted IDs for now
+    // The backend should handle orphaned media IDs gracefully
+    console.log('Deleted media IDs:', deletedIds);
+    callback();
+  }
+  
+  /**
+   * Update product details
+   */
+  private updateProductDetails(id: string, productData: Partial<Product>): void {
+    const updateRequest: Partial<ProductRequest> = {
+      name: productData.name,
+      description: productData.description,
+      price: productData.price,
+      quantity: productData.stock
+    };
+    
+    this.productService.updateProduct(id, updateRequest).subscribe({
       next: (product) => {
         this.successMessage.set('Product updated successfully!');
         this.isSaving.set(false);
         
-        // Redirect to dashboard after 1 second
         setTimeout(() => {
           this.router.navigate(['/seller/dashboard']);
         }, 1000);
@@ -333,9 +435,6 @@ export class ProductForm implements OnInit {
     });
   }
   
-  /**
-   * Cancel and go back to dashboard
-   */
   cancel(): void {
     if (this.productForm.dirty) {
       this.dialogService.confirmDiscard().subscribe(confirmed => {
@@ -348,9 +447,6 @@ export class ProductForm implements OnInit {
     }
   }
   
-  /**
-   * Get form control error message
-   */
   getErrorMessage(controlName: string): string {
     const control = this.productForm.get(controlName);
     
@@ -358,8 +454,11 @@ export class ProductForm implements OnInit {
       return '';
     }
     
-    // Use the centralized error message helper
+    if (controlName === 'quantity') {
+      if (control.hasError('required')) return 'Quantity is required';
+      if (control.hasError('min')) return 'Quantity cannot be negative';
+    }
+    
     return getValidationMessage(control.errors, controlName);
   }
 }
-

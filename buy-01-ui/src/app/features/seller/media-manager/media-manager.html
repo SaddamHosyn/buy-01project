@@ -7,18 +7,6 @@
     <span>Media Manager</span>
     <span class="spacer"></span>
 
-    <!-- Product Filter -->
-    <mat-form-field appearance="outline" class="product-filter">
-      <mat-label>Filter by Product</mat-label>
-      <mat-select [value]="filterByProduct()" (selectionChange)="filterMedia($event.value)">
-        <mat-option value="all">All Images</mat-option>
-        <mat-option value="unassigned">Unassigned</mat-option>
-        @for (product of myProducts(); track product.id) {
-        <mat-option [value]="product.id">{{ product.name }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-
     @if (hasSelectedMedia()) {
     <button mat-raised-button color="warn" (click)="deleteSelected()">
       <mat-icon>delete</mat-icon>
@@ -40,13 +28,8 @@
   <div class="stats-bar">
     <mat-card class="stat-card">
       <mat-card-content>
-        <div class="stat-label">
-          @if (filterByProduct() === 'all') { Total Images } @else { Filtered Images }
-        </div>
-        <div class="stat-value">{{ filteredMedia().length }}</div>
-        @if (filterByProduct() !== 'all') {
-        <div class="stat-sublabel">of {{ allMedia().length }} total</div>
-        }
+        <div class="stat-label">Total Images</div>
+        <div class="stat-value">{{ allMedia().length }}</div>
       </mat-card-content>
     </mat-card>
 
@@ -91,7 +74,7 @@
     </div>
     } @else {
     <div class="media-grid">
-      @for (media of filteredMedia(); track media.id) {
+      @for (media of allMedia(); track media.id) {
       <mat-card class="media-card" [class.selected]="isSelected(media.id)">
         <!-- Selection Checkbox -->
         <div class="selection-overlay">
@@ -124,19 +107,15 @@
             </span>
           </div>
 
+          <!-- Only show product tag if linked to a product -->
+          @if (getProductName(media.productId)) {
           <div class="product-tag">
-            @if (media.productId) {
             <mat-chip color="primary">
               <mat-icon>shopping_bag</mat-icon>
               {{ getProductName(media.productId) }}
             </mat-chip>
-            } @else {
-            <mat-chip>
-              <mat-icon>label_off</mat-icon>
-              Unassigned
-            </mat-chip>
-            }
           </div>
+          }
         </mat-card-content>
 
         <!-- Actions -->

@@ -8,8 +8,6 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { forkJoin } from 'rxjs';
@@ -34,8 +32,6 @@ import { ValidationPresets } from '../../../core/validators/file-upload.validato
     MatChipsModule,
     MatTooltipModule,
     MatCheckboxModule,
-    MatSelectModule,
-    MatFormFieldModule,
     MatDialogModule
   ],
   templateUrl: './media-manager.html',
@@ -56,20 +52,13 @@ export class MediaManager implements OnInit {
   readonly selectedMedia = signal<Set<string>>(new Set());
   readonly myProducts = signal<Product[]>([]);
   readonly selectedProductId = signal<string | undefined>(undefined);
-  readonly filterByProduct = signal<string>('all');
   
   // Computed signals
   readonly currentUser = this.authService.currentUser;
   readonly hasSelectedMedia = computed(() => this.selectedMedia().size > 0);
   readonly selectedCount = computed(() => this.selectedMedia().size);
   readonly totalSize = computed(() => {
-    return this.filteredMedia().reduce((sum, media) => sum + media.size, 0);
-  });
-  readonly filteredMedia = computed(() => {
-    const filter = this.filterByProduct();
-    if (filter === 'all') return this.allMedia();
-    if (filter === 'unassigned') return this.allMedia().filter(m => !m.productId);
-    return this.allMedia().filter(m => m.productId === filter);
+    return this.allMedia().reduce((sum, media) => sum + media.size, 0);
   });
   
   // Validation info from ValidationPresets
@@ -104,8 +93,7 @@ export class MediaManager implements OnInit {
   }
   
   /**
-   * Load all media - Note: Backend doesn't have getAllMedia endpoint
-   * Using media signal from service instead
+   * Load all media
    */
   loadMedia(): void {
     this.isLoading.set(true);
@@ -175,7 +163,6 @@ export class MediaManager implements OnInit {
   private associateMediaWithProduct(productId: string, mediaList: Media[]): void {
     const mediaIds = mediaList.map(m => m.id);
     
-    // Create an array of observables for parallel requests
     const associationRequests = mediaIds.map(mediaId =>
       this.productService.associateMedia(productId, mediaId)
     );
@@ -188,18 +175,15 @@ export class MediaManager implements OnInit {
           3000
         );
         
-        // Update the media list with productId
         const updatedMedia = mediaList.map(m => ({...m, productId}));
         this.allMedia.update(current => [...current, ...updatedMedia]);
         
-        // Reset product selection
         this.selectedProductId.set(undefined);
       },
       error: (error: any) => {
         console.error('Error associating media:', error);
         this.isUploading.set(false);
         
-        // Still add the uploaded media, but show a warning
         this.allMedia.update(current => [...current, ...mediaList]);
         this.notification.warning(
           `Images uploaded but failed to link to product: ${error.message}`,
@@ -340,19 +324,11 @@ export class MediaManager implements OnInit {
   }
   
   /**
-   * Get product name by ID
+   * Get product name by ID (returns null if no product)
    */
-  getProductName(productId?: string): string {
-    if (!productId) return 'Unassigned';
+  getProductName(productId?: string): string | null {
+    if (!productId) return null;
     const product = this.myProducts().find(p => p.id === productId);
-    return product?.name || `Product ${productId}`;
-  }
-  
-  /**
-   * Filter media by product
-   */
-  filterMedia(filter: string): void {
-    this.filterByProduct.set(filter);
+    return product?.name || null;
   }
 }
-

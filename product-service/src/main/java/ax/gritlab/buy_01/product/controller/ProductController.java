@@ -64,4 +64,16 @@ public class ProductController {
         ProductResponse updatedProduct = productService.associateMedia(productId, mediaId, userId);
         return ResponseEntity.ok(updatedProduct);
     }
+
+    /**
+     * Remove media ID from product's mediaIds array
+     * Called by Media Service when media is deleted
+     */
+    @DeleteMapping("/{productId}/remove-media/{mediaId}")
+    public ResponseEntity<Void> removeMediaFromProduct(
+            @PathVariable String productId,
+            @PathVariable String mediaId) {
+        productService.removeMediaFromProduct(productId, mediaId);
+        return ResponseEntity.ok().build();
+    }
 }

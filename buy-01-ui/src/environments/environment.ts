@@ -1,10 +1,12 @@
+// src/environments/environment.ts
+// This is the DEFAULT file for local development
 export const environment = {
-  production: true,
-  apiUrl: 'https://localhost:8443/api',
-  apiGatewayUrl: 'https://localhost:8443',
-  authUrl: 'https://localhost:8443/api/auth',
-  usersUrl: 'https://localhost:8443/api/users',
-  productsUrl: 'https://localhost:8443/api/products',
-  mediaUrl: 'https://localhost:8443/api/media',
-  enableDebugLogging: false
+  production: false,
+  apiUrl: 'http://localhost:8080/api',
+  apiGatewayUrl: 'http://localhost:8080',
+  authUrl: 'http://localhost:8080/api/auth',
+  usersUrl: 'http://localhost:8080/api/users',
+  productsUrl: 'http://localhost:8080/api/products',
+  mediaUrl: 'http://localhost:8080/api/media',
+  enableDebugLogging: true
 };

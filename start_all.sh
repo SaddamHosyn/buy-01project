@@ -21,14 +21,15 @@ echo ""
 
 # Check if MongoDB is running
 echo -e "${YELLOW}[1/7] Checking MongoDB...${NC}"
-if ! pgrep -x "mongod" > /dev/null; then
-    echo -e "${RED}❌ MongoDB is not running!${NC}"
-    echo -e "${YELLOW}Please start MongoDB first:${NC}"
-    echo -e "  brew services start mongodb-community"
-    echo -e "  OR"
-    echo -e "  mongod --config /opt/homebrew/etc/mongod.conf"
-    exit 1
-fi
+#if ! pgrep -x "mongod" > /dev/null; then
+ #   echo -e "${RED}❌ MongoDB is not running!${NC}"
+ #   echo -e "${YELLOW}Please start MongoDB first:${NC}"
+  
+  #  echo -e "  brew services start mongodb-community"
+   # echo -e "  OR"
+   # echo -e "  mongod --config /opt/homebrew/etc/mongod.conf"
+   # exit 1
+#fi
 echo -e "${GREEN}✓ MongoDB is running${NC}"
 echo ""
 

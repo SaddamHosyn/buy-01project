@@ -11,6 +11,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -28,19 +29,18 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class MediaService {
-    // Delete all media associated with a product
-    public void deleteMediaByProductId(String productId) {
-        mediaRepository.deleteByProductId(productId);
-    }
-
     private static final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 
     private final MediaRepository mediaRepository;
     private final StorageProperties storageProperties;
+    private final RestTemplate restTemplate; // ADD THIS for inter-service communication
     private Path rootLocation;
 
     @Value("${api.gateway.url:http://localhost:8080/api/media}")
     private String apiGatewayUrl;
+
+    @Value("${product.service.url:http://localhost:8082}")
+    private String productServiceUrl; // ADD THIS
 
     @Getter
     @RequiredArgsConstructor
@@ -139,23 +139,50 @@ public class MediaService {
         }
     }
 
-    public void delete(String id, User user) {
-        Media media = mediaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Media not found"));
+  public void delete(String id, User user) {
+    Media media = mediaRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Media not found"));
 
-        if (!media.getUserId().equals(user.getId())) {
-            throw new RuntimeException("User does not have permission to delete this media");
-        }
+    if (!media.getUserId().equals(user.getId())) {
+        throw new RuntimeException("User does not have permission to delete this media");
+    }
 
+    // If media is associated with a product, notify product service to remove it
+    if (media.getProductId() != null) {
         try {
-            Path file = rootLocation.resolve(media.getFilePath());
-            Files.deleteIfExists(file);
-        } catch (IOException e) {
-            // Log this, but don't prevent DB record deletion
-            System.err.println("Failed to delete file: " + media.getFilePath());
+            String url = productServiceUrl + "/products/" + media.getProductId() + 
+                        "/remove-media/" + media.getId();
+            
+            System.out.println("Calling Product Service to remove media: " + url); // DEBUG LOG
+            
+            restTemplate.delete(url);
+            
+            System.out.println("Successfully removed media from product"); // DEBUG LOG
+        } catch (Exception e) {
+            // Log the full error
+            System.err.println("Failed to update product after media deletion: " + e.getMessage());
+            e.printStackTrace(); // Print full stack trace
+            
+            // DON'T throw exception - still proceed with media deletion
         }
+    }
 
-        mediaRepository.delete(media);
+    // Delete physical file
+    try {
+        Path file = rootLocation.resolve(media.getFilePath());
+        Files.deleteIfExists(file);
+    } catch (IOException e) {
+        System.err.println("Failed to delete file: " + media.getFilePath());
+    }
+
+    // Delete database record
+    mediaRepository.delete(media);
+}
+
+
+    // Delete all media associated with a product
+    public void deleteMediaByProductId(String productId) {
+        mediaRepository.deleteByProductId(productId);
     }
 
     public List<Media> findAllByUserId(String userId) {

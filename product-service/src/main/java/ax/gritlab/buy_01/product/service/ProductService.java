@@ -17,15 +17,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ProductService {
-    // Delete all products for a user and publish product.deleted events
-    public void deleteProductsByUserId(String userId) {
-        List<Product> products = productRepository.findByUserId(userId);
-        for (Product product : products) {
-            productRepository.delete(product);
-            kafkaTemplate.send("product.deleted", product.getId());
-        }
-    }
-
     private final ProductRepository productRepository;
     private final RestTemplate restTemplate;
     private final org.springframework.kafka.core.KafkaTemplate<String, String> kafkaTemplate;
@@ -108,6 +99,29 @@ public class ProductService {
         }
 
         return toProductResponse(saved);
+    }
+
+    /**
+     * Remove media ID from product's mediaIds array
+     * Called by Media Service when media is deleted
+     */
+    public void removeMediaFromProduct(String productId, String mediaId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+        
+        product.getMediaIds().remove(mediaId);
+        productRepository.save(product);
+    }
+
+    /**
+     * Delete all products for a user and publish product.deleted events
+     */
+    public void deleteProductsByUserId(String userId) {
+        List<Product> products = productRepository.findByUserId(userId);
+        for (Product product : products) {
+            productRepository.delete(product);
+            kafkaTemplate.send("product.deleted", product.getId());
+        }
     }
 
     /**

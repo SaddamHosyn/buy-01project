@@ -1,0 +1,13 @@
+server:
+  port: 8443 # Port for Docker (HTTPS)
+  ssl:
+    key-store: classpath:keystore.p12
+    key-store-type: PKCS12
+    key-store-password: secret
+    key-password: secret
+
+eureka:
+  client:
+    service-url:
+      # In Docker, we use the service name 'service-registry' instead of 'localhost'
+      defaultZone: http://service-registry:8761/eureka/
