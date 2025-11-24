@@ -33,7 +33,56 @@ import java.util.UUID;
 public class MediaService {
     // Delete all media associated with a product
     public void deleteMediaByProductId(String productId) {
-        mediaRepository.deleteByProductId(productId);
+        // Ensure rootLocation is initialized (in case this is invoked early)
+        if (this.rootLocation == null) {
+            this.rootLocation = Paths.get(storageProperties.getLocation());
+        }
+
+        List<Media> medias = mediaRepository.findByProductId(productId);
+        for (Media media : medias) {
+            try {
+                String filePath = media.getFilePath();
+                if (filePath != null && !filePath.startsWith("http://") && !filePath.startsWith("https://")) {
+                    Path file = rootLocation.resolve(filePath);
+                    Files.deleteIfExists(file);
+                }
+            } catch (IOException e) {
+                // Log but continue deleting DB records
+                System.err.println("Failed to delete file: " + media.getFilePath());
+            }
+        }
+
+        // Remove records from DB
+        if (!medias.isEmpty()) {
+            mediaRepository.deleteAll(medias);
+        }
+    }
+
+    // Delete media by explicit list of media IDs (used when producer includes mediaIds in the event)
+    public void deleteMediaByIds(List<String> ids) {
+        if (ids == null || ids.isEmpty()) return;
+
+        // Ensure rootLocation is initialized
+        if (this.rootLocation == null) {
+            this.rootLocation = Paths.get(storageProperties.getLocation());
+        }
+
+        List<Media> medias = mediaRepository.findAllById(ids);
+        for (Media media : medias) {
+            try {
+                String filePath = media.getFilePath();
+                if (filePath != null && !filePath.startsWith("http://") && !filePath.startsWith("https://")) {
+                    Path file = rootLocation.resolve(filePath);
+                    Files.deleteIfExists(file);
+                }
+            } catch (IOException e) {
+                System.err.println("Failed to delete file: " + media.getFilePath());
+            }
+        }
+
+        if (!medias.isEmpty()) {
+            mediaRepository.deleteAll(medias);
+        }
     }
 
     private static final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB

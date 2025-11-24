@@ -15,6 +15,9 @@ import java.time.ZonedDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.stream.Collectors;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 @Service
 @RequiredArgsConstructor
@@ -23,14 +26,26 @@ public class ProductService {
     public void deleteProductsByUserId(String userId) {
         List<Product> products = productRepository.findByUserId(userId);
         for (Product product : products) {
+            List<String> mediaIds = product.getMediaIds();
             productRepository.delete(product);
-            kafkaTemplate.send("product.deleted", product.getId());
+            try {
+                ObjectNode node = objectMapper.createObjectNode();
+                node.put("id", product.getId());
+                ArrayNode arr = node.putArray("mediaIds");
+                if (mediaIds != null) {
+                    for (String m : mediaIds) arr.add(m);
+                }
+                kafkaTemplate.send("product.deleted", objectMapper.writeValueAsString(node));
+            } catch (Exception e) {
+                kafkaTemplate.send("product.deleted", product.getId());
+            }
         }
     }
 
     private final ProductRepository productRepository;
     private final RestTemplate restTemplate;
     private final org.springframework.kafka.core.KafkaTemplate<String, String> kafkaTemplate;
+    private final ObjectMapper objectMapper;
 
     @Value("${media.service.url:http://media-service:8083/media}")
     private String mediaServiceUrl;
@@ -86,9 +101,20 @@ public class ProductService {
         if (!product.getUserId().equals(userId)) {
             throw new UnauthorizedException("You do not have permission to delete this product");
         }
+        List<String> mediaIds = product.getMediaIds();
         productRepository.delete(product);
         // Publish Kafka event for product deletion
-        kafkaTemplate.send("product.deleted", id);
+        try {
+            ObjectNode node = objectMapper.createObjectNode();
+            node.put("id", id);
+            ArrayNode arr = node.putArray("mediaIds");
+            if (mediaIds != null) {
+                for (String m : mediaIds) arr.add(m);
+            }
+            kafkaTemplate.send("product.deleted", objectMapper.writeValueAsString(node));
+        } catch (Exception e) {
+            kafkaTemplate.send("product.deleted", id);
+        }
     }
 
     public ProductResponse associateMedia(String productId, String mediaId, String userId) {
