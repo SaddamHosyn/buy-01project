@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, catchError, throwError, map } from 'rxjs'; // Added 'map'
+import { Observable, tap, catchError, throwError, map, switchMap } from 'rxjs'; // Added 'map'
 import { environment } from '../../../environments/environment';
 
 export interface User {
@@ -167,21 +167,26 @@ export class Auth {
    * 1. Uploads file to Media Controller
    * 2. Updates User Profile with new avatar URL
    */
-  uploadAvatar(file: File): Observable<{ avatarUrl: string }> {
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    // FIX 1: Changed URL from '/media/upload' to '/media/images' to match MediaController
-    return this.http.post<{ url: string }>(`${environment.apiUrl}/media/images`, formData).pipe(
-      tap(response => {
-         // FIX 2: Send 'avatar' property to match UpdateProfileRequest Java DTO
-         // Assuming your UpdateProfileRequest.java has 'private String avatar;'
-         this.updateProfile({ avatar: response.url }).subscribe();
-      }),
-      map(response => ({ avatarUrl: response.url })), // Map { url } to { avatarUrl } for frontend
-      catchError(err => throwError(() => new Error('Avatar upload failed. ' + (err.message || ''))))
-    );
-  }
+uploadAvatar(file: File): Observable<{ avatarUrl: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  return this.http.post<{ url: string }>(`${environment.apiUrl}/media/images`, formData).pipe(
+    switchMap((response: { url: string }) => {
+      // Wait for profile update to complete before returning
+      return this.updateProfile({ avatar: response.url }).pipe(
+        tap(() => {
+          // Update the local user signal and localStorage
+          this.updateUser({ avatarUrl: response.url });
+        }),
+        map(() => ({ avatarUrl: response.url }))
+      );
+    }),
+    catchError(err => throwError(() => new Error('Avatar upload failed. ' + (err.message || ''))))
+  );
+}
+
+
 
   private setAuth(user: User, token: string): void {
     this.currentUserSignal.set(user);

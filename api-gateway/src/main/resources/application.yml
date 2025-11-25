@@ -4,6 +4,9 @@ server:
 spring:
   application:
     name: api-gateway
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration  # Disable security
   cloud:
     compatibility-verifier:
       enabled: false # From your application.properties

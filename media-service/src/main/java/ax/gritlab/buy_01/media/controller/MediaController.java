@@ -30,7 +30,7 @@ public class MediaController {
     }
 
     @PostMapping("/images")
-    @PreAuthorize("hasAuthority('SELLER')")
+   @PreAuthorize("hasAnyAuthority('SELLER', 'CLIENT')") 
     public ResponseEntity<Media> uploadImage(@RequestParam("file") MultipartFile file, Authentication authentication) {
         String userId = ((User) authentication.getPrincipal()).getId();
         Media savedMedia = mediaService.save(file, (User) authentication.getPrincipal());

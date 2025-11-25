@@ -5,7 +5,7 @@ import ax.gritlab.buy_01.user.dto.UserProfileResponse;
 import ax.gritlab.buy_01.user.model.User;
 import ax.gritlab.buy_01.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder; // Import this!
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.kafka.core.KafkaTemplate;
 
@@ -15,7 +15,7 @@ public class UserService {
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder; // Inject PasswordEncoder
+    private final PasswordEncoder passwordEncoder;
 
     public UserProfileResponse getProfile(User user) {
         return UserProfileResponse.builder()
@@ -25,6 +25,13 @@ public class UserService {
                 .role(user.getRole())
                 .avatar(user.getAvatar())
                 .build();
+    }
+
+    // NEW: Get user by ID (for viewing seller profiles)
+    public UserProfileResponse getUserById(String id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return getProfile(user);
     }
 
     public UserProfileResponse updateProfile(User user, UpdateProfileRequest request) {
@@ -37,9 +44,7 @@ public class UserService {
 
             // Verify current password matches DB
             if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-                // This throws a 403/401 style error that your frontend catches
-                throw new RuntimeException("Incorrect current password"); 
-                // Ideally use a custom exception mapped to 403 Forbidden
+                throw new RuntimeException("Incorrect current password");
             }
 
             // Update to new password
@@ -47,11 +52,9 @@ public class UserService {
         }
 
         // 2. Handle Name Update
-      if (request.getName() != null && !request.getName().isEmpty()) {
-        // We will NOT require a password to change the name.
-        // If you want to require it, you can add the check back.
-        user.setName(request.getName());
-    }
+        if (request.getName() != null && !request.getName().isEmpty()) {
+            user.setName(request.getName());
+        }
 
         // 3. Handle Avatar Update
         if (request.getAvatar() != null) {

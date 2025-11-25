@@ -76,4 +76,14 @@ public class ProductController {
         productService.removeMediaFromProduct(productId, mediaId);
         return ResponseEntity.ok().build();
     }
+
+    /**
+     * Clean up all orphaned media IDs from products
+     * This removes media IDs that no longer exist in the media database
+     */
+    @PostMapping("/cleanup-orphaned-media")
+    public ResponseEntity<String> cleanupOrphanedMedia() {
+        String result = productService.cleanupOrphanedMedia();
+        return ResponseEntity.ok(result);
+    }
 }

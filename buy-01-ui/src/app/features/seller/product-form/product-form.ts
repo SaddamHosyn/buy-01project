@@ -161,6 +161,9 @@ export class ProductForm implements OnInit {
 /**
  * Remove existing image URL and DELETE from backend
  */
+/**
+ * Remove existing image URL and DELETE from backend
+ */
 removeExistingImage(index: number): void {
   const urls = this.existingImageUrls();
   const urlToRemove = urls[index];
@@ -181,16 +184,26 @@ removeExistingImage(index: number): void {
         return;
       }
       
-      // Show loading state
+      // Show loading
       this.isSaving.set(true);
       
       this.mediaService.deleteMedia(mediaId).subscribe({
         next: () => {
-          // Track deletion
-          this.deletedMediaIds.update(ids => [...ids, mediaId]);
-          
-          // Remove from UI ONLY on success
+          // Remove from UI immediately
           this.existingImageUrls.update(urls => urls.filter((_, i) => i !== index));
+          
+          // IMPORTANT: Also remove from product's mediaIds in backend
+          const productId = this.productId();
+          if (productId) {
+            this.productService.removeMediaFromProduct(productId, mediaId).subscribe({
+              next: () => {
+                console.log('Media removed from product successfully');
+              },
+              error: (err) => {
+                console.warn('Could not remove media from product:', err);
+              }
+            });
+          }
           
           this.successMessage.set('Image deleted successfully');
           this.isSaving.set(false);
@@ -199,16 +212,7 @@ removeExistingImage(index: number): void {
         },
         error: (error) => {
           console.error('Error deleting image:', error);
-          
-          // Show detailed error message
-          let errorMsg = 'Failed to delete image from server';
-          if (error.status === 403) {
-            errorMsg = 'Permission denied: You do not have access to delete this image';
-          } else if (error.status === 404) {
-            errorMsg = 'Image not found on server';
-          }
-          
-          this.errorMessage.set(errorMsg);
+          this.errorMessage.set('Failed to delete image from server');
           this.isSaving.set(false);
           
           setTimeout(() => this.errorMessage.set(''), 5000);
@@ -216,7 +220,6 @@ removeExistingImage(index: number): void {
       });
     });
   } else {
-    // Just remove from UI if we can't extract ID
     this.existingImageUrls.update(urls => urls.filter((_, i) => i !== index));
   }
 }

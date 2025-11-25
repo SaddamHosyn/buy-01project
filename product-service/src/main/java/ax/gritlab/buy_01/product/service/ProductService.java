@@ -11,6 +11,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.ZonedDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -122,6 +123,44 @@ public class ProductService {
             productRepository.delete(product);
             kafkaTemplate.send("product.deleted", product.getId());
         }
+    }
+
+    /**
+     * Clean up all orphaned media IDs from products
+     * This removes media IDs that no longer exist in the media database
+     */
+    public String cleanupOrphanedMedia() {
+        List<Product> products = productRepository.findAll();
+        int totalCleaned = 0;
+        
+        for (Product product : products) {
+            List<String> validMediaIds = new ArrayList<>();
+            
+            // Check each media ID to see if it still exists
+            for (String mediaId : product.getMediaIds()) {
+                try {
+                    // Try to call media service to check if media exists
+                    String url = mediaServiceUrl + "/images/" + mediaId;
+                    restTemplate.headForHeaders(url);
+                    // If no exception, media exists
+                    validMediaIds.add(mediaId);
+                } catch (Exception e) {
+                    // Media doesn't exist, don't add it to valid list
+                    System.out.println("Removing orphaned media ID: " + mediaId + " from product: " + product.getId());
+                    totalCleaned++;
+                }
+            }
+            
+            // Update product if any media IDs were removed
+            if (validMediaIds.size() != product.getMediaIds().size()) {
+                int removedCount = product.getMediaIds().size() - validMediaIds.size();
+                product.setMediaIds(validMediaIds);
+                productRepository.save(product);
+                System.out.println("Cleaned product: " + product.getId() + " - Removed " + removedCount + " orphaned media IDs");
+            }
+        }
+        
+        return "Cleaned up " + totalCleaned + " orphaned media references from products";
     }
 
     /**

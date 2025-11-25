@@ -15,3 +15,4 @@ ax\gritlab\buy_01\media\config\JwtAuthenticationFilter.class
 ax\gritlab\buy_01\media\MediaServiceApplication.class
 ax\gritlab\buy_01\media\service\MediaService.class
 ax\gritlab\buy_01\media\model\Media$MediaBuilder.class
+ax\gritlab\buy_01\media\config\RestTemplateConfig.class

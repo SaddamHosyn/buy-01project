@@ -105,4 +105,24 @@ export class ProductService {
   associateMedia(productId: string, mediaId: string): Observable<Product> {
     return this.http.post<Product>(`${this.API_URL}/${productId}/media/${mediaId}`, {});
   }
+
+
+
+
+ /**
+   * Remove media ID from product's mediaIds array
+   * Calls backend API: DELETE /api/products/{productId}/remove-media/{mediaId}
+   */
+  removeMediaFromProduct(productId: string, mediaId: string): Observable<void> {
+    return this.http.delete<void>(`${this.API_URL}/${productId}/remove-media/${mediaId}`);
+  }
+
+
+
+
+
+
+
+
+
 }
