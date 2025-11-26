@@ -37,13 +37,19 @@ public class MediaController {
         return ResponseEntity.ok(savedMedia);
     }
 
-    @GetMapping("/images/{id}")
-    public ResponseEntity<Resource> serveImage(@PathVariable String id) {
+@GetMapping("/images/{id}")
+public ResponseEntity<Resource> serveImage(@PathVariable String id) {
+    try {
         MediaService.MediaResource mediaResource = mediaService.getResourceById(id);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_TYPE, mediaResource.getContentType())
                 .body(mediaResource.getResource());
+    } catch (RuntimeException e) {
+        // Return 404 for missing images instead of throwing exception
+        return ResponseEntity.notFound().build();
     }
+}
+
 
     @DeleteMapping("/images/{id}")
     @PreAuthorize("hasAuthority('SELLER')")

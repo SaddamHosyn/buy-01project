@@ -27,12 +27,12 @@ public class SecurityConfig {
                         // Public endpoints - anyone can VIEW images
                         .requestMatchers(HttpMethod.GET, "/media/images/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
-                        
+
                         // Protected endpoints - authenticated users can upload/modify images
                         .requestMatchers(HttpMethod.POST, "/media/images/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/media/images/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/media/images/**").authenticated()
-                        
+
                         .anyRequest().authenticated())
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

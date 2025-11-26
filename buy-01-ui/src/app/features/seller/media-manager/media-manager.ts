@@ -38,6 +38,17 @@ import { ValidationPresets } from '../../../core/validators/file-upload.validato
   styleUrl: './media-manager.css',
 })
 export class MediaManager implements OnInit {
+    /**
+     * Remove image from UI if it fails to load (404 or other error)
+     */
+    onImageError(mediaId: string): void {
+      this.allMedia.update(media => media.filter(m => m.id !== mediaId));
+      this.selectedMedia.update(selected => {
+        const newSet = new Set(selected);
+        newSet.delete(mediaId);
+        return newSet;
+      });
+    }
   private readonly mediaService = inject(MediaService);
   private readonly productService = inject(ProductService);
   private readonly authService = inject(Auth);

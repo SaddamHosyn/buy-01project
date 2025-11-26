@@ -109,7 +109,7 @@ public class ProductService {
     public void removeMediaFromProduct(String productId, String mediaId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
-        
+
         product.getMediaIds().remove(mediaId);
         productRepository.save(product);
     }
@@ -132,10 +132,10 @@ public class ProductService {
     public String cleanupOrphanedMedia() {
         List<Product> products = productRepository.findAll();
         int totalCleaned = 0;
-        
+
         for (Product product : products) {
             List<String> validMediaIds = new ArrayList<>();
-            
+
             // Check each media ID to see if it still exists
             for (String mediaId : product.getMediaIds()) {
                 try {
@@ -144,22 +144,32 @@ public class ProductService {
                     restTemplate.headForHeaders(url);
                     // If no exception, media exists
                     validMediaIds.add(mediaId);
+                } catch (org.springframework.web.client.HttpClientErrorException e) {
+                    // Media doesn't exist (404) or forbidden (403) - remove it
+                    if (e.getStatusCode().value() == 404 || e.getStatusCode().value() == 403) {
+                        System.out.println("Removing orphaned/inaccessible media ID: " + mediaId + " from product: "
+                                + product.getId());
+                        totalCleaned++;
+                    } else {
+                        // Other error - keep the media ID
+                        validMediaIds.add(mediaId);
+                    }
                 } catch (Exception e) {
-                    // Media doesn't exist, don't add it to valid list
-                    System.out.println("Removing orphaned media ID: " + mediaId + " from product: " + product.getId());
-                    totalCleaned++;
+                    // Unknown error - keep the media ID to be safe
+                    validMediaIds.add(mediaId);
                 }
             }
-            
+
             // Update product if any media IDs were removed
             if (validMediaIds.size() != product.getMediaIds().size()) {
                 int removedCount = product.getMediaIds().size() - validMediaIds.size();
                 product.setMediaIds(validMediaIds);
                 productRepository.save(product);
-                System.out.println("Cleaned product: " + product.getId() + " - Removed " + removedCount + " orphaned media IDs");
+                System.out.println(
+                        "Cleaned product: " + product.getId() + " - Removed " + removedCount + " orphaned media IDs");
             }
         }
-        
+
         return "Cleaned up " + totalCleaned + " orphaned media references from products";
     }
 

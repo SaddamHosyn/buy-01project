@@ -87,7 +87,12 @@
 
         <!-- Image -->
         <div class="media-image-container" (click)="toggleSelection(media.id)">
-          <img [src]="media.url" [alt]="media.originalFilename" class="media-image" />
+          <img
+            [src]="media.url"
+            [alt]="media.originalFilename"
+            class="media-image"
+            (error)="onImageError(media.id)"
+          />
         </div>
 
         <!-- Media Info -->

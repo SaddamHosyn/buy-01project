@@ -184,46 +184,32 @@ removeExistingImage(index: number): void {
         return;
       }
       
-      // Show loading
       this.isSaving.set(true);
       
-      this.mediaService.deleteMedia(mediaId).subscribe({
-        next: () => {
-          // Remove from UI immediately
-          this.existingImageUrls.update(urls => urls.filter((_, i) => i !== index));
-          
-          // IMPORTANT: Also remove from product's mediaIds in backend
-          const productId = this.productId();
-          if (productId) {
-            this.productService.removeMediaFromProduct(productId, mediaId).subscribe({
-              next: () => {
-                console.log('Media removed from product successfully');
-              },
-              error: (err) => {
-                console.warn('Could not remove media from product:', err);
-              }
-            });
+      const productId = this.productId();
+      if (productId) {
+        // Call Product Service to remove media from product
+        this.productService.removeMediaFromProduct(productId, mediaId).subscribe({
+          next: () => {
+            // Remove from UI immediately
+            this.existingImageUrls.update(urls => urls.filter((_, i) => i !== index));
+            this.successMessage.set('Image removed successfully');
+            this.isSaving.set(false);
+            setTimeout(() => this.successMessage.set(''), 3000);
+          },
+          error: (error) => {
+            console.error('Error removing image:', error);
+            this.errorMessage.set('Failed to remove image');
+            this.isSaving.set(false);
+            setTimeout(() => this.errorMessage.set(''), 5000);
           }
-          
-          this.successMessage.set('Image deleted successfully');
-          this.isSaving.set(false);
-          
-          setTimeout(() => this.successMessage.set(''), 3000);
-        },
-        error: (error) => {
-          console.error('Error deleting image:', error);
-          this.errorMessage.set('Failed to delete image from server');
-          this.isSaving.set(false);
-          
-          setTimeout(() => this.errorMessage.set(''), 5000);
-        }
-      });
+        });
+      }
     });
   } else {
     this.existingImageUrls.update(urls => urls.filter((_, i) => i !== index));
   }
 }
-
 
 
 
