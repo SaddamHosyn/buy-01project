@@ -15,7 +15,11 @@ import { ProductService, Product, ProductRequest } from '../../../core/services/
 import { MediaService, Media } from '../../../core/services/media.service';
 import { Auth } from '../../../core/services/auth';
 import { priceValidator, getValidationMessage } from '../../../core/validators/form.validators';
-import { validateFile, validateFiles, ValidationPresets } from '../../../core/validators/file-upload.validator';
+import {
+  validateFile,
+  validateFiles,
+  ValidationPresets,
+} from '../../../core/validators/file-upload.validator';
 import { DialogService } from '../../../shared/services/dialog.service';
 import { forkJoin } from 'rxjs';
 
@@ -34,7 +38,7 @@ import { forkJoin } from 'rxjs';
     MatProgressSpinnerModule,
     MatToolbarModule,
     MatChipsModule,
-    MatTooltipModule
+    MatTooltipModule,
   ],
   templateUrl: './product-form.html',
   styleUrl: './product-form.css',
@@ -47,7 +51,7 @@ export class ProductForm implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly dialogService = inject(DialogService);
-  
+
   // Signals for reactive state
   readonly isEditMode = signal<boolean>(false);
   readonly isLoading = signal<boolean>(false);
@@ -55,7 +59,7 @@ export class ProductForm implements OnInit {
   readonly errorMessage = signal<string>('');
   readonly successMessage = signal<string>('');
   readonly productId = signal<string | null>(null);
-  
+
   // Image handling signals
   readonly selectedImages = signal<File[]>([]);
   readonly imagePreviews = signal<string[]>([]);
@@ -63,6 +67,7 @@ export class ProductForm implements OnInit {
   readonly uploadError = signal<string>('');
   readonly deletedMediaIds = signal<string[]>([]); // NEW: Track deleted media IDs
   
+
   // Reactive form
   productForm: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
@@ -70,7 +75,7 @@ export class ProductForm implements OnInit {
     price: [0, [Validators.required, priceValidator(0.01, 999999.99, 2)]],
     quantity: [1, [Validators.required, Validators.min(0)]]
   });
-  
+
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
@@ -79,11 +84,14 @@ export class ProductForm implements OnInit {
       this.loadProduct(id);
     }
   }
-  
+
+  /**
+   * Load product for editing
+   */
   loadProduct(id: string): void {
     this.isLoading.set(true);
     this.errorMessage.set('');
-    
+
     this.productService.getProductById(id).subscribe({
       next: (product) => {
         this.productForm.patchValue({
@@ -96,32 +104,39 @@ export class ProductForm implements OnInit {
         if (product.imageUrls && product.imageUrls.length > 0) {
           this.existingImageUrls.set(product.imageUrls);
         }
-        
+
         this.isLoading.set(false);
       },
       error: (error) => {
         console.error('Error loading product:', error);
         this.errorMessage.set('Failed to load product');
         this.isLoading.set(false);
-      }
+      },
     });
   }
-  
+
+  /**
+   * Handle multiple image selection
+   */
   onFilesSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const files = input.files;
-    
+
     if (!files || files.length === 0) {
       return;
     }
-    
+
     this.uploadError.set('');
     const validFiles: File[] = [];
     const previews: string[] = [];
-    
+
+    // Convert FileList to Array
     const filesArray = Array.from(files);
+
+    // Validate all files using ValidationPresets
     const validationResults = validateFiles(filesArray, ValidationPresets.PRODUCT_IMAGE);
-    
+
+    // Check for any validation errors
     let hasErrors = false;
     validationResults.forEach((result, filename) => {
       if (!result.valid) {
@@ -129,14 +144,16 @@ export class ProductForm implements OnInit {
         hasErrors = true;
       }
     });
-    
+
     if (hasErrors) {
       return;
     }
-    
+
+    // All files are valid, generate previews
     for (const file of filesArray) {
       validFiles.push(file);
-      
+
+      // Generate preview
       const reader = new FileReader();
       reader.onload = (e) => {
         previews.push(e.target?.result as string);
@@ -151,8 +168,8 @@ export class ProductForm implements OnInit {
   }
   
   removeNewImage(index: number): void {
-    this.selectedImages.update(images => images.filter((_, i) => i !== index));
-    this.imagePreviews.update(previews => previews.filter((_, i) => i !== index));
+    this.selectedImages.update((images) => images.filter((_, i) => i !== index));
+    this.imagePreviews.update((previews) => previews.filter((_, i) => i !== index));
   }
   
  
@@ -262,24 +279,30 @@ removeExistingImage(index: number): void {
   
   private createProduct(productData: Partial<Product>): void {
     const selectedFiles = this.selectedImages();
-    
+
     if (selectedFiles.length > 0) {
       this.mediaService.uploadFiles(selectedFiles).subscribe({
         next: (mediaList) => {
-          const mediaIds = mediaList.map(m => m.id);
+          // Get media IDs from uploaded files
+          const mediaIds = mediaList.map((m) => m.id);
+
+          // Create product with media IDs
           this.createProductWithMedia(productData, mediaIds);
         },
         error: (error) => {
           console.error('Error uploading images:', error);
           this.errorMessage.set('Failed to upload images. Please try again.');
           this.isSaving.set(false);
-        }
+        },
       });
     } else {
       this.createProductWithMedia(productData, []);
     }
   }
-  
+
+  /**
+   * Create product with media IDs
+   */
   private createProductWithMedia(productData: Partial<Product>, mediaIds: string[]): void {
     const productRequest: ProductRequest = {
       name: productData.name!,
@@ -287,7 +310,7 @@ removeExistingImage(index: number): void {
       price: productData.price!,
       quantity: productData.stock || 0
     };
-    
+
     this.productService.createProduct(productRequest).subscribe({
       next: (product) => {
         if (mediaIds.length > 0) {
@@ -295,7 +318,8 @@ removeExistingImage(index: number): void {
         } else {
           this.successMessage.set('Product created successfully!');
           this.isSaving.set(false);
-          
+
+          // Redirect to dashboard after 1 second
           setTimeout(() => {
             this.router.navigate(['/seller/dashboard']);
           }, 1000);
@@ -305,7 +329,7 @@ removeExistingImage(index: number): void {
         console.error('Error creating product:', error);
         this.errorMessage.set('Failed to create product. Please try again.');
         this.isSaving.set(false);
-      }
+      },
     });
   }
   
@@ -327,10 +351,10 @@ removeExistingImage(index: number): void {
         console.error('Error associating media:', error);
         this.errorMessage.set('Product created but failed to associate images.');
         this.isSaving.set(false);
-      }
+      },
     });
   }
-  
+
   /**
    * Update existing product (INCLUDING NEW IMAGES AND DELETIONS)
    */
@@ -407,6 +431,15 @@ removeExistingImage(index: number): void {
       quantity: productData.stock
     };
     
+
+    // Prepare update request with ONLY the fields backend expects
+    const updateRequest = {
+      name: productData.name,
+      description: productData.description,
+      price: productData.price,
+      quantity: productData.stock || 0,
+    };
+
     this.productService.updateProduct(id, updateRequest).subscribe({
       next: (product) => {
         this.successMessage.set('Product updated successfully!');
@@ -420,13 +453,13 @@ removeExistingImage(index: number): void {
         console.error('Error updating product:', error);
         this.errorMessage.set('Failed to update product. Please try again.');
         this.isSaving.set(false);
-      }
+      },
     });
   }
   
   cancel(): void {
     if (this.productForm.dirty) {
-      this.dialogService.confirmDiscard().subscribe(confirmed => {
+      this.dialogService.confirmDiscard().subscribe((confirmed) => {
         if (confirmed) {
           this.router.navigate(['/seller/dashboard']);
         }
@@ -438,7 +471,7 @@ removeExistingImage(index: number): void {
   
   getErrorMessage(controlName: string): string {
     const control = this.productForm.get(controlName);
-    
+
     if (!control || !control.errors) {
       return '';
     }

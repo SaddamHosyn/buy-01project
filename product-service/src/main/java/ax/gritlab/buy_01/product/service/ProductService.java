@@ -2,6 +2,8 @@ package ax.gritlab.buy_01.product.service;
 
 import ax.gritlab.buy_01.product.dto.ProductRequest;
 import ax.gritlab.buy_01.product.dto.ProductResponse;
+import ax.gritlab.buy_01.product.exception.ResourceNotFoundException;
+import ax.gritlab.buy_01.product.exception.UnauthorizedException;
 import ax.gritlab.buy_01.product.model.Product;
 import ax.gritlab.buy_01.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,13 +16,37 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 @Service
 @RequiredArgsConstructor
 public class ProductService {
+    // Delete all products for a user and publish product.deleted events
+    public void deleteProductsByUserId(String userId) {
+        List<Product> products = productRepository.findByUserId(userId);
+        for (Product product : products) {
+            List<String> mediaIds = product.getMediaIds();
+            productRepository.delete(product);
+            try {
+                ObjectNode node = objectMapper.createObjectNode();
+                node.put("id", product.getId());
+                ArrayNode arr = node.putArray("mediaIds");
+                if (mediaIds != null) {
+                    for (String m : mediaIds) arr.add(m);
+                }
+                kafkaTemplate.send("product.deleted", objectMapper.writeValueAsString(node));
+            } catch (Exception e) {
+                kafkaTemplate.send("product.deleted", product.getId());
+            }
+        }
+    }
+
     private final ProductRepository productRepository;
     private final RestTemplate restTemplate;
     private final org.springframework.kafka.core.KafkaTemplate<String, String> kafkaTemplate;
+    private final ObjectMapper objectMapper;
 
     @Value("${media.service.url:http://media-service:8083/media}")
     private String mediaServiceUrl;
@@ -36,7 +62,7 @@ public class ProductService {
 
     public ProductResponse getProductById(String id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
         return toProductResponse(product);
     }
 
@@ -57,9 +83,9 @@ public class ProductService {
 
     public ProductResponse updateProduct(String id, ProductRequest request, String userId) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
         if (!product.getUserId().equals(userId)) {
-            throw new RuntimeException("User does not have permission to update this product");
+            throw new UnauthorizedException("You do not have permission to update this product");
         }
         product.setName(request.getName());
         product.setDescription(request.getDescription());
@@ -72,20 +98,31 @@ public class ProductService {
 
     public void deleteProduct(String id, String userId) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
         if (!product.getUserId().equals(userId)) {
-            throw new RuntimeException("User does not have permission to delete this product");
+            throw new UnauthorizedException("You do not have permission to delete this product");
         }
+        List<String> mediaIds = product.getMediaIds();
         productRepository.delete(product);
         // Publish Kafka event for product deletion
-        kafkaTemplate.send("product.deleted", id);
+        try {
+            ObjectNode node = objectMapper.createObjectNode();
+            node.put("id", id);
+            ArrayNode arr = node.putArray("mediaIds");
+            if (mediaIds != null) {
+                for (String m : mediaIds) arr.add(m);
+            }
+            kafkaTemplate.send("product.deleted", objectMapper.writeValueAsString(node));
+        } catch (Exception e) {
+            kafkaTemplate.send("product.deleted", id);
+        }
     }
 
     public ProductResponse associateMedia(String productId, String mediaId, String userId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
         if (!product.getUserId().equals(userId)) {
-            throw new RuntimeException("User does not have permission to modify this product");
+            throw new UnauthorizedException("You do not have permission to modify this product");
         }
         product.getMediaIds().add(mediaId);
         Product saved = productRepository.save(product);
@@ -112,17 +149,6 @@ public class ProductService {
 
         product.getMediaIds().remove(mediaId);
         productRepository.save(product);
-    }
-
-    /**
-     * Delete all products for a user and publish product.deleted events
-     */
-    public void deleteProductsByUserId(String userId) {
-        List<Product> products = productRepository.findByUserId(userId);
-        for (Product product : products) {
-            productRepository.delete(product);
-            kafkaTemplate.send("product.deleted", product.getId());
-        }
     }
 
     /**

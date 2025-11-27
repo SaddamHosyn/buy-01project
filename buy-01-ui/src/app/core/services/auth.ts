@@ -56,7 +56,7 @@ interface MediaResponse {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class Auth {
   private readonly http = inject(HttpClient);
@@ -86,7 +86,7 @@ export class Auth {
     try {
       const token = localStorage.getItem('auth_token');
       const userJson = localStorage.getItem('current_user');
-      
+
       if (token && userJson) {
         const user = JSON.parse(userJson);
         this.tokenSignal.set(token);
@@ -107,7 +107,7 @@ export class Auth {
           email: response.email,
           name: response.name,
           role: response.role,
-          avatarUrl: response.avatarUrl
+          avatarUrl: response.avatarUrl,
         };
         this.setAuth(user, response.token);
         this.loadingSignal.set(false);
@@ -118,18 +118,28 @@ export class Auth {
       })
     );
   }
-  
+
+  /**
+   * Register new user
+   * Calls backend API: POST /api/auth/register
+   */
   register(data: RegisterRequest): Observable<RegisterResponse> {
     this.loadingSignal.set(true);
-    return this.http.post<RegisterResponse>(`${this.AUTH_URL}/register`, data).pipe(
-      tap(() => this.loadingSignal.set(false)),
+
+    return this.http.post<RegisterResponse>(`${this.API_URL}/register`, data).pipe(
+      tap(() => {
+        this.loadingSignal.set(false);
+      }),
       catchError((error: any) => {
         this.loadingSignal.set(false);
         return throwError(() => error);
       })
     );
   }
-  
+
+  /**
+   * Logout user
+   */
   logout(): void {
     this.clearAuth();
     this.router.navigate(['/auth/login']);
@@ -206,6 +216,50 @@ uploadAvatar(file: File): Observable<{ avatarUrl: string }> {
     return this.currentUserSignal()?.role === role;
   }
   
+
+    // Persist to localStorage
+    localStorage.setItem('auth_token', token);
+    localStorage.setItem('current_user', JSON.stringify(user));
+  }
+
+  /**
+   * Clear authentication data
+   */
+  private clearAuth(): void {
+    this.currentUserSignal.set(null);
+    this.tokenSignal.set(null);
+
+    // Clear from localStorage
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('current_user');
+  }
+
+  /**
+   * Check if user has specific role
+   */
+  hasRole(role: User['role']): boolean {
+    return this.currentUserSignal()?.role === role;
+  }
+
+  /**
+   * Update user profile via API
+   */
+  updateProfile(updates: { name?: string; avatar?: string }): Observable<User> {
+    return this.http.put<User>(`${environment.usersUrl}/me`, updates).pipe(
+      tap((updatedUser) => {
+        // Update local state and storage
+        this.updateUser(updatedUser);
+      }),
+      catchError((error) => {
+        console.error('Profile update failed:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Update current user data (for local state updates)
+   */
   updateUser(updates: Partial<User>): void {
     const currentUser = this.currentUserSignal();
     if (currentUser) {
