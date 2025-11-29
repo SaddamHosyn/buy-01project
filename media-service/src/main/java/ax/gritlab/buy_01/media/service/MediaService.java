@@ -32,6 +32,24 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class MediaService {
+    // Find media by user ID
+    public List<Media> findByUserId(String userId) {
+        return mediaRepository.findByUserId(userId);
+    }
+
+    // Associate media with a product
+    public Media associateWithProduct(String mediaId, String productId, String userId) {
+        Media media = mediaRepository.findById(mediaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Media not found with id: " + mediaId));
+        if (!media.getUserId().equals(userId)) {
+            throw new UnauthorizedException("You do not have permission to associate this media");
+        }
+        media.setProductId(productId);
+        media.setUpdatedAt(LocalDateTime.now());
+        Media updatedMedia = mediaRepository.save(media);
+        return updatedMedia;
+    }
+
     // Delete all media associated with a product
     public void deleteMediaByProductId(String productId) {
         // Ensure rootLocation is initialized (in case this is invoked early)
@@ -59,9 +77,11 @@ public class MediaService {
         }
     }
 
-    // Delete media by explicit list of media IDs (used when producer includes mediaIds in the event)
+    // Delete media by explicit list of media IDs (used when producer includes
+    // mediaIds in the event)
     public void deleteMediaByIds(List<String> ids) {
-        if (ids == null || ids.isEmpty()) return;
+        if (ids == null || ids.isEmpty())
+            return;
 
         // Ensure rootLocation is initialized
         if (this.rootLocation == null) {
@@ -88,7 +108,8 @@ public class MediaService {
 
     // Delete all media owned by a user (used when user.deleted events are received)
     public void deleteMediaByUserId(String userId) {
-        if (userId == null) return;
+        if (userId == null)
+            return;
 
         // Ensure rootLocation is initialized
         if (this.rootLocation == null) {
@@ -231,37 +252,36 @@ public class MediaService {
             throw new UnauthorizedException("You do not have permission to delete this media");
         }
 
-    // If media is associated with a product, notify product service to remove it
-    if (media.getProductId() != null) {
-        try {
-            String url = productServiceUrl + "/products/" + media.getProductId() + 
+        // If media is associated with a product, notify product service to remove it
+        if (media.getProductId() != null) {
+            try {
+                String url = productServiceUrl + "/products/" + media.getProductId() +
                         "/remove-media/" + media.getId();
-            
-            System.out.println("Calling Product Service to remove media: " + url); // DEBUG LOG
-            
-            restTemplate.delete(url);
-            
-            System.out.println("Successfully removed media from product"); // DEBUG LOG
-        } catch (Exception e) {
-            // Log the full error
-            System.err.println("Failed to update product after media deletion: " + e.getMessage());
-            e.printStackTrace(); // Print full stack trace
-            
-            // DON'T throw exception - still proceed with media deletion
+
+                System.out.println("Calling Product Service to remove media: " + url); // DEBUG LOG
+
+                restTemplate.delete(url);
+
+                System.out.println("Successfully removed media from product"); // DEBUG LOG
+            } catch (Exception e) {
+                // Log the full error
+                System.err.println("Failed to update product after media deletion: " + e.getMessage());
+                e.printStackTrace(); // Print full stack trace
+
+                // DON'T throw exception - still proceed with media deletion
+            }
         }
+
+        // Delete physical file
+        try {
+            Path file = rootLocation.resolve(media.getFilePath());
+            Files.deleteIfExists(file);
+        } catch (IOException e) {
+            System.err.println("Failed to delete file: " + media.getFilePath());
+        }
+
+        // Delete database record
+        mediaRepository.delete(media);
     }
-
-    // Delete physical file
-    try {
-        Path file = rootLocation.resolve(media.getFilePath());
-        Files.deleteIfExists(file);
-    } catch (IOException e) {
-        System.err.println("Failed to delete file: " + media.getFilePath());
-    }
-
-    // Delete database record
-    mediaRepository.delete(media);
-}
-
 
 }

@@ -126,7 +126,7 @@ export class Auth {
   register(data: RegisterRequest): Observable<RegisterResponse> {
     this.loadingSignal.set(true);
 
-    return this.http.post<RegisterResponse>(`${this.API_URL}/register`, data).pipe(
+    return this.http.post<RegisterResponse>(`${this.AUTH_URL}/register`, data).pipe(
       tap(() => {
         this.loadingSignal.set(false);
       }),
@@ -147,11 +147,6 @@ export class Auth {
 
   // --- Profile Updates (Name, Password, Avatar) ---
 
-  private updateProfile(request: UpdateProfileRequest): Observable<User> {
-    return this.http.put<User>(`${this.USER_URL}/me`, request).pipe(
-      tap(updatedUser => this.updateUser(updatedUser))
-    );
-  }
 
   /**
    * Update Name
@@ -198,45 +193,21 @@ uploadAvatar(file: File): Observable<{ avatarUrl: string }> {
 
 
 
+
   private setAuth(user: User, token: string): void {
     this.currentUserSignal.set(user);
     this.tokenSignal.set(token);
     localStorage.setItem('auth_token', token);
     localStorage.setItem('current_user', JSON.stringify(user));
   }
-  
+
   private clearAuth(): void {
     this.currentUserSignal.set(null);
     this.tokenSignal.set(null);
     localStorage.removeItem('auth_token');
     localStorage.removeItem('current_user');
   }
-  
-  hasRole(role: User['role']): boolean {
-    return this.currentUserSignal()?.role === role;
-  }
-  
 
-    // Persist to localStorage
-    localStorage.setItem('auth_token', token);
-    localStorage.setItem('current_user', JSON.stringify(user));
-  }
-
-  /**
-   * Clear authentication data
-   */
-  private clearAuth(): void {
-    this.currentUserSignal.set(null);
-    this.tokenSignal.set(null);
-
-    // Clear from localStorage
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('current_user');
-  }
-
-  /**
-   * Check if user has specific role
-   */
   hasRole(role: User['role']): boolean {
     return this.currentUserSignal()?.role === role;
   }
@@ -244,7 +215,7 @@ uploadAvatar(file: File): Observable<{ avatarUrl: string }> {
   /**
    * Update user profile via API
    */
-  updateProfile(updates: { name?: string; avatar?: string }): Observable<User> {
+  updateProfile(updates: { name?: string; avatar?: string; password?: string; newPassword?: string }): Observable<User> {
     return this.http.put<User>(`${environment.usersUrl}/me`, updates).pipe(
       tap((updatedUser) => {
         // Update local state and storage

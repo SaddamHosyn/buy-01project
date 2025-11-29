@@ -1,15 +1,18 @@
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper
+    container_name: buy-01-zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2182:2181"
+    networks:
+      - buy-01-network
 
   mongodb:
     image: mongo:6.0
-    container_name: mongodb
+    container_name: buy-01-mongodb
     ports:
       - "27017:27017"
     environment:
@@ -17,9 +20,12 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: example
     volumes:
       - ./uploads:/data/db
+    networks:
+      - buy-01-network
 
   kafka:
     image: confluentinc/cp-kafka
+    container_name: buy-01-kafka
     depends_on:
       - zookeeper
     ports:
@@ -36,36 +42,65 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - buy-01-network
+
+  service-registry:
+    build: ./service-registry
+    container_name: buy-01-service-registry
+    ports:
+      - "8761:8761"
+    networks:
+      - buy-01-network
 
   api-gateway:
     build: ./api-gateway
+    container_name: buy-01-api-gateway
     ports:
+      - "8080:8080"
       - "8443:8443"
     volumes:
-      - ./certs:/certs:ro
+      - ./api-gateway/certs:/certs:ro
     environment:
-      # THIS IS THE CRITICAL MISSING LINE:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://service-registry:8761/eureka/
       EUREKA_INSTANCE_HOSTNAME: api-gateway
-      # Spring Boot recognizes these env vars and maps them to server.ssl.* properties
       SERVER_SSL_KEY_STORE: /certs/keystore.p12
       SERVER_SSL_KEY_STORE_PASSWORD: changeit
       SERVER_SSL_KEY_STORE_TYPE: PKCS12
       SERVER_SSL_KEY_PASSWORD: changeit
     depends_on:
       - kafka
-<<<<<<< HEAD
-
-=======
       - service-registry
->>>>>>> origin/lastVersionHopefully
+    networks:
+      - buy-01-network
+
+  user-service:
+    build: ./user-service
+    container_name: buy-01-user-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATA_MONGODB_URI: mongodb://root:example@mongodb:27017/userdb?authSource=admin
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://service-registry:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: user-service
+    depends_on:
+      - kafka
+      - service-registry
+      - mongodb
+    networks:
+      - buy-01-network
+
   product-service:
     build: ./product-service
+    container_name: buy-01-product-service
     ports:
       - "8082:8082"
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_DATA_MONGODB_URI: mongodb://root:example@mongodb:27017/productdb?authSource=admin
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://service-registry:8761/eureka/
@@ -75,49 +110,40 @@ services:
       - kafka
       - service-registry
       - mongodb
-
-  user-service:
-    build: ./user-service
-    ports:
-      - "8081:8081"
-    environment:
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SPRING_DATA_MONGODB_URI: mongodb://root:example@mongodb:27017/userdb?authSource=admin
-      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://service-registry:8761/eureka/
-      EUREKA_INSTANCE_HOSTNAME: user-service
-    depends_on:
-      - kafka
-      - service-registry
-      - mongodb
+    networks:
+      - buy-01-network
 
   media-service:
     build: ./media-service
+    container_name: buy-01-media-service
     ports:
       - "8083:8083"
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_DATA_MONGODB_URI: mongodb://root:example@mongodb:27017/mediadb?authSource=admin
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://service-registry:8761/eureka/
       EUREKA_INSTANCE_HOSTNAME: media-service
-<<<<<<< HEAD
       API_GATEWAY_URL: https://localhost:8443/api/media
-=======
     volumes:
       - ./media-service/uploads:/app/uploads
->>>>>>> origin/lastVersionHopefully
     depends_on:
       - kafka
       - service-registry
       - mongodb
-
-  service-registry:
-    build: ./service-registry
-    ports:
-      - "8761:8761"
+    networks:
+      - buy-01-network
 
   frontend:
     build: ./buy-01-ui
+    container_name: buy-01-frontend
     ports:
       - "4200:80"
     depends_on:
       - api-gateway
+    networks:
+      - buy-01-network
+
+networks:
+  buy-01-network:
+    driver: bridge

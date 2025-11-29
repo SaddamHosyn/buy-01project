@@ -424,12 +424,7 @@ removeExistingImage(index: number): void {
    * Update product details
    */
   private updateProductDetails(id: string, productData: Partial<Product>): void {
-    const updateRequest: Partial<ProductRequest> = {
-      name: productData.name,
-      description: productData.description,
-      price: productData.price,
-      quantity: productData.stock
-    };
+ 
     
 
     // Prepare update request with ONLY the fields backend expects

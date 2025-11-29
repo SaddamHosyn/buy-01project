@@ -7,7 +7,10 @@ WORKDIR /app
 # Copy jar file
 COPY target/api-gateway-0.0.1-SNAPSHOT.jar /app/api-gateway.jar
 
-# Expose HTTPS port
+
+
+# Expose both HTTP and HTTPS ports
+EXPOSE 8080
 EXPOSE 8443
 
 # Run the Spring Boot app
