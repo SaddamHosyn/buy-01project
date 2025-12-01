@@ -1,10 +1,25 @@
 server:
-  port: 8443 # Port for Docker (HTTPS)
-  ssl:
-    key-store: classpath:keystore.p12
-    key-store-type: PKCS12
-    key-store-password: secret
-    key-password: secret
+  port: 8080 # Port for Docker (HTTP)
+
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          "[/**]":
+            allowedOrigins:
+              - "http://localhost:4200"
+              - "https://localhost:4201"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+            maxAge: 3600
 
 eureka:
   client:

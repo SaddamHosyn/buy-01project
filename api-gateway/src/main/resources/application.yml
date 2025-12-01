@@ -1,12 +1,12 @@
 server:
-  port: 8080 # Port for local development (HTTP)
+  port: 8080 # Use HTTP for backend services
 
 spring:
   application:
     name: api-gateway
   autoconfigure:
     exclude:
-      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration  # Disable security
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration # Disable security
   cloud:
     compatibility-verifier:
       enabled: false # From your application.properties
@@ -45,6 +45,7 @@ spring:
           "[/**]":
             allowedOrigins:
               - "http://localhost:4200"
+              - "https://localhost:4201"
             allowedMethods:
               - GET
               - POST

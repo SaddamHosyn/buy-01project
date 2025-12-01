@@ -58,18 +58,11 @@ services:
     container_name: buy-01-api-gateway
     ports:
       - "8080:8080"
-      - "8443:8443"
-    volumes:
-      - ./api-gateway/certs:/certs:ro
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://service-registry:8761/eureka/
       EUREKA_INSTANCE_HOSTNAME: api-gateway
-      SERVER_SSL_KEY_STORE: /certs/keystore.p12
-      SERVER_SSL_KEY_STORE_PASSWORD: changeit
-      SERVER_SSL_KEY_STORE_TYPE: PKCS12
-      SERVER_SSL_KEY_PASSWORD: changeit
     depends_on:
       - kafka
       - service-registry
@@ -105,7 +98,7 @@ services:
       SPRING_DATA_MONGODB_URI: mongodb://root:example@mongodb:27017/productdb?authSource=admin
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://service-registry:8761/eureka/
       EUREKA_INSTANCE_HOSTNAME: product-service
-      MEDIA_PUBLIC_URL: https://localhost:8443/api/media
+      MEDIA_PUBLIC_URL: http://localhost:8080/api/media
     depends_on:
       - kafka
       - service-registry
@@ -124,7 +117,7 @@ services:
       SPRING_DATA_MONGODB_URI: mongodb://root:example@mongodb:27017/mediadb?authSource=admin
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://service-registry:8761/eureka/
       EUREKA_INSTANCE_HOSTNAME: media-service
-      API_GATEWAY_URL: https://localhost:8443/api/media
+      API_GATEWAY_URL: http://localhost:8080/api/media
     volumes:
       - ./media-service/uploads:/app/uploads
     depends_on:
@@ -138,7 +131,8 @@ services:
     build: ./buy-01-ui
     container_name: buy-01-frontend
     ports:
-      - "4200:80"
+      - "4201:443" # HTTPS (primary)
+      - "4200:80" # HTTP (redirects to HTTPS)
     depends_on:
       - api-gateway
     networks:

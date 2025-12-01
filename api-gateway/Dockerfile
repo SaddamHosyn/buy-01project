@@ -7,11 +7,8 @@ WORKDIR /app
 # Copy jar file
 COPY target/api-gateway-0.0.1-SNAPSHOT.jar /app/api-gateway.jar
 
-
-
-# Expose both HTTP and HTTPS ports
+# Expose HTTP port
 EXPOSE 8080
-EXPOSE 8443
 
 # Run the Spring Boot app
 ENTRYPOINT ["java", "-jar", "api-gateway.jar"]
