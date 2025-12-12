@@ -1,6 +1,6 @@
 # Buy-01 E-Commerce Platform 🛒
 
-A full-stack microservices-based e-commerce platform built with **Spring Boot** and **Angular**, featuring event-driven architecture with **Apache Kafka** and secure **HTTPS** communication.
+A production-ready, full-stack microservices-based e-commerce platform built with **Spring Boot** and **Angular**, featuring event-driven architecture with **Apache Kafka**, service discovery, and containerized deployment.
 
 ## 🏗️ Architecture Overview
 
@@ -8,89 +8,120 @@ This project implements a modern microservices architecture with the following c
 
 ### Backend Services (Spring Boot 3.5.6 + Java 17)
 
-- **API Gateway** (Port 8443) - HTTPS entry point with SSL/TLS termination
-- **Service Registry** (Port 8761) - Eureka service discovery
-- **User Service** (Port 8081) - User authentication and management
-- **Product Service** (Port 8082) - Product catalog and inventory
-- **Media Service** (Port 8083) - File uploads and media handling
+- **API Gateway** (Port 8080) - HTTP entry point with routing and CORS configuration
+- **Service Registry** (Port 8761) - Eureka service discovery for dynamic service registration
+- **User Service** (Port 8081) - User authentication, JWT management, and profile handling
+- **Product Service** (Port 8082) - Product catalog, inventory, and seller management
+- **Media Service** (Port 8083) - File uploads, media storage, and image management
 
 ### Frontend
 
-- **Angular 20** (Port 4200) - Modern SPA with Material Design
+- **Angular 20** (Ports 4200/4201) - Modern SPA with Angular Material Design
+  - HTTP on port 4200
+  - HTTPS on port 4201 (with self-signed certificates)
 
 ### Infrastructure
 
-- **Apache Kafka** - Event-driven messaging for cascade operations
-- **Zookeeper** - Kafka coordination
-- **MongoDB 6.0** - NoSQL database (separate DB per service)
+- **Apache Kafka** - Event-driven messaging for cascade operations and data consistency
+- **Zookeeper** - Kafka coordination and cluster management
+- **MongoDB 6.0** - NoSQL database with database-per-service pattern
 
 ## ✨ Key Features
 
-- 🔐 **JWT Authentication** with role-based access control (SELLER, CLIENT, ADMIN)
-- 🔒 **HTTPS/SSL** security with PKCS12 keystore
-- 📨 **Event-Driven Architecture** using Kafka for cascade deletions
-- 🎯 **Service Discovery** with Eureka for dynamic service registration
-- 🗄️ **Database per Service** pattern with MongoDB
-- 📁 **File Upload/Download** capabilities for product media
-- 🎨 **Modern UI** with Angular Material components
-- 🐳 **Docker Compose** for easy deployment
+### Authentication & Authorization
+
+- 🔐 **JWT Authentication** with secure token-based auth
+- 👥 **Role-Based Access Control** (SELLER, CLIENT, ADMIN)
+- 🔑 **Password Management** with secure hashing
+- 👤 **User Profiles** with avatar upload and management
+
+### Architecture & Scalability
+
+- 📨 **Event-Driven Architecture** using Kafka for cascade operations
+- 🎯 **Service Discovery** with Eureka for dynamic load balancing
+- 🗄️ **Database per Service** pattern for data isolation
+- 🐳 **Fully Dockerized** - one command deployment
+- 🔄 **CORS Configuration** for cross-origin requests
+
+### Product & Media Management
+
+- 📦 **Product CRUD** with seller dashboard
+- 📁 **Multi-File Upload** with validation (images, documents)
+- 🖼️ **Image Management** with preview and lightbox
+- 📊 **Media Analytics** and tracking
+
+### User Experience
+
+- 🎨 **Modern Material UI** with responsive design
+- ⚡ **Reactive Forms** with real-time validation
+- 🔔 **Notification System** for user feedback
+- 🛡️ **Client-Side Guards** for route protection
+- 🌓 **Dark/Light Theme** support (Material theming)
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- **Java 17** or higher
-- **Node.js 18+** and npm
-- **Maven 3.6+**
-- **Docker & Docker Compose** (for infrastructure)
+- **Docker & Docker Compose** - Required for containerized deployment
+- **Java 17+** - For local development (optional)
+- **Node.js 18+** and npm - For frontend development (optional)
+- **Maven 3.6+** - For building services locally (optional)
 
-### Option 1: Run with Docker (Recommended for Backend)
+### One-Command Deployment (Recommended)
 
-1. **Start infrastructure and backend services:**
+The easiest way to run the entire application:
 
 ```bash
+# Clone the repository
+git clone https://github.com/jeeeeedi/buy-01.git
+cd buy-01
+
+# Start all services
 docker-compose up -d
+
+# Check services status
+docker-compose ps
 ```
 
-2. **Start frontend:**
+**Access the application:**
+
+- 🌐 **Frontend (HTTP)**: http://localhost:4200
+- 🔒 **Frontend (HTTPS)**: https://localhost:4201 (self-signed certificate)
+- 🔌 **API Gateway**: http://localhost:8080
+- 📊 **Eureka Dashboard**: http://localhost:8761
+- 🗄️ **MongoDB**: mongodb://root:example@localhost:27017
+
+**Stop all services:**
 
 ```bash
-cd buy-01-ui
-npm install
-npm start
+docker-compose down
 ```
 
-3. **Access the application:**
-   - Frontend: http://localhost:4200
-   - API Gateway: https://localhost:8443 (accept self-signed certificate)
-   - Eureka Dashboard: http://localhost:8761
+### Local Development Setup
 
-### Option 2: Run Without Docker
+For development with hot-reload:
 
 1. **Start infrastructure only:**
 
 ```bash
-# Start Kafka, Zookeeper, and MongoDB
 docker-compose up -d zookeeper kafka mongodb
 ```
 
-2. **Build all services:**
+2. **Run backend services:**
 
 ```bash
+# Build all services
 mvn clean install
+
+# Start services (each in separate terminal)
+cd service-registry && mvn spring-boot:run
+cd api-gateway && mvn spring-boot:run
+cd user-service && mvn spring-boot:run
+cd product-service && mvn spring-boot:run
+cd media-service && mvn spring-boot:run
 ```
 
-3. **Start backend services using shell scripts:**
-
-```bash
-# Start all services
-./start_all.sh
-
-# Or start individually
-./start_app.sh
-```
-
-4. **Start frontend:**
+3. **Run frontend with hot-reload:**
 
 ```bash
 cd buy-01-ui
@@ -98,63 +129,41 @@ npm install
 npm start
 ```
 
-### Option 3: Manual Service Startup
+### First Time Setup
 
-**Terminal 1 - Service Registry:**
+After starting the application, you can:
 
-```bash
-cd service-registry
-mvn spring-boot:run
-```
+1. **Register a new account:**
 
-**Terminal 2 - API Gateway:**
+   - Navigate to http://localhost:4200
+   - Click "Register" and create an account
+   - Choose role: SELLER (to sell products) or CLIENT (to buy products)
 
-```bash
-cd api-gateway
-mvn spring-boot:run
-```
+2. **Verify services:**
 
-**Terminal 3 - User Service:**
+   - Check Eureka dashboard: http://localhost:8761
+   - All services should show as "UP"
 
-```bash
-cd user-service
-mvn spring-boot:run
-```
+3. **Start using the platform:**
+   - **Sellers**: Upload products, manage inventory, upload media
+   - **Clients**: Browse products, view details, manage profile
 
-**Terminal 4 - Product Service:**
+## 📊 Service Ports & URLs
 
-```bash
-cd product-service
-mvn spring-boot:run
-```
+| Service          | Port  | Protocol | URL                       | Description           |
+| ---------------- | ----- | -------- | ------------------------- | --------------------- |
+| Frontend (HTTP)  | 4200  | HTTP     | http://localhost:4200     | Angular application   |
+| Frontend (HTTPS) | 4201  | HTTPS    | https://localhost:4201    | Secure frontend       |
+| API Gateway      | 8080  | HTTP     | http://localhost:8080     | Main API entry point  |
+| Service Registry | 8761  | HTTP     | http://localhost:8761     | Eureka dashboard      |
+| User Service     | 8081  | HTTP     | Internal                  | User management       |
+| Product Service  | 8082  | HTTP     | Internal                  | Product management    |
+| Media Service    | 8083  | HTTP     | Internal                  | Media/file management |
+| MongoDB          | 27017 | TCP      | mongodb://localhost:27017 | Database server       |
+| Kafka            | 9092  | TCP      | localhost:9092            | Message broker        |
+| Zookeeper        | 2182  | TCP      | localhost:2182            | Kafka coordination    |
 
-**Terminal 5 - Media Service:**
-
-```bash
-cd media-service
-mvn spring-boot:run
-```
-
-**Terminal 6 - Frontend:**
-
-```bash
-cd buy-01-ui
-npm start
-```
-
-## 📊 Service Ports
-
-| Service          | Port  | Protocol | Description         |
-| ---------------- | ----- | -------- | ------------------- |
-| Frontend         | 4200  | HTTP     | Angular application |
-| API Gateway      | 8443  | HTTPS    | Main entry point    |
-| Service Registry | 8761  | HTTP     | Eureka dashboard    |
-| User Service     | 8081  | HTTP     | Internal service    |
-| Product Service  | 8082  | HTTP     | Internal service    |
-| Media Service    | 8083  | HTTP     | Internal service    |
-| MongoDB          | 27017 | TCP      | Database            |
-| Kafka            | 9092  | TCP      | Message broker      |
-| Zookeeper        | 2182  | TCP      | Kafka coordination  |
+**Note:** Internal services (User, Product, Media) communicate through the API Gateway and are not directly exposed.
 
 ## 🔄 Event-Driven Flow
 
@@ -180,6 +189,7 @@ User Deletion → Kafka Topic: user.deleted → Product Service
 - **Message formats:** prefer small, typed JSON events like `{ "id": "<productId>", "mediaIds": ["<mediaId>", ...] }`. Consumers also accept older plain-string messages containing the product id.
 
 **Kafka - Docker commands (list topics, consume, produce)**
+
 - **List all topics:**
 
 ```bash
@@ -253,21 +263,106 @@ db.media.countDocuments({ userId: "69244af654df39660cbd3294" })
 
 ```
 buy-01/
-├── api-gateway/          # HTTPS gateway with routing
-├── service-registry/     # Eureka server
-├── user-service/         # User management & auth
-├── product-service/      # Product catalog
-├── media-service/        # File management
-├── buy-01-ui/           # Angular frontend
+├── api-gateway/              # API Gateway with routing and CORS
+│   ├── src/main/
+│   │   ├── java/.../apigateway/
+│   │   │   ├── ApiGatewayApplication.java
+│   │   │   └── config/
+│   │   │       └── CorsConfig.java       # CORS configuration
+│   │   └── resources/
+│   │       ├── application.properties
+│   │       ├── application-docker.yml
+│   │       └── application.yml           # Route definitions
+│   ├── Dockerfile
+│   └── pom.xml
+│
+├── service-registry/         # Eureka server for service discovery
+│   ├── src/main/
+│   │   ├── java/.../serviceregistry/
+│   │   │   └── ServiceRegistryApplication.java
+│   │   └── resources/
+│   │       └── application.properties
+│   ├── Dockerfile
+│   └── pom.xml
+│
+├── user-service/             # User management & authentication
+│   ├── src/main/
+│   │   ├── java/.../user/
+│   │   │   ├── UserServiceApplication.java
+│   │   │   ├── config/          # JWT, Security, Kafka
+│   │   │   ├── controller/      # REST controllers
+│   │   │   ├── model/           # User, Role entities
+│   │   │   ├── repository/      # MongoDB repositories
+│   │   │   └── service/         # Business logic
+│   │   └── resources/
+│   │       └── application.properties
+│   ├── Dockerfile
+│   └── pom.xml
+│
+├── product-service/          # Product catalog management
+│   ├── src/main/
+│   │   ├── java/.../product/
+│   │   │   ├── ProductServiceApplication.java
+│   │   │   ├── config/          # Security, Kafka, MongoDB
+│   │   │   ├── controller/      # Product REST API
+│   │   │   ├── dto/             # Request/Response DTOs
+│   │   │   ├── model/           # Product entity
+│   │   │   ├── repository/      # Product repository
+│   │   │   └── service/         # Product logic, Kafka consumer
+│   │   └── resources/
+│   │       └── application.properties
+│   ├── Dockerfile
+│   └── pom.xml
+│
+├── media-service/            # Media file management
+│   ├── src/main/
+│   │   ├── java/.../media/
+│   │   │   ├── MediaServiceApplication.java
+│   │   │   ├── config/          # Storage, Security, Kafka
+│   │   │   ├── controller/      # Media upload/download
+│   │   │   ├── model/           # Media entity
+│   │   │   ├── repository/      # Media repository
+│   │   │   └── service/         # File handling, Kafka consumers
+│   │   └── resources/
+│   │       └── application.properties
+│   ├── uploads/             # Local file storage
+│   ├── Dockerfile
+│   └── pom.xml
+│
+├── buy-01-ui/               # Angular 20 frontend
 │   ├── src/
 │   │   ├── app/
-│   │   │   ├── core/        # Core services & guards
-│   │   │   ├── features/    # Feature modules
-│   │   │   └── shared/      # Shared components
-│   │   └── environments/    # Environment configs
-├── docker-compose.yml    # Infrastructure setup
-├── pom.xml              # Maven parent POM
-└── README.md
+│   │   │   ├── core/            # Core services & infrastructure
+│   │   │   │   ├── guards/      # Auth & role guards
+│   │   │   │   ├── interceptors/ # HTTP interceptors
+│   │   │   │   ├── services/    # Auth, Product, Media services
+│   │   │   │   └── validators/  # Custom validators
+│   │   │   ├── features/        # Feature modules
+│   │   │   │   ├── auth/        # Login, Register
+│   │   │   │   ├── products/    # Product list, detail
+│   │   │   │   ├── profile/     # User profile
+│   │   │   │   └── seller/      # Seller dashboard
+│   │   │   └── shared/          # Shared components
+│   │   │       ├── components/  # Reusable UI components
+│   │   │       └── services/    # Shared services
+│   │   ├── environments/        # Environment configs
+│   │   │   ├── environment.ts
+│   │   │   └── environment.prod.ts
+│   │   ├── index.html
+│   │   ├── main.ts
+│   │   └── styles.css
+│   ├── certs/                   # SSL certificates for HTTPS
+│   │   ├── localhost.pem
+│   │   └── localhost-key.pem
+│   ├── nginx-https.conf         # Nginx config for HTTPS
+│   ├── Dockerfile
+│   ├── angular.json
+│   ├── package.json
+│   └── tsconfig.json
+│
+├── docker-compose.yml           # Multi-container orchestration
+├── pom.xml                      # Maven parent POM
+└── README.md                    # This file
 ```
 
 ## 🛠️ Technologies Used
@@ -296,11 +391,14 @@ buy-01/
 
 ## 🔐 Security Features
 
-- **HTTPS/TLS**: All external communication encrypted via API Gateway
-- **JWT Tokens**: Stateless authentication with role-based authorization
-- **CORS**: Configured to allow frontend access
-- **SSL Termination**: API Gateway handles SSL, internal services use HTTP
-- **Self-Signed Certificate**: Included for development (keystore.p12)
+- **JWT Tokens**: Stateless authentication with secure token generation and validation
+- **Role-Based Authorization**: Fine-grained access control (SELLER, CLIENT, ADMIN)
+- **Password Encryption**: Bcrypt hashing for secure password storage
+- **CORS Configuration**: Properly configured to allow frontend-backend communication
+- **Frontend HTTPS**: Optional HTTPS support with self-signed certificates (port 4201)
+- **Input Validation**: Server-side and client-side validation for all inputs
+- **File Upload Security**: File type and size validation, secure storage
+- **JWT Secret**: Configurable secret key for token signing
 
 ## 🧪 Testing
 
@@ -329,100 +427,316 @@ EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://service-registry:8761/eureka/
 
 ## 🐛 Troubleshooting
 
-**Issue: Services can't connect to Kafka**
+### Services Not Starting
+
+**Check all containers:**
+
+```bash
+docker-compose ps
+docker-compose logs
+```
+
+**Restart specific service:**
+
+```bash
+docker-compose restart <service-name>
+# Example: docker-compose restart api-gateway
+```
+
+**Rebuild after code changes:**
+
+```bash
+docker-compose build --no-cache <service-name>
+docker-compose up -d <service-name>
+```
+
+### Kafka Issues
+
+**Services can't connect to Kafka:**
 
 ```bash
 # Check Kafka is running
 docker ps | grep kafka
-# Check Kafka logs
+
+# View Kafka logs
 docker-compose logs kafka
+
+# List Kafka topics
+docker exec -it buy-01-kafka /bin/bash -c \
+  "/usr/bin/kafka-topics --bootstrap-server localhost:9092 --list"
 ```
 
-**Issue: MongoDB connection failed**
+### Database Issues
+
+**MongoDB connection failed:**
 
 ```bash
-# Verify MongoDB is running
+# Check MongoDB is running
 docker ps | grep mongodb
+
 # Test connection
-docker exec -it mongodb mongosh -u root -p example
+docker exec -it buy-01-mongodb mongosh -u root -p example
+
+# View MongoDB logs
+docker-compose logs mongodb
 ```
 
-**Issue: Frontend can't reach backend**
+**Clear MongoDB data:**
 
-- Ensure API Gateway is running on port 8443
-- Accept the self-signed certificate in your browser
-- Check CORS settings in `api-gateway/application.yml`
+```bash
+# Stop services
+docker-compose down
 
-**Issue: Services not registering with Eureka**
+# Remove data volume (WARNING: This deletes all data!)
+rm -rf ./uploads
 
-- Wait 30 seconds after startup
+# Restart
+docker-compose up -d
+```
+
+### Frontend Issues
+
+**Frontend can't reach backend:**
+
+- Ensure API Gateway is running: http://localhost:8080
+- Check browser console for CORS errors
+- Verify environment configuration in `buy-01-ui/src/environments/`
+
+**Mixed Content warnings (HTTPS frontend calling HTTP backend):**
+
+- This is normal when using HTTPS frontend (port 4201)
+- Use HTTP frontend (port 4200) for development
+- Browser auto-upgrades requests, which is safe
+
+### Service Discovery Issues
+
+**Services not registering with Eureka:**
+
+- Wait 30-60 seconds after startup for registration
 - Check Eureka dashboard: http://localhost:8761
+- Verify service logs: `docker-compose logs <service-name>`
+
+### Port Conflicts
+
+**Port already in use:**
+
+```bash
+# Find process using port (Windows)
+netstat -ano | findstr :8080
+
+# Find process using port (Mac/Linux)
+lsof -i :8080
+
+# Kill process or change port in docker-compose.yml
+```
 
 ## 🛑 Stopping the Application
 
-**Stop all Docker services:**
+**Stop all services:**
 
 ```bash
 docker-compose down
 ```
 
-**Stop shell-started services:**
+**Stop and remove volumes (clean slate):**
 
 ```bash
-./stop_all.sh
+docker-compose down -v
 ```
 
-## 👥 Default Users
-
-After first run, you can register users via the frontend or use the API:
-
-**Register via API:**
+**Remove all containers and images:**
 
 ```bash
-curl -X POST https://localhost:8443/api/auth/register \
+docker-compose down --rmi all
+```
+
+## 👥 User Management
+
+### Registering Users
+
+**Via Frontend (Recommended):**
+
+1. Navigate to http://localhost:4200
+2. Click "Register"
+3. Fill in the form (name, email, password, role)
+4. Choose role: SELLER or CLIENT
+
+**Via API:**
+
+```bash
+curl -X POST http://localhost:8080/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "seller1",
+    "name": "John Seller",
     "email": "seller@example.com",
     "password": "password123",
     "role": "SELLER"
   }'
 ```
 
+### User Roles
+
+- **SELLER**: Can create, edit, and delete products; upload media; manage inventory
+- **CLIENT**: Can browse products, view details, manage profile
+- **ADMIN**: Full system access (future implementation)
+
 ## 📚 API Documentation
 
-Access API endpoints through the gateway:
+All API endpoints are accessed through the API Gateway: `http://localhost:8080`
 
-**Authentication:**
+### Authentication Endpoints
 
-- POST `/api/auth/register` - Register new user
-- POST `/api/auth/login` - Login and get JWT token
+| Method | Endpoint                    | Description             | Auth Required |
+| ------ | --------------------------- | ----------------------- | ------------- |
+| POST   | `/api/auth/register`        | Register new user       | No            |
+| POST   | `/api/auth/login`           | Login and get JWT token | No            |
+| POST   | `/api/auth/change-password` | Change user password    | Yes           |
 
-**Users:**
+### User Endpoints
 
-- GET `/api/users` - Get all users (ADMIN only)
-- GET `/api/users/{id}` - Get user by ID
-- DELETE `/api/users/{id}` - Delete user (triggers cascade)
+| Method | Endpoint                    | Description              | Auth Required | Role      |
+| ------ | --------------------------- | ------------------------ | ------------- | --------- |
+| GET    | `/api/users/profile`        | Get current user profile | Yes           | Any       |
+| PUT    | `/api/users/profile`        | Update user profile      | Yes           | Any       |
+| PUT    | `/api/users/profile/name`   | Update user name         | Yes           | Any       |
+| POST   | `/api/users/profile/avatar` | Upload user avatar       | Yes           | Any       |
+| DELETE | `/api/users/{id}`           | Delete user (cascade)    | Yes           | Own/Admin |
 
-**Products:**
+### Product Endpoints
 
-- GET `/api/products` - Get all products
-- POST `/api/products` - Create product (SELLER only)
-- DELETE `/api/products/{id}` - Delete product (triggers cascade)
+| Method | Endpoint                        | Description              | Auth Required | Role           |
+| ------ | ------------------------------- | ------------------------ | ------------- | -------------- |
+| GET    | `/api/products`                 | Get all products         | No            | Any            |
+| GET    | `/api/products/{id}`            | Get product by ID        | No            | Any            |
+| GET    | `/api/products/seller/{userId}` | Get products by seller   | No            | Any            |
+| POST   | `/api/products`                 | Create new product       | Yes           | SELLER         |
+| PUT    | `/api/products/{id}`            | Update product           | Yes           | SELLER (owner) |
+| DELETE | `/api/products/{id}`            | Delete product (cascade) | Yes           | SELLER (owner) |
 
-**Media:**
+### Media Endpoints
 
-- POST `/api/media/upload` - Upload file
-- GET `/api/media/download/{filename}` - Download file
+| Method | Endpoint                                     | Description                  | Auth Required | Role           |
+| ------ | -------------------------------------------- | ---------------------------- | ------------- | -------------- |
+| POST   | `/api/media/upload`                          | Upload media file            | Yes           | SELLER         |
+| POST   | `/api/media/upload-multiple`                 | Upload multiple files        | Yes           | SELLER         |
+| GET    | `/api/media/{id}`                            | Get media by ID              | No            | Any            |
+| GET    | `/api/media/user/{userId}`                   | Get user's media             | Yes           | Own/SELLER     |
+| GET    | `/api/media/download/{filename}`             | Download file                | No            | Any            |
+| DELETE | `/api/media/{id}`                            | Delete media                 | Yes           | SELLER (owner) |
+| POST   | `/api/media/{mediaId}/associate/{productId}` | Associate media with product | Yes           | SELLER         |
+
+### Request Examples
+
+**Login:**
+
+```bash
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "seller@example.com",
+    "password": "password123"
+  }'
+```
+
+**Create Product (requires JWT token):**
+
+```bash
+curl -X POST http://localhost:8080/api/products \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "name": "Product Name",
+    "description": "Product description",
+    "price": 99.99,
+    "category": "Electronics",
+    "stock": 10
+  }'
+```
+
+**Upload Media:**
+
+```bash
+curl -X POST http://localhost:8080/api/media/upload \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -F "file=@/path/to/image.jpg"
+```
+
+## 🎯 Use Cases
+
+### For Sellers
+
+1. **Register as SELLER** → Access seller dashboard
+2. **Upload Media** → Add product images
+3. **Create Products** → List items with details, pricing, and images
+4. **Manage Inventory** → Edit or delete products
+5. **View Analytics** → Track product performance
+
+### For Clients
+
+1. **Register as CLIENT** → Browse marketplace
+2. **View Products** → Search and filter products
+3. **Product Details** → View images, descriptions, pricing
+4. **Manage Profile** → Update info and avatar
+
+### System Features
+
+- **Cascade Deletion**: Deleting a user automatically removes their products and associated media
+- **Event-Driven**: Kafka ensures data consistency across services
+- **Service Discovery**: Eureka enables dynamic service registration and load balancing
+
+## 🚧 Future Enhancements
+
+- 🛒 Shopping cart functionality
+- 💳 Payment integration
+- 📧 Email notifications
+- 🔍 Advanced search and filtering
+- ⭐ Product reviews and ratings
+- 📊 Seller analytics dashboard
+- 🌐 Multi-language support
+- 📱 Mobile app (React Native)
+
+## 📖 Documentation
+
+### For Developers
+
+- **Backend**: Spring Boot REST APIs with Spring Security
+- **Frontend**: Angular with reactive patterns and Material UI
+- **Database**: MongoDB with database-per-service pattern
+- **Messaging**: Kafka for event-driven architecture
+- **Containerization**: Docker Compose for multi-container deployment
+
+### Key Design Patterns
+
+- Microservices Architecture
+- API Gateway Pattern
+- Service Discovery Pattern
+- Event-Driven Architecture
+- Database per Service
+- JWT Authentication
 
 ## 📄 License
 
-This project is developed for educational purposes.
+This project is developed for educational purposes as part of a university project.
 
-## 👨‍💻 Authors
+## 👨‍💻 Contributors
 
-- [@jedi](https://github.com/jeeeeedi) [@oafilali](https://github.com/oafilali) [@Anastasia](https://github.com/...) [@SaddamHosyn](https://github.com/SaddamHosyn)
+- [@jeeeeedi](https://github.com/jeeeeedi)
+- [@oafilali](https://github.com/oafilali)
+- [@Anastasia](https://github.com/...)
+- [@SaddamHosyn](https://github.com/SaddamHosyn)
+
+## 🙏 Acknowledgments
+
+Special thanks to:
+
+- Spring Boot and Spring Cloud teams
+- Angular and Angular Material teams
+- Apache Kafka community
+- MongoDB team
+- Docker community
 
 ---
 
-**Built with ❤️ using Spring Boot and Angular**
+**Built with ❤️ using Spring Boot, Angular, Kafka, and MongoDB**
+
+_For questions or issues, please open an issue on GitHub._
