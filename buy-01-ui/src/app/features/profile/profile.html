@@ -26,9 +26,9 @@
                   type="button"
                   class="remove-avatar-btn"
                   matTooltip="Remove avatar"
-                  (click)="uploadAvatar()" 
+                  (click)="uploadAvatar()"
                 >
-                <!-- Note: Replaced remove with upload trigger since removeAvatar isn't in TS yet -->
+                  <!-- Note: Replaced remove with upload trigger since removeAvatar isn't in TS yet -->
                   <mat-icon>edit</mat-icon>
                 </button>
               </div>
@@ -72,8 +72,7 @@
             <mat-divider class="section-divider"></mat-divider>
 
             <!-- Profile Form -->
-            <!-- FIX: Changed (ngSubmit)="onSubmit()" to (ngSubmit)="saveProfile()" -->
-            <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="profile-form">
+            <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="profile-form">
               <!-- Name Field -->
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Full Name</mat-label>
@@ -108,7 +107,9 @@
                 color="primary"
                 type="submit"
                 class="full-width submit-btn"
-                [disabled]="isLoading() || profileForm.invalid || !profileForm.dirty"
+                [disabled]="
+                  isLoading() || profileForm.invalid || (!profileForm.dirty && !selectedFile())
+                "
               >
                 @if (isLoading()) {
                 <mat-spinner diameter="20"></mat-spinner>

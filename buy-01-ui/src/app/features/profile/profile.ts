@@ -35,12 +35,6 @@ import { validateFile, ValidationPresets } from '../../core/validators/file-uplo
   styleUrl: './profile.css',
 })
 export class Profile implements OnInit {
-    /**
-     * Alias for onSubmit to match template usage
-     */
-    saveProfile(): void {
-      this.onSubmit();
-    }
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(Auth);
   private readonly router = inject(Router);
@@ -147,9 +141,6 @@ export class Profile implements OnInit {
       this.imagePreview.set(e.target?.result as string);
     };
     reader.readAsDataURL(file);
-
-    // Upload immediately
-    this.uploadAvatar();
   }
 
   /**
@@ -190,7 +181,7 @@ export class Profile implements OnInit {
   }
 
   /**
-   * Save profile changes (name only)
+   * Save profile changes (name and avatar if selected)
    */
   onSubmit(): void {
     if (this.profileForm.invalid) {
@@ -198,28 +189,43 @@ export class Profile implements OnInit {
       return;
     }
 
-    if (!this.profileForm.dirty) {
+    const hasAvatar = this.selectedFile() !== null;
+    const hasNameChange = this.profileForm.dirty;
+
+    if (!hasAvatar && !hasNameChange) {
       this.notification.info('No changes to save.');
       return;
     }
 
     this.isLoading.set(true);
-    const newName = this.profileForm.get('name')?.value;
 
-    this.authService.updateName(newName).subscribe({
-      next: () => {
-        this.isLoading.set(false);
-        this.notification.success('Name updated successfully!');
-        this.profileForm.markAsPristine();
-      },
-      error: (err) => {
-        this.isLoading.set(false);
-        const errorMsg = err.error?.message || 'Failed to update name';
-        this.notification.error(errorMsg);
-        // Revert to original name
-        this.profileForm.patchValue({ name: this.currentUser()?.name });
-      },
-    });
+    // If avatar is selected, upload it first
+    if (hasAvatar) {
+      this.uploadAvatar();
+    }
+
+    // If name changed, update it
+    if (hasNameChange) {
+      const newName = this.profileForm.get('name')?.value;
+
+      this.authService.updateName(newName).subscribe({
+        next: () => {
+          this.isLoading.set(false);
+          this.notification.success('Profile updated successfully!');
+          this.profileForm.markAsPristine();
+        },
+        error: (err) => {
+          this.isLoading.set(false);
+          const errorMsg = err.error?.message || 'Failed to update profile';
+          this.notification.error(errorMsg);
+          // Revert to original name
+          this.profileForm.patchValue({ name: this.currentUser()?.name });
+        },
+      });
+    } else if (hasAvatar) {
+      // Only avatar was changed, loading is handled by uploadAvatar
+      this.isLoading.set(false);
+    }
   }
 
   /**
