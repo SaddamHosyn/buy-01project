@@ -52,23 +52,9 @@ public class MediaService {
 
     // Delete all media associated with a product
     public void deleteMediaByProductId(String productId) {
-        // Ensure rootLocation is initialized (in case this is invoked early)
-        if (this.rootLocation == null) {
-            this.rootLocation = Paths.get(storageProperties.getLocation());
-        }
-
         List<Media> medias = mediaRepository.findByProductId(productId);
         for (Media media : medias) {
-            try {
-                String filePath = media.getFilePath();
-                if (filePath != null && !filePath.startsWith("http://") && !filePath.startsWith("https://")) {
-                    Path file = rootLocation.resolve(filePath);
-                    Files.deleteIfExists(file);
-                }
-            } catch (IOException e) {
-                // Log but continue deleting DB records
-                System.err.println("Failed to delete file: " + media.getFilePath());
-            }
+            deletePhysicalFile(media.getFilePath());
         }
 
         // Remove records from DB
@@ -83,22 +69,9 @@ public class MediaService {
         if (ids == null || ids.isEmpty())
             return;
 
-        // Ensure rootLocation is initialized
-        if (this.rootLocation == null) {
-            this.rootLocation = Paths.get(storageProperties.getLocation());
-        }
-
         List<Media> medias = mediaRepository.findAllById(ids);
         for (Media media : medias) {
-            try {
-                String filePath = media.getFilePath();
-                if (filePath != null && !filePath.startsWith("http://") && !filePath.startsWith("https://")) {
-                    Path file = rootLocation.resolve(filePath);
-                    Files.deleteIfExists(file);
-                }
-            } catch (IOException e) {
-                System.err.println("Failed to delete file: " + media.getFilePath());
-            }
+            deletePhysicalFile(media.getFilePath());
         }
 
         if (!medias.isEmpty()) {
@@ -111,22 +84,9 @@ public class MediaService {
         if (userId == null)
             return;
 
-        // Ensure rootLocation is initialized
-        if (this.rootLocation == null) {
-            this.rootLocation = Paths.get(storageProperties.getLocation());
-        }
-
         List<Media> medias = mediaRepository.findByUserId(userId);
         for (Media media : medias) {
-            try {
-                String filePath = media.getFilePath();
-                if (filePath != null && !filePath.startsWith("http://") && !filePath.startsWith("https://")) {
-                    Path file = rootLocation.resolve(filePath);
-                    Files.deleteIfExists(file);
-                }
-            } catch (IOException e) {
-                System.err.println("Failed to delete file: " + media.getFilePath());
-            }
+            deletePhysicalFile(media.getFilePath());
         }
 
         if (!medias.isEmpty()) {
@@ -161,6 +121,18 @@ public class MediaService {
             Files.createDirectories(rootLocation);
         } catch (IOException e) {
             throw new RuntimeException("Could not initialize storage", e);
+        }
+    }
+
+    // Helper method to delete physical file
+    private void deletePhysicalFile(String filePath) {
+        if (filePath != null && !filePath.startsWith("http://") && !filePath.startsWith("https://")) {
+            try {
+                Path file = rootLocation.resolve(filePath);
+                Files.deleteIfExists(file);
+            } catch (IOException e) {
+                System.err.println("Failed to delete file: " + filePath);
+            }
         }
     }
 
@@ -273,12 +245,7 @@ public class MediaService {
         }
 
         // Delete physical file
-        try {
-            Path file = rootLocation.resolve(media.getFilePath());
-            Files.deleteIfExists(file);
-        } catch (IOException e) {
-            System.err.println("Failed to delete file: " + media.getFilePath());
-        }
+        deletePhysicalFile(media.getFilePath());
 
         // Delete database record
         mediaRepository.delete(media);

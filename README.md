@@ -42,6 +42,7 @@ This project implements a modern microservices architecture with the following c
 - 🗄️ **Database per Service** pattern for data isolation
 - 🐳 **Fully Dockerized** - one command deployment
 - 🔄 **CORS Configuration** for cross-origin requests
+- ♻️ **Clean Code** - refactored with DRY principles and helper methods for maintainability
 
 ### Product & Media Management
 
@@ -76,16 +77,22 @@ The easiest way to run the entire application:
 git clone https://github.com/jeeeeedi/buy-01.git
 cd buy-01
 
-# Start all services
-docker-compose up -d
+# Or use the provided helper script
+./start_docker.sh
 
 # Check services status
 docker-compose ps
 ```
 
+**Helper Scripts Available:**
+
+- `./start_all.sh` - Builds and starts all services (Docker + local builds)
+- `./stop_all.sh` - Stops all running services
+- `./start_docker.sh` - Starts only Docker infrastructure (Kafka, MongoDB, Zookeeper)
+- `./shutdown_all.sh` - Gracefully shuts down all containers
+
 **Access the application:**
 
-- 🌐 **Frontend (HTTP)**: http://localhost:4200
 - 🔒 **Frontend (HTTPS)**: https://localhost:4201 (self-signed certificate)
 - 🔌 **API Gateway**: http://localhost:8080
 - 📊 **Eureka Dashboard**: http://localhost:8761
@@ -152,7 +159,6 @@ After starting the application, you can:
 
 | Service          | Port  | Protocol | URL                       | Description           |
 | ---------------- | ----- | -------- | ------------------------- | --------------------- |
-| Frontend (HTTP)  | 4200  | HTTP     | http://localhost:4200     | Angular application   |
 | Frontend (HTTPS) | 4201  | HTTPS    | https://localhost:4201    | Secure frontend       |
 | API Gateway      | 8080  | HTTP     | http://localhost:8080     | Main API entry point  |
 | Service Registry | 8761  | HTTP     | http://localhost:8761     | Eureka dashboard      |
@@ -167,17 +173,27 @@ After starting the application, you can:
 
 ## 🔄 Event-Driven Flow
 
-The system uses Kafka for cascade deletion operations:
+The system uses Kafka for cascade deletion operations and data consistency:
 
 ```
-User Deletion → Kafka Topic: user.deleted → Product Service
+User Deletion → Kafka Topic: user.deleted → Product Service & Media Service
+                                          ↓                    ↓
+                              Delete User's Products    Delete User's Media
                                           ↓
-                              Delete User's Products → Kafka Topic: product.deleted
-                                                      ↓
-                                                  Media Service
-                                                      ↓
-                                              Delete Product Media Files
+                              Kafka Topic: product.deleted
+                                          ↓
+                                     Media Service
+                                          ↓
+                              Delete Product Media Files
 ```
+
+**Key Points:**
+
+- When a user is deleted, both product and media services receive the event
+- Product service deletes all products owned by that user and publishes `product.deleted` events
+- Media service receives `product.deleted` events and cleans up associated media files
+- Media service also directly handles user deletions to remove orphaned media
+- All file deletions are handled by a centralized helper method to avoid code duplication
 
 ## Kafka & MongoDB
 
@@ -228,7 +244,7 @@ mongosh "mongodb://root:example@localhost:27017/?authSource=admin"
 - **Or exec into the MongoDB container and launch `mongosh`:**
 
 ```bash
-docker exec -it mongodb mongosh -u root -p example --authenticationDatabase admin
+docker exec -it buy-01-mongodb-1 mongosh -u root -p example --authenticationDatabase admin
 ```
 
 - **Inspect media DB and collection (example):**
@@ -375,6 +391,7 @@ buy-01/
 - Spring Data MongoDB
 - Spring Kafka
 - Maven
+- Lombok (for cleaner code with annotations)
 
 ### Frontend
 
@@ -388,6 +405,14 @@ buy-01/
 - Apache Kafka
 - MongoDB 6.0
 - Docker & Docker Compose
+- Nginx (for HTTPS frontend)
+
+### Code Quality
+
+- DRY Principles (Don't Repeat Yourself)
+- Helper methods for common operations
+- Consistent error handling
+- Clean architecture patterns
 
 ## 🔐 Security Features
 
@@ -462,7 +487,7 @@ docker ps | grep kafka
 docker-compose logs kafka
 
 # List Kafka topics
-docker exec -it buy-01-kafka /bin/bash -c \
+docker exec -it buy-01-kafka-1 /bin/bash -c \
   "/usr/bin/kafka-topics --bootstrap-server localhost:9092 --list"
 ```
 
@@ -475,7 +500,7 @@ docker exec -it buy-01-kafka /bin/bash -c \
 docker ps | grep mongodb
 
 # Test connection
-docker exec -it buy-01-mongodb mongosh -u root -p example
+docker exec -it buy-01-mongodb-1 mongosh -u root -p example
 
 # View MongoDB logs
 docker-compose logs mongodb
@@ -722,7 +747,7 @@ This project is developed for educational purposes as part of a university proje
 
 - [@jeeeeedi](https://github.com/jeeeeedi)
 - [@oafilali](https://github.com/oafilali)
-- [@Anastasia](https://github.com/...)
+- [@Anastasia](https://github.com/An1Su)
 - [@SaddamHosyn](https://github.com/SaddamHosyn)
 
 ## 🙏 Acknowledgments
