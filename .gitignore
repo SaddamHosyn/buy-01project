@@ -96,3 +96,10 @@ db.json
 *.temp
 .tmp/
 .temp/
+
+# Certificates and Keys
+*.crt
+*.key
+*.pem
+server.crt
+server.key

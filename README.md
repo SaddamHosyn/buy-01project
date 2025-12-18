@@ -16,8 +16,8 @@ This project implements a modern microservices architecture with the following c
 
 ### Frontend
 
-- **Angular 20** (Ports 4200/4201) - Modern SPA with Angular Material Design
-  - HTTP on port 4200
+- **Angular 20** (Ports 4201) - Modern SPA with Angular Material Design
+
   - HTTPS on port 4201 (with self-signed certificates)
 
 ### Infrastructure
@@ -63,7 +63,7 @@ This project implements a modern microservices architecture with the following c
 
 ### Prerequisites
 
-- **Docker & Docker Compose** - Required for containerized deployment
+- **Docker** - Required for containerized deployment
 - **Java 17+** - For local development (optional)
 - **Node.js 18+** and npm - For frontend development (optional)
 - **Maven 3.6+** - For building services locally (optional)
@@ -97,12 +97,6 @@ docker-compose ps
 - 🔌 **API Gateway**: http://localhost:8080
 - 📊 **Eureka Dashboard**: http://localhost:8761
 - 🗄️ **MongoDB**: mongodb://root:example@localhost:27017
-
-**Stop all services:**
-
-```bash
-docker-compose down
-```
 
 ### Local Development Setup
 
@@ -555,26 +549,6 @@ lsof -i :8080
 # Kill process or change port in docker-compose.yml
 ```
 
-## 🛑 Stopping the Application
-
-**Stop all services:**
-
-```bash
-docker-compose down
-```
-
-**Stop and remove volumes (clean slate):**
-
-```bash
-docker-compose down -v
-```
-
-**Remove all containers and images:**
-
-```bash
-docker-compose down --rmi all
-```
-
 ## 👥 User Management
 
 ### Registering Users
@@ -749,16 +723,6 @@ This project is developed for educational purposes as part of a university proje
 - [@oafilali](https://github.com/oafilali)
 - [@Anastasia](https://github.com/An1Su)
 - [@SaddamHosyn](https://github.com/SaddamHosyn)
-
-## 🙏 Acknowledgments
-
-Special thanks to:
-
-- Spring Boot and Spring Cloud teams
-- Angular and Angular Material teams
-- Apache Kafka community
-- MongoDB team
-- Docker community
 
 ---
 
