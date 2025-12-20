@@ -25,7 +25,7 @@ COPY --from=build /app/dist/buy-01-ui/browser /usr/share/nginx/html
 COPY nginx-https.conf /etc/nginx/conf.d/default.conf
 
 # Copy SSL certificates
-COPY certs /etc/nginx/certs
+# COPY certs /etc/nginx/certs
 
 # Expose ports
 EXPOSE 80
