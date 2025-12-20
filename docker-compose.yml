@@ -46,7 +46,7 @@ services:
       - buy-01-network
   service-registry:
     build: ./service-registry
-    image: hussainsaddam/buy-01-service-registry:latest  # <--- ADDED
+    image: hussainsaddam/buy-01-service-registry:latest # <--- ADDED
     container_name: buy-01-service-registry
     ports:
       - "8761:8761"
@@ -55,7 +55,7 @@ services:
 
   api-gateway:
     build: ./api-gateway
-    image: hussainsaddam/buy-01-api-gateway:latest      # <--- ADDED
+    image: hussainsaddam/buy-01-api-gateway:latest # <--- ADDED
     container_name: buy-01-api-gateway
     ports:
       - "8080:8080"
@@ -72,7 +72,7 @@ services:
 
   user-service:
     build: ./user-service
-    image: hussainsaddam/buy-01-user-service:latest     # <--- ADDED
+    image: hussainsaddam/buy-01-user-service:latest # <--- ADDED
     container_name: buy-01-user-service
     ports:
       - "8081:8081"
@@ -91,7 +91,7 @@ services:
 
   product-service:
     build: ./product-service
-    image: hussainsaddam/buy-01-product-service:latest  # <--- ADDED
+    image: hussainsaddam/buy-01-product-service:latest # <--- ADDED
     container_name: buy-01-product-service
     ports:
       - "8082:8082"
@@ -111,7 +111,7 @@ services:
 
   media-service:
     build: ./media-service
-    image: hussainsaddam/buy-01-media-service:latest    # <--- ADDED
+    image: hussainsaddam/buy-01-media-service:latest # <--- ADDED
     container_name: buy-01-media-service
     ports:
       - "8083:8083"
@@ -133,7 +133,7 @@ services:
 
   frontend:
     build: ./buy-01-ui
-    image: hussainsaddam/buy-01-frontend:latest         # <--- ADDED
+    image: hussainsaddam/buy-01-frontend:latest # <--- ADDED
     container_name: buy-01-frontend
     ports:
       - "4201:443"
