@@ -1,0 +1,68 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_USER = 'hussainsaddam'
+        AWS_IP = '13.48.57.226'
+        REGISTRY_CREDENTIALS = 'docker-hub-credentials'
+        AWS_CREDENTIALS = 'aws-ec2-key'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo "📦 Checking out code..."
+                checkout([$class: 'GitSCM', 
+                    branches: [[name: '*/main']], 
+                    extensions: [[$class: 'WipeWorkspace']], 
+                    userRemoteConfigs: [[url: 'https://github.com/SaddamHosyn/buy-01project.git']]
+                ])
+            }
+        }
+
+        stage('Build Docker Images') {
+            steps {
+                echo "🐳 Building Docker Images..."
+                script {
+                    sh "docker build -t hussainsaddam/buy-01-service-registry:latest ./service-registry"
+                    sh "docker build -t hussainsaddam/buy-01-api-gateway:latest ./api-gateway"
+                    sh "docker build -t hussainsaddam/buy-01-user-service:latest ./user-service"
+                    sh "docker build -t hussainsaddam/buy-01-product-service:latest ./product-service"
+                    sh "docker build -t hussainsaddam/buy-01-media-service:latest ./media-service"
+                    sh "docker build -t hussainsaddam/buy-01-frontend:latest ./buy-01-ui"
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                echo "🚀 Pushing images to Docker Hub..."
+                withCredentials([usernamePassword(credentialsId: REGISTRY_CREDENTIALS, passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                    sh "docker push hussainsaddam/buy-01-service-registry:latest"
+                    sh "docker push hussainsaddam/buy-01-api-gateway:latest"
+                    sh "docker push hussainsaddam/buy-01-user-service:latest"
+                    sh "docker push hussainsaddam/buy-01-product-service:latest"
+                    sh "docker push hussainsaddam/buy-01-media-service:latest"
+                    sh "docker push hussainsaddam/buy-01-frontend:latest"
+                }
+            }
+        }
+
+        stage('Deploy to AWS') {
+            steps {
+                echo "🚀 Deploying to AWS..."
+                sshagent([AWS_CREDENTIALS]) {
+                    sh "scp -o StrictHostKeyChecking=no docker-compose.yml ubuntu@${AWS_IP}:/home/ubuntu/"
+                    
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ubuntu@${AWS_IP} '
+                            docker-compose pull
+                            docker-compose up -d --remove-orphans
+                        '
+                    """
+                }
+            }
+        }
+    }
+}

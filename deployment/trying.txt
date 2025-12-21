@@ -1,0 +1,57 @@
+Option A: Parameterized Builds ⭐ (Recommended to start)
+Learn to customize your builds with:
+
+Environment selection (dev, staging, production)
+
+Version numbers
+
+Toggle options (skip tests, deploy flags)
+
+Time: 15-20 minutes
+
+Difficulty: Easy
+
+Practical for MR-Jenk project: ✅ Yes (Required for audit)
+
+Option B: Email/Slack Notifications 📧
+Set up alerts when builds complete:
+
+Email notifications on success/failure
+
+Slack integration (optional)
+
+Time: 20-25 minutes
+
+Difficulty: Medium
+
+Practical for MR-Jenk project: ✅ Yes (Required for audit)
+
+Option C: Handling Build Failures ⚠️
+Practice error handling:
+
+Intentional build failures
+
+Test failure scenarios
+
+Pipeline recovery
+
+Time: 15 minutes
+
+Difficulty: Easy
+
+Practical for MR-Jenk project: ✅ Yes (Required for audit)
+
+Option D: Security & User Management 🔒
+Configure Jenkins security:
+
+User roles and permissions
+
+Credentials management
+
+Secrets storage
+
+Time: 20 minutes
+
+Difficulty: Medium
+
+Practical for MR-Jenk project: ✅ Yes (Required for audit)
