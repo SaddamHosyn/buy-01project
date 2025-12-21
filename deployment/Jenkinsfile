@@ -2,19 +2,25 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_USER = 'hussainsaddam'
-        AWS_IP = '13.48.57.226'
+        DOCKER_USER          = 'hussainsaddam'
+        AWS_IP               = '13.48.57.226'
         REGISTRY_CREDENTIALS = 'docker-hub-credentials'
-        AWS_CREDENTIALS = 'aws-ec2-key'
+        AWS_CREDENTIALS      = 'aws-ec2-key'
+        BUILD_VERSION        = "${env.BUILD_NUMBER}"
+    }
+
+    triggers {
+        pollSCM('H/5 * * * *')
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 echo "📦 Checking out code..."
-                checkout([$class: 'GitSCM', 
-                    branches: [[name: '*/main']], 
-                    extensions: [[$class: 'WipeWorkspace']], 
+                checkout([$class: 'GitSCM',
+                    branches: [[name: '*/jenkindev']],
+                    extensions: [[$class: 'WipeWorkspace']],
                     userRemoteConfigs: [[url: 'https://github.com/SaddamHosyn/buy-01project.git']]
                 ])
             }
@@ -24,12 +30,12 @@ pipeline {
             steps {
                 echo "🐳 Building Docker Images..."
                 script {
-                    sh "docker build -t hussainsaddam/buy-01-service-registry:latest ./service-registry"
-                    sh "docker build -t hussainsaddam/buy-01-api-gateway:latest ./api-gateway"
-                    sh "docker build -t hussainsaddam/buy-01-user-service:latest ./user-service"
-                    sh "docker build -t hussainsaddam/buy-01-product-service:latest ./product-service"
-                    sh "docker build -t hussainsaddam/buy-01-media-service:latest ./media-service"
-                    sh "docker build -t hussainsaddam/buy-01-frontend:latest ./buy-01-ui"
+                    sh "docker build -t ${DOCKER_USER}/buy-01-service-registry:latest ./service-registry"
+                    sh "docker build -t ${DOCKER_USER}/buy-01-api-gateway:latest ./api-gateway"
+                    sh "docker build -t ${DOCKER_USER}/buy-01-user-service:latest ./user-service"
+                    sh "docker build -t ${DOCKER_USER}/buy-01-product-service:latest ./product-service"
+                    sh "docker build -t ${DOCKER_USER}/buy-01-media-service:latest ./media-service"
+                    sh "docker build -t ${DOCKER_USER}/buy-01-frontend:latest ./buy-01-ui"
                 }
             }
         }
@@ -37,14 +43,18 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 echo "🚀 Pushing images to Docker Hub..."
-                withCredentials([usernamePassword(credentialsId: REGISTRY_CREDENTIALS, passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                withCredentials([usernamePassword(
+                    credentialsId: REGISTRY_CREDENTIALS,
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
                     sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                    sh "docker push hussainsaddam/buy-01-service-registry:latest"
-                    sh "docker push hussainsaddam/buy-01-api-gateway:latest"
-                    sh "docker push hussainsaddam/buy-01-user-service:latest"
-                    sh "docker push hussainsaddam/buy-01-product-service:latest"
-                    sh "docker push hussainsaddam/buy-01-media-service:latest"
-                    sh "docker push hussainsaddam/buy-01-frontend:latest"
+                    sh "docker push ${DOCKER_USER}/buy-01-service-registry:latest"
+                    sh "docker push ${DOCKER_USER}/buy-01-api-gateway:latest"
+                    sh "docker push ${DOCKER_USER}/buy-01-user-service:latest"
+                    sh "docker push ${DOCKER_USER}/buy-01-product-service:latest"
+                    sh "docker push ${DOCKER_USER}/buy-01-media-service:latest"
+                    sh "docker push ${DOCKER_USER}/buy-01-frontend:latest"
                 }
             }
         }
@@ -53,6 +63,16 @@ pipeline {
             steps {
                 echo "🚀 Deploying to AWS..."
                 sshagent([AWS_CREDENTIALS]) {
+                    // Backup for rollback
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ubuntu@${AWS_IP} '
+                            if [ -f /home/ubuntu/docker-compose.yml ]; then
+                                cp /home/ubuntu/docker-compose.yml /home/ubuntu/docker-compose-backup.yml
+                            fi
+                        '
+                    """
+
+                    // Copy and deploy
                     sh "scp -o StrictHostKeyChecking=no docker-compose.yml ubuntu@${AWS_IP}:/home/ubuntu/"
                     
                     sh """
@@ -62,6 +82,27 @@ pipeline {
                         '
                     """
                 }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Pipeline completed successfully!"
+        }
+        failure {
+            echo "❌ Pipeline failed! Attempting rollback..."
+            sshagent([AWS_CREDENTIALS]) {
+                sh """
+                    ssh -o StrictHostKeyChecking=no ubuntu@${AWS_IP} '
+                        if [ -f /home/ubuntu/docker-compose-backup.yml ]; then
+                            cp /home/ubuntu/docker-compose-backup.yml /home/ubuntu/docker-compose.yml
+                            docker-compose pull
+                            docker-compose up -d --remove-orphans
+                            echo "Rollback completed."
+                        fi
+                    '
+                """ 
             }
         }
     }
