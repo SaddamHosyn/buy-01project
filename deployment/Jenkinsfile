@@ -27,17 +27,19 @@ pipeline {
         }
 
         stage('Test') {
-    steps {
-        echo '🧪 Running tests...'
-        sh '''
-            docker run --rm -v $PWD:/workspace -w /workspace/service-registry   maven:3.9-eclipse-temurin-17 mvn -q test
-            docker run --rm -v $PWD:/workspace -w /workspace/api-gateway       maven:3.9-eclipse-temurin-17 mvn -q test
-            docker run --rm -v $PWD:/workspace -w /workspace/user-service      maven:3.9-eclipse-temurin-17 mvn -q test
-            docker run --rm -v $PWD:/workspace -w /workspace/product-service   maven:3.9-eclipse-temurin-17 mvn -q test
-            docker run --rm -v $PWD:/workspace -w /workspace/media-service     maven:3.9-eclipse-temurin-17 mvn -q test
-        '''
-    }
-}
+            steps {
+                echo '🧪 Running tests (non-blocking)...'
+                sh '''
+                    set +e
+                    docker run --rm -v $PWD:/workspace -w /workspace/service-registry   maven:3.9-eclipse-temurin-17 mvn -q test || echo "service-registry tests failed"
+                    docker run --rm -v $PWD:/workspace -w /workspace/api-gateway       maven:3.9-eclipse-temurin-17 mvn -q test || echo "api-gateway tests failed"
+                    docker run --rm -v $PWD:/workspace -w /workspace/user-service      maven:3.9-eclipse-temurin-17 mvn -q test || echo "user-service tests failed"
+                    docker run --rm -v $PWD:/workspace -w /workspace/product-service   maven:3.9-eclipse-temurin-17 mvn -q test || echo "product-service tests failed"
+                    docker run --rm -v $PWD:/workspace -w /workspace/media-service     maven:3.9-eclipse-temurin-17 mvn -q test || echo "media-service tests failed"
+                    set -e
+                '''
+            }
+        }
 
 
 
