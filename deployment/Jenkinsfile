@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_USER          = 'hussainsaddam'
-        AWS_IP               = '13.48.57.226'
+        AWS_IP               = '13.60.81.101'
         REGISTRY_CREDENTIALS = 'docker-hub-credentials'
         AWS_CREDENTIALS      = 'aws-ec2-key'
         BUILD_VERSION        = "${env.BUILD_NUMBER}"
