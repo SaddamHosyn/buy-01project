@@ -30,11 +30,11 @@ pipeline {
     steps {
         echo '🧪 Running tests...'
         sh '''
-            docker run --rm -v $PWD/service-registry:/app -w /app maven:3.9-eclipse-temurin-17 mvn -q test
-            docker run --rm -v $PWD/api-gateway:/app      -w /app maven:3.9-eclipse-temurin-17 mvn -q test
-            docker run --rm -v $PWD/user-service:/app     -w /app maven:3.9-eclipse-temurin-17 mvn -q test
-            docker run --rm -v $PWD/product-service:/app  -w /app maven:3.9-eclipse-temurin-17 mvn -q test
-            docker run --rm -v $PWD/media-service:/app    -w /app maven:3.9-eclipse-temurin-17 mvn -q test
+            docker run --rm -v $PWD:/workspace -w /workspace/service-registry   maven:3.9-eclipse-temurin-17 mvn -q test
+            docker run --rm -v $PWD:/workspace -w /workspace/api-gateway       maven:3.9-eclipse-temurin-17 mvn -q test
+            docker run --rm -v $PWD:/workspace -w /workspace/user-service      maven:3.9-eclipse-temurin-17 mvn -q test
+            docker run --rm -v $PWD:/workspace -w /workspace/product-service   maven:3.9-eclipse-temurin-17 mvn -q test
+            docker run --rm -v $PWD:/workspace -w /workspace/media-service     maven:3.9-eclipse-temurin-17 mvn -q test
         '''
     }
 }
