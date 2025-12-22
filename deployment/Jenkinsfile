@@ -26,6 +26,19 @@ pipeline {
             }
         }
 
+        stage('Test') {
+            steps {
+                echo '🧪 Running tests...'
+                sh '''
+                    cd service-registry && mvn -q test
+                    cd ../api-gateway && mvn -q test
+                    cd ../user-service && mvn -q test
+                    cd ../product-service && mvn -q test
+                    cd ../media-service && mvn -q test
+                '''
+            }
+        }
+
         stage('Build Docker Images') {
             steps {
                 echo "🐳 Building Docker Images..."
@@ -74,7 +87,7 @@ pipeline {
 
                     // Copy and deploy
                     sh "scp -o StrictHostKeyChecking=no docker-compose.yml ubuntu@${AWS_IP}:/home/ubuntu/"
-                    
+
                     sh """
                         ssh -o StrictHostKeyChecking=no ubuntu@${AWS_IP} '
                             docker-compose pull
@@ -89,6 +102,9 @@ pipeline {
     post {
         success {
             echo "✅ Pipeline completed successfully!"
+            slackSend channel: '#jenkins-project',
+                      color: 'good',
+                      message: "✅ ${env.JOB_NAME} #${env.BUILD_NUMBER} succeeded: ${env.BUILD_URL}"
         }
         failure {
             echo "❌ Pipeline failed! Attempting rollback..."
@@ -102,8 +118,11 @@ pipeline {
                             echo "Rollback completed."
                         fi
                     '
-                """ 
+                """
             }
+            slackSend channel: '#jenkins-project',
+                      color: 'danger',
+                      message: "❌ ${env.JOB_NAME} #${env.BUILD_NUMBER} failed: ${env.BUILD_URL}"
         }
     }
 }
