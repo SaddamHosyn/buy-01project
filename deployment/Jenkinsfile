@@ -74,11 +74,11 @@ pipeline {
 
         stage('Deploy Locally') {
             steps {
-                echo "🚀 Deploying locally with docker compose..."
+                echo "🚀 Deploying locally with docker-compose..."
                 sh '''
                     cd deployment
-                    docker compose pull
-                    docker compose up -d --remove-orphans
+                    docker-compose pull
+                    docker-compose up -d --remove-orphans
                     echo "✅ Local deployment completed!"
                 '''
             }
