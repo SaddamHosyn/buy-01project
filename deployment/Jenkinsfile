@@ -3,9 +3,7 @@ pipeline {
 
     environment {
         DOCKER_USER          = 'hussainsaddam'
-        AWS_IP               = '13.60.81.101'
         REGISTRY_CREDENTIALS = 'docker-hub-credentials'
-        AWS_CREDENTIALS      = 'aws-ec2-key'
         BUILD_VERSION        = "${env.BUILD_NUMBER}"
     }
 
@@ -41,8 +39,6 @@ pipeline {
             }
         }
 
-
-
         stage('Build Docker Images') {
             steps {
                 echo "🐳 Building Docker Images..."
@@ -76,29 +72,15 @@ pipeline {
             }
         }
 
-        stage('Deploy to AWS') {
+        stage('Deploy Locally') {
             steps {
-                echo "🚀 Deploying to AWS..."
-                sshagent([AWS_CREDENTIALS]) {
-                    // Backup for rollback
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ubuntu@${AWS_IP} '
-                            if [ -f /home/ubuntu/docker-compose.yml ]; then
-                                cp /home/ubuntu/docker-compose.yml /home/ubuntu/docker-compose-backup.yml
-                            fi
-                        '
-                    """
-
-                    // Copy and deploy
-                    sh "scp -o StrictHostKeyChecking=no docker-compose.yml ubuntu@${AWS_IP}:/home/ubuntu/"
-
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ubuntu@${AWS_IP} '
-                            docker-compose pull
-                            docker-compose up -d --remove-orphans
-                        '
-                    """
-                }
+                echo "🚀 Deploying locally with docker-compose..."
+                sh '''
+                    cd deployment
+                    docker-compose pull
+                    docker-compose up -d --remove-orphans
+                    echo "✅ Local deployment completed!"
+                '''
             }
         }
     }
@@ -106,27 +88,11 @@ pipeline {
     post {
         success {
             echo "✅ Pipeline completed successfully!"
-            slackSend channel: '#jenkins-project',
-                      color: 'good',
-                      message: "✅ ${env.JOB_NAME} #${env.BUILD_NUMBER} succeeded: ${env.BUILD_URL}"
+            echo "Build #${env.BUILD_NUMBER} - All stages passed"
         }
         failure {
-            echo "❌ Pipeline failed! Attempting rollback..."
-            sshagent([AWS_CREDENTIALS]) {
-                sh """
-                    ssh -o StrictHostKeyChecking=no ubuntu@${AWS_IP} '
-                        if [ -f /home/ubuntu/docker-compose-backup.yml ]; then
-                            cp /home/ubuntu/docker-compose-backup.yml /home/ubuntu/docker-compose.yml
-                            docker-compose pull
-                            docker-compose up -d --remove-orphans
-                            echo "Rollback completed."
-                        fi
-                    '
-                """
-            }
-            slackSend channel: '#jenkins-project',
-                      color: 'danger',
-                      message: "❌ ${env.JOB_NAME} #${env.BUILD_NUMBER} failed: ${env.BUILD_URL}"
+            echo "❌ Pipeline failed!"
+            echo "Build #${env.BUILD_NUMBER} - Check logs for details"
         }
     }
 }
