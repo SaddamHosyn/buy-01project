@@ -33,25 +33,62 @@ pipeline {
         }
 
         stage('Backend Tests') {
-    when { expression { return !params.SKIP_TESTS } }
+    when {
+        expression { params.SKIP_TESTS == false }
+    }
     steps {
-        echo '🧪 Running backend tests (JUnit)...'
+        echo '🧪 Running backend tests...'
         script {
-            def services = ['service-registry', 'api-gateway', 'user-service', 'product-service', 'media-service']
-            services.each { service ->
-                dir(service) {
-                    sh 'docker run --rm -v $(pwd):/workspace -w /workspace maven:3.9-eclipse-temurin-17 mvn clean test -Dmaven.test.failure.ignore=false'
-                }
-            }
+            // Test service-registry
+            sh """
+                docker run --rm \
+                    -v \${WORKSPACE}/service-registry:/app \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    -w /app \
+                    maven:3.9-eclipse-temurin-17 \
+                    mvn clean test -Dmaven.test.failure.ignore=false
+            """
+            
+            // Test user-service
+            sh """
+                docker run --rm \
+                    -v \${WORKSPACE}/user-service:/app \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    -w /app \
+                    maven:3.9-eclipse-temurin-17 \
+                    mvn clean test -Dmaven.test.failure.ignore=false
+            """
+            
+            // Test product-service
+            sh """
+                docker run --rm \
+                    -v \${WORKSPACE}/product-service:/app \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    -w /app \
+                    maven:3.9-eclipse-temurin-17 \
+                    mvn clean test -Dmaven.test.failure.ignore=false
+            """
+            
+            // Test media-service
+            sh """
+                docker run --rm \
+                    -v \${WORKSPACE}/media-service:/app \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    -w /app \
+                    maven:3.9-eclipse-temurin-17 \
+                    mvn clean test -Dmaven.test.failure.ignore=false
+            """
         }
     }
     post {
         failure {
             echo '❌ Backend tests failed!'
         }
+        success {
+            echo '✅ Backend tests passed!'
+        }
     }
 }
-
         stage('Frontend Tests') {
     when { expression { return !params.SKIP_TESTS } }
     steps {
