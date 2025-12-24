@@ -77,7 +77,11 @@ pipeline {
                 echo "🚀 Deploying locally with docker-compose..."
                 sh '''
                     cd deployment
-                    docker-compose down || true
+                    
+                    # Stop and remove old containers by name
+                    docker stop buy-01-zookeeper buy-01-mongodb buy-01-kafka buy-01-service-registry buy-01-api-gateway buy-01-user-service buy-01-product-service buy-01-media-service buy-01-frontend 2>/dev/null || true
+                    docker rm buy-01-zookeeper buy-01-mongodb buy-01-kafka buy-01-service-registry buy-01-api-gateway buy-01-user-service buy-01-product-service buy-01-media-service buy-01-frontend 2>/dev/null || true
+                    
                     docker-compose pull
                     docker-compose up -d --remove-orphans
                     echo "✅ Local deployment completed!"
