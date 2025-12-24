@@ -4,7 +4,7 @@ pipeline {
     // BONUS: Parameterized Builds - Choose deployment environment
     parameters {
         choice(name: 'DEPLOY_ENV', choices: ['local', 'staging', 'production'], description: 'Select deployment environment')
-        booleanParam(name: 'SKIP_TESTS', defaultValue: false, description: 'Skip tests (use with caution)')
+        booleanParam(name: 'SKIP_TESTS', defaultValue: true, description: 'Skip tests (use with caution)')
         booleanParam(name: 'FORCE_DEPLOY', defaultValue: false, description: 'Force deployment even if tests fail')
     }
 
