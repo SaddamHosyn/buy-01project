@@ -1,10 +1,9 @@
 pipeline {
     agent any
 
-    // BONUS: Parameterized Builds - Choose deployment environment
     parameters {
         choice(name: 'DEPLOY_ENV', choices: ['local', 'staging', 'production'], description: 'Select deployment environment')
-        booleanParam(name: 'SKIP_TESTS', defaultValue: true, description: 'Skip tests (use with caution)')
+        booleanParam(name: 'SKIP_TESTS', defaultValue: false, description: 'Skip tests (use with caution)')
         booleanParam(name: 'FORCE_DEPLOY', defaultValue: false, description: 'Force deployment even if tests fail')
     }
 
@@ -33,137 +32,128 @@ pipeline {
         }
 
         stage('Backend Tests') {
-    when {
-        expression { params.SKIP_TESTS == false }
-    }
-    steps {
-        echo '🧪 Running backend tests...'
-        script {
-            // Test service-registry
-            dir('service-registry') {
-                sh 'mvn clean test -Dmaven.test.failure.ignore=false'
+            when {
+                expression { params.SKIP_TESTS == false }
             }
-            
-            // Test user-service
-            dir('user-service') {
-                sh 'mvn clean test -Dmaven.test.failure.ignore=false'
+            steps {
+                echo '🧪 Running backend tests...'
+                script {
+                    dir('service-registry') {
+                        sh 'mvn clean test -Dmaven.test.failure.ignore=false'
+                    }
+                    dir('user-service') {
+                        sh 'mvn clean test -Dmaven.test.failure.ignore=false'
+                    }
+                    dir('product-service') {
+                        sh 'mvn clean test -Dmaven.test.failure.ignore=false'
+                    }
+                    dir('media-service') {
+                        sh 'mvn clean test -Dmaven.test.failure.ignore=false'
+                    }
+                }
             }
-            
-            // Test product-service
-            dir('product-service') {
-                sh 'mvn clean test -Dmaven.test.failure.ignore=false'
-            }
-            
-            // Test media-service
-            dir('media-service') {
-                sh 'mvn clean test -Dmaven.test.failure.ignore=false'
+            post {
+                failure {
+                    echo '❌ Backend tests failed!'
+                }
+                success {
+                    echo '✅ Backend tests passed!'
+                }
             }
         }
-    }
-    post {
-        failure {
-            echo '❌ Backend tests failed!'
-        }
-        success {
-            echo '✅ Backend tests passed!'
-        }
-    }
-}
 
         stage('Frontend Tests') {
-    when {
-        expression { params.SKIP_TESTS == false }
-    }
-    steps {
-        echo '🧪 Running frontend tests (Karma/Jasmine)...'
-        dir('buy-01-ui') {
-            sh '''
-                docker run --rm \
-                    -v ${PWD}:/app \
-                    -w /app \
-                    node:20-alpine \
-                    sh -c "npm install --legacy-peer-deps && npm test -- --watch=false --browsers=ChromeHeadless"
-            '''
-        }
-    }
-    post {
-        failure {
-            echo '❌ Frontend tests failed!'
-        }
-        success {
-            echo '✅ Frontend tests passed!'
-        }
-    }
-}
-
-        stage('Build Docker Images') {
-    steps {
-        echo "🐳 Building Docker Images in parallel with tag: ${BUILD_VERSION}..."
-        script {
-            parallel(
-                'service-registry': {
-                    sh "docker build -t ${DOCKER_USER}/buy-01-service-registry:latest -t ${DOCKER_USER}/buy-01-service-registry:${BUILD_VERSION} ./service-registry"
-                },
-                'api-gateway': {
-                    sh "docker build -t ${DOCKER_USER}/buy-01-api-gateway:latest -t ${DOCKER_USER}/buy-01-api-gateway:${BUILD_VERSION} ./api-gateway"
-                },
-                'user-service': {
-                    sh "docker build -t ${DOCKER_USER}/buy-01-user-service:latest -t ${DOCKER_USER}/buy-01-user-service:${BUILD_VERSION} ./user-service"
-                },
-                'product-service': {
-                    sh "docker build -t ${DOCKER_USER}/buy-01-product-service:latest -t ${DOCKER_USER}/buy-01-product-service:${BUILD_VERSION} ./product-service"
-                },
-                'media-service': {
-                    sh "docker build -t ${DOCKER_USER}/buy-01-media-service:latest -t ${DOCKER_USER}/buy-01-media-service:${BUILD_VERSION} ./media-service"
-                },
-                'frontend': {
-                    sh "docker build -t ${DOCKER_USER}/buy-01-frontend:latest -t ${DOCKER_USER}/buy-01-frontend:${BUILD_VERSION} ./buy-01-ui"
+            when {
+                expression { params.SKIP_TESTS == false }
+            }
+            steps {
+                echo '🧪 Running frontend tests (Karma/Jasmine)...'
+                sh '''
+                    docker run --rm \
+                        -v ${WORKSPACE}/buy-01-ui:/app \
+                        -w /app \
+                        node:20-alpine \
+                        sh -c "npm install --legacy-peer-deps && npm test -- --watch=false --browsers=ChromeHeadless"
+                '''
+            }
+            post {
+                failure {
+                    echo '❌ Frontend tests failed!'
                 }
-            )
-        }
-    }
-}
-
-        stage('Push to Docker Hub') {
-    steps {
-        echo "🚀 Pushing images to Docker Hub in parallel..."
-        withCredentials([usernamePassword(
-            credentialsId: REGISTRY_CREDENTIALS,
-            usernameVariable: 'DOCKER_USER',
-            passwordVariable: 'DOCKER_PASS'
-        )]) {
-            sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-            script {
-                parallel(
-                    'service-registry': {
-                        sh "docker push ${DOCKER_USER}/buy-01-service-registry:latest"
-                        sh "docker push ${DOCKER_USER}/buy-01-service-registry:${BUILD_VERSION}"
-                    },
-                    'api-gateway': {
-                        sh "docker push ${DOCKER_USER}/buy-01-api-gateway:latest"
-                        sh "docker push ${DOCKER_USER}/buy-01-api-gateway:${BUILD_VERSION}"
-                    },
-                    'user-service': {
-                        sh "docker push ${DOCKER_USER}/buy-01-user-service:latest"
-                        sh "docker push ${DOCKER_USER}/buy-01-user-service:${BUILD_VERSION}"
-                    },
-                    'product-service': {
-                        sh "docker push ${DOCKER_USER}/buy-01-product-service:latest"
-                        sh "docker push ${DOCKER_USER}/buy-01-product-service:${BUILD_VERSION}"
-                    },
-                    'media-service': {
-                        sh "docker push ${DOCKER_USER}/buy-01-media-service:latest"
-                        sh "docker push ${DOCKER_USER}/buy-01-media-service:${BUILD_VERSION}"
-                    },
-                    'frontend': {
-                        sh "docker push ${DOCKER_USER}/buy-01-frontend:latest"
-                        sh "docker push ${DOCKER_USER}/buy-01-frontend:${BUILD_VERSION}"
-                    }
-                )
+                success {
+                    echo '✅ Frontend tests passed!'
+                }
             }
         }
-    }
-}
+
+        stage('Build Docker Images') {
+            steps {
+                echo "🐳 Building Docker Images in parallel with tag: ${BUILD_VERSION}..."
+                script {
+                    parallel(
+                        'service-registry': {
+                            sh "docker build -t ${DOCKER_USER}/buy-01-service-registry:latest -t ${DOCKER_USER}/buy-01-service-registry:${BUILD_VERSION} ./service-registry"
+                        },
+                        'api-gateway': {
+                            sh "docker build -t ${DOCKER_USER}/buy-01-api-gateway:latest -t ${DOCKER_USER}/buy-01-api-gateway:${BUILD_VERSION} ./api-gateway"
+                        },
+                        'user-service': {
+                            sh "docker build -t ${DOCKER_USER}/buy-01-user-service:latest -t ${DOCKER_USER}/buy-01-user-service:${BUILD_VERSION} ./user-service"
+                        },
+                        'product-service': {
+                            sh "docker build -t ${DOCKER_USER}/buy-01-product-service:latest -t ${DOCKER_USER}/buy-01-product-service:${BUILD_VERSION} ./product-service"
+                        },
+                        'media-service': {
+                            sh "docker build -t ${DOCKER_USER}/buy-01-media-service:latest -t ${DOCKER_USER}/buy-01-media-service:${BUILD_VERSION} ./media-service"
+                        },
+                        'frontend': {
+                            sh "docker build -t ${DOCKER_USER}/buy-01-frontend:latest -t ${DOCKER_USER}/buy-01-frontend:${BUILD_VERSION} ./buy-01-ui"
+                        }
+                    )
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                echo "🚀 Pushing images to Docker Hub in parallel..."
+                withCredentials([usernamePassword(
+                    credentialsId: REGISTRY_CREDENTIALS,
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                    script {
+                        parallel(
+                            'service-registry': {
+                                sh "docker push ${DOCKER_USER}/buy-01-service-registry:latest"
+                                sh "docker push ${DOCKER_USER}/buy-01-service-registry:${BUILD_VERSION}"
+                            },
+                            'api-gateway': {
+                                sh "docker push ${DOCKER_USER}/buy-01-api-gateway:latest"
+                                sh "docker push ${DOCKER_USER}/buy-01-api-gateway:${BUILD_VERSION}"
+                            },
+                            'user-service': {
+                                sh "docker push ${DOCKER_USER}/buy-01-user-service:latest"
+                                sh "docker push ${DOCKER_USER}/buy-01-user-service:${BUILD_VERSION}"
+                            },
+                            'product-service': {
+                                sh "docker push ${DOCKER_USER}/buy-01-product-service:latest"
+                                sh "docker push ${DOCKER_USER}/buy-01-product-service:${BUILD_VERSION}"
+                            },
+                            'media-service': {
+                                sh "docker push ${DOCKER_USER}/buy-01-media-service:latest"
+                                sh "docker push ${DOCKER_USER}/buy-01-media-service:${BUILD_VERSION}"
+                            },
+                            'frontend': {
+                                sh "docker push ${DOCKER_USER}/buy-01-frontend:latest"
+                                sh "docker push ${DOCKER_USER}/buy-01-frontend:${BUILD_VERSION}"
+                            }
+                        )
+                    }
+                }
+            }
+        }
 
         stage('Deploy') {
             steps {
@@ -215,10 +205,8 @@ pipeline {
                 sh '''
                     cd deployment
                     
-                    # Stop current containers
                     docker-compose down || true
                     
-                    # Pull previous version images
                     docker pull hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} || true
                     docker pull hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} || true
                     docker pull hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} || true
@@ -226,7 +214,6 @@ pipeline {
                     docker pull hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} || true
                     docker pull hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} || true
                     
-                    # Tag previous as latest for rollback
                     docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest || true
                     docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest || true
                     docker tag hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-user-service:latest || true
@@ -234,7 +221,6 @@ pipeline {
                     docker tag hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-media-service:latest || true
                     docker tag hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} hussainsaddam/buy-01-frontend:latest || true
                     
-                    # Redeploy with previous version
                     docker-compose up -d --remove-orphans
                     
                     echo "✅ Rollback completed to build ${PREVIOUS_BUILD}"
@@ -247,11 +233,10 @@ pipeline {
         success {
             echo "✅ Pipeline completed successfully!"
             echo "Build #${env.BUILD_NUMBER} - All stages passed"
-            echo "Environment: ${params.DEPLOY_ENV}"
             withCredentials([string(credentialsId: 'slack-webhook-url', variable: 'SLACK_URL')]) {
                 sh '''
                     curl -X POST -H 'Content-type: application/json' \
-                    --data "{\\"text\\":\\"✅ *SUCCESS*: Job ${JOB_NAME} Build #${BUILD_NUMBER}\\\\nEnvironment: ${DEPLOY_ENV}\\\\n${BUILD_URL}\\"}" \
+                    --data "{\\"text\\":\\"✅ *SUCCESS*: Job ${JOB_NAME} Build #${BUILD_NUMBER}\\\\n${BUILD_URL}\\"}" \
                     ${SLACK_URL}
                 '''
             }
@@ -262,17 +247,7 @@ pipeline {
             withCredentials([string(credentialsId: 'slack-webhook-url', variable: 'SLACK_URL')]) {
                 sh '''
                     curl -X POST -H 'Content-type: application/json' \
-                    --data "{\\"text\\":\\"❌ *FAILED*: Job ${JOB_NAME} Build #${BUILD_NUMBER}\\\\nRollback initiated\\\\n${BUILD_URL}console\\"}" \
-                    ${SLACK_URL}
-                '''
-            }
-        }
-        unstable {
-            echo "⚠️ Pipeline unstable!"
-            withCredentials([string(credentialsId: 'slack-webhook-url', variable: 'SLACK_URL')]) {
-                sh '''
-                    curl -X POST -H 'Content-type: application/json' \
-                    --data "{\\"text\\":\\"⚠️ *UNSTABLE*: Job ${JOB_NAME} Build #${BUILD_NUMBER}\\\\n${BUILD_URL}\\"}" \
+                    --data "{\\"text\\":\\"❌ *FAILED*: Job ${JOB_NAME} Build #${BUILD_NUMBER}\\\\n${BUILD_URL}console\\"}" \
                     ${SLACK_URL}
                 '''
             }
@@ -283,4 +258,3 @@ pipeline {
         }
     }
 }
-
