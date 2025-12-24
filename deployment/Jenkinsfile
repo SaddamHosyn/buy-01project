@@ -70,6 +70,7 @@ pipeline {
         echo '🧪 Running frontend tests (Karma/Jasmine)...'
         dir('buy-01-ui') {
             sh '''
+                export CHROME_BIN=/usr/bin/chromium
                 npm install --legacy-peer-deps
                 npm test -- --watch=false --browsers=ChromeHeadless
             '''
