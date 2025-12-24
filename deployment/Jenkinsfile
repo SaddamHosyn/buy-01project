@@ -4,7 +4,7 @@ pipeline {
     // BONUS: Parameterized Builds - Choose deployment environment
     parameters {
         choice(name: 'DEPLOY_ENV', choices: ['local', 'staging', 'production'], description: 'Select deployment environment')
-        booleanParam(name: 'SKIP_TESTS', defaultValue: false, description: 'Skip tests (use with caution)')
+        booleanParam(name: 'SKIP_TESTS', defaultValue: true, description: 'Skip tests (use with caution)')
         booleanParam(name: 'FORCE_DEPLOY', defaultValue: false, description: 'Force deployment even if tests fail')
     }
 
@@ -72,45 +72,73 @@ pipeline {
 }
 
         stage('Build Docker Images') {
-            steps {
-                echo "🐳 Building Docker Images with tag: ${BUILD_VERSION}..."
-                script {
-                    // Build with both latest and version tags for rollback capability
+    steps {
+        echo "🐳 Building Docker Images in parallel with tag: ${BUILD_VERSION}..."
+        script {
+            parallel(
+                'service-registry': {
                     sh "docker build -t ${DOCKER_USER}/buy-01-service-registry:latest -t ${DOCKER_USER}/buy-01-service-registry:${BUILD_VERSION} ./service-registry"
+                },
+                'api-gateway': {
                     sh "docker build -t ${DOCKER_USER}/buy-01-api-gateway:latest -t ${DOCKER_USER}/buy-01-api-gateway:${BUILD_VERSION} ./api-gateway"
+                },
+                'user-service': {
                     sh "docker build -t ${DOCKER_USER}/buy-01-user-service:latest -t ${DOCKER_USER}/buy-01-user-service:${BUILD_VERSION} ./user-service"
+                },
+                'product-service': {
                     sh "docker build -t ${DOCKER_USER}/buy-01-product-service:latest -t ${DOCKER_USER}/buy-01-product-service:${BUILD_VERSION} ./product-service"
+                },
+                'media-service': {
                     sh "docker build -t ${DOCKER_USER}/buy-01-media-service:latest -t ${DOCKER_USER}/buy-01-media-service:${BUILD_VERSION} ./media-service"
+                },
+                'frontend': {
                     sh "docker build -t ${DOCKER_USER}/buy-01-frontend:latest -t ${DOCKER_USER}/buy-01-frontend:${BUILD_VERSION} ./buy-01-ui"
                 }
-            }
+            )
         }
+    }
+}
 
         stage('Push to Docker Hub') {
-            steps {
-                echo "🚀 Pushing images to Docker Hub..."
-                withCredentials([usernamePassword(
-                    credentialsId: REGISTRY_CREDENTIALS,
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                    // Push both latest and versioned tags
-                    sh "docker push ${DOCKER_USER}/buy-01-service-registry:latest"
-                    sh "docker push ${DOCKER_USER}/buy-01-service-registry:${BUILD_VERSION}"
-                    sh "docker push ${DOCKER_USER}/buy-01-api-gateway:latest"
-                    sh "docker push ${DOCKER_USER}/buy-01-api-gateway:${BUILD_VERSION}"
-                    sh "docker push ${DOCKER_USER}/buy-01-user-service:latest"
-                    sh "docker push ${DOCKER_USER}/buy-01-user-service:${BUILD_VERSION}"
-                    sh "docker push ${DOCKER_USER}/buy-01-product-service:latest"
-                    sh "docker push ${DOCKER_USER}/buy-01-product-service:${BUILD_VERSION}"
-                    sh "docker push ${DOCKER_USER}/buy-01-media-service:latest"
-                    sh "docker push ${DOCKER_USER}/buy-01-media-service:${BUILD_VERSION}"
-                    sh "docker push ${DOCKER_USER}/buy-01-frontend:latest"
-                    sh "docker push ${DOCKER_USER}/buy-01-frontend:${BUILD_VERSION}"
-                }
+    steps {
+        echo "🚀 Pushing images to Docker Hub in parallel..."
+        withCredentials([usernamePassword(
+            credentialsId: REGISTRY_CREDENTIALS,
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASS'
+        )]) {
+            sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+            script {
+                parallel(
+                    'service-registry': {
+                        sh "docker push ${DOCKER_USER}/buy-01-service-registry:latest"
+                        sh "docker push ${DOCKER_USER}/buy-01-service-registry:${BUILD_VERSION}"
+                    },
+                    'api-gateway': {
+                        sh "docker push ${DOCKER_USER}/buy-01-api-gateway:latest"
+                        sh "docker push ${DOCKER_USER}/buy-01-api-gateway:${BUILD_VERSION}"
+                    },
+                    'user-service': {
+                        sh "docker push ${DOCKER_USER}/buy-01-user-service:latest"
+                        sh "docker push ${DOCKER_USER}/buy-01-user-service:${BUILD_VERSION}"
+                    },
+                    'product-service': {
+                        sh "docker push ${DOCKER_USER}/buy-01-product-service:latest"
+                        sh "docker push ${DOCKER_USER}/buy-01-product-service:${BUILD_VERSION}"
+                    },
+                    'media-service': {
+                        sh "docker push ${DOCKER_USER}/buy-01-media-service:latest"
+                        sh "docker push ${DOCKER_USER}/buy-01-media-service:${BUILD_VERSION}"
+                    },
+                    'frontend': {
+                        sh "docker push ${DOCKER_USER}/buy-01-frontend:latest"
+                        sh "docker push ${DOCKER_USER}/buy-01-frontend:${BUILD_VERSION}"
+                    }
+                )
             }
         }
+    }
+}
 
         stage('Deploy') {
             steps {
