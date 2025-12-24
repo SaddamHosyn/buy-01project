@@ -68,27 +68,12 @@ pipeline {
     }
     steps {
         echo '🧪 Running frontend tests (Karma/Jasmine)...'
-        
-        // DEBUG: List workspace contents
-        sh '''
-            echo "=== WORKSPACE CONTENTS ==="
-            ls -la ${WORKSPACE}
-            echo ""
-            echo "=== BUY-01-UI FOLDER ==="
-            ls -la ${WORKSPACE}/buy-01-ui || echo "buy-01-ui folder does not exist!"
-            echo ""
-            echo "=== CHECKING FOR package.json ==="
-            test -f ${WORKSPACE}/buy-01-ui/package.json && echo "package.json EXISTS" || echo "package.json DOES NOT EXIST"
-        '''
-        
-        // Run tests
-        sh '''
-            docker run --rm \
-                -v ${WORKSPACE}/buy-01-ui:/app \
-                -w /app \
-                node:20-alpine \
-                sh -c "npm install --legacy-peer-deps && npm test -- --watch=false --browsers=ChromeHeadless"
-        '''
+        dir('buy-01-ui') {
+            sh '''
+                npm install --legacy-peer-deps
+                npm test -- --watch=false --browsers=ChromeHeadless
+            '''
+        }
     }
     post {
         failure {
@@ -99,7 +84,6 @@ pipeline {
         }
     }
 }
-
         stage('Build Docker Images') {
             steps {
                 echo "🐳 Building Docker Images in parallel with tag: ${BUILD_VERSION}..."
