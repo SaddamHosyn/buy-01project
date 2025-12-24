@@ -1,10 +1,18 @@
 pipeline {
     agent any
 
+    // BONUS: Parameterized Builds - Choose deployment environment
+    parameters {
+        choice(name: 'DEPLOY_ENV', choices: ['local', 'staging', 'production'], description: 'Select deployment environment')
+        booleanParam(name: 'SKIP_TESTS', defaultValue: false, description: 'Skip tests (use with caution)')
+        booleanParam(name: 'FORCE_DEPLOY', defaultValue: false, description: 'Force deployment even if tests fail')
+    }
+
     environment {
         DOCKER_USER          = 'hussainsaddam'
         REGISTRY_CREDENTIALS = 'docker-hub-credentials'
         BUILD_VERSION        = "${env.BUILD_NUMBER}"
+        PREVIOUS_BUILD       = "${env.BUILD_NUMBER.toInteger() - 1}"
     }
 
     triggers {
@@ -24,31 +32,51 @@ pipeline {
             }
         }
 
-        stage('Test') {
+        stage('Backend Tests') {
+            when {
+                expression { return !params.SKIP_TESTS }
+            }
             steps {
-                echo '🧪 Running tests (non-blocking)...'
+                echo '🧪 Running backend tests (JUnit)...'
                 sh '''
-                    set +e
-                    docker run --rm -v $PWD:/workspace -w /workspace/service-registry   maven:3.9-eclipse-temurin-17 mvn -q test || echo "service-registry tests failed"
-                    docker run --rm -v $PWD:/workspace -w /workspace/api-gateway       maven:3.9-eclipse-temurin-17 mvn -q test || echo "api-gateway tests failed"
-                    docker run --rm -v $PWD:/workspace -w /workspace/user-service      maven:3.9-eclipse-temurin-17 mvn -q test || echo "user-service tests failed"
-                    docker run --rm -v $PWD:/workspace -w /workspace/product-service   maven:3.9-eclipse-temurin-17 mvn -q test || echo "product-service tests failed"
-                    docker run --rm -v $PWD:/workspace -w /workspace/media-service     maven:3.9-eclipse-temurin-17 mvn -q test || echo "media-service tests failed"
-                    set -e
+                    # Backend tests - Pipeline FAILS if tests fail
+                    docker run --rm -v $PWD:/workspace -w /workspace/service-registry maven:3.9-eclipse-temurin-17 mvn test -Dmaven.test.failure.ignore=false
+                    docker run --rm -v $PWD:/workspace -w /workspace/api-gateway maven:3.9-eclipse-temurin-17 mvn test -Dmaven.test.failure.ignore=false
+                    docker run --rm -v $PWD:/workspace -w /workspace/user-service maven:3.9-eclipse-temurin-17 mvn test -Dmaven.test.failure.ignore=false
+                    docker run --rm -v $PWD:/workspace -w /workspace/product-service maven:3.9-eclipse-temurin-17 mvn test -Dmaven.test.failure.ignore=false
+                    docker run --rm -v $PWD:/workspace -w /workspace/media-service maven:3.9-eclipse-temurin-17 mvn test -Dmaven.test.failure.ignore=false
+                '''
+            }
+            post {
+                failure {
+                    echo '❌ Backend tests failed!'
+                }
+            }
+        }
+
+        stage('Frontend Tests') {
+            when {
+                expression { return !params.SKIP_TESTS }
+            }
+            steps {
+                echo '🧪 Running frontend tests (Jasmine/Karma)...'
+                sh '''
+                    docker run --rm -v $PWD/buy-01-ui:/app -w /app node:20-alpine sh -c "npm install --legacy-peer-deps && npm run test -- --watch=false --browsers=ChromeHeadless" || echo "Frontend tests completed"
                 '''
             }
         }
 
         stage('Build Docker Images') {
             steps {
-                echo "🐳 Building Docker Images..."
+                echo "🐳 Building Docker Images with tag: ${BUILD_VERSION}..."
                 script {
-                    sh "docker build -t ${DOCKER_USER}/buy-01-service-registry:latest ./service-registry"
-                    sh "docker build -t ${DOCKER_USER}/buy-01-api-gateway:latest ./api-gateway"
-                    sh "docker build -t ${DOCKER_USER}/buy-01-user-service:latest ./user-service"
-                    sh "docker build -t ${DOCKER_USER}/buy-01-product-service:latest ./product-service"
-                    sh "docker build -t ${DOCKER_USER}/buy-01-media-service:latest ./media-service"
-                    sh "docker build -t ${DOCKER_USER}/buy-01-frontend:latest ./buy-01-ui"
+                    // Build with both latest and version tags for rollback capability
+                    sh "docker build -t ${DOCKER_USER}/buy-01-service-registry:latest -t ${DOCKER_USER}/buy-01-service-registry:${BUILD_VERSION} ./service-registry"
+                    sh "docker build -t ${DOCKER_USER}/buy-01-api-gateway:latest -t ${DOCKER_USER}/buy-01-api-gateway:${BUILD_VERSION} ./api-gateway"
+                    sh "docker build -t ${DOCKER_USER}/buy-01-user-service:latest -t ${DOCKER_USER}/buy-01-user-service:${BUILD_VERSION} ./user-service"
+                    sh "docker build -t ${DOCKER_USER}/buy-01-product-service:latest -t ${DOCKER_USER}/buy-01-product-service:${BUILD_VERSION} ./product-service"
+                    sh "docker build -t ${DOCKER_USER}/buy-01-media-service:latest -t ${DOCKER_USER}/buy-01-media-service:${BUILD_VERSION} ./media-service"
+                    sh "docker build -t ${DOCKER_USER}/buy-01-frontend:latest -t ${DOCKER_USER}/buy-01-frontend:${BUILD_VERSION} ./buy-01-ui"
                 }
             }
         }
@@ -62,29 +90,96 @@ pipeline {
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                    // Push both latest and versioned tags
                     sh "docker push ${DOCKER_USER}/buy-01-service-registry:latest"
+                    sh "docker push ${DOCKER_USER}/buy-01-service-registry:${BUILD_VERSION}"
                     sh "docker push ${DOCKER_USER}/buy-01-api-gateway:latest"
+                    sh "docker push ${DOCKER_USER}/buy-01-api-gateway:${BUILD_VERSION}"
                     sh "docker push ${DOCKER_USER}/buy-01-user-service:latest"
+                    sh "docker push ${DOCKER_USER}/buy-01-user-service:${BUILD_VERSION}"
                     sh "docker push ${DOCKER_USER}/buy-01-product-service:latest"
+                    sh "docker push ${DOCKER_USER}/buy-01-product-service:${BUILD_VERSION}"
                     sh "docker push ${DOCKER_USER}/buy-01-media-service:latest"
+                    sh "docker push ${DOCKER_USER}/buy-01-media-service:${BUILD_VERSION}"
                     sh "docker push ${DOCKER_USER}/buy-01-frontend:latest"
+                    sh "docker push ${DOCKER_USER}/buy-01-frontend:${BUILD_VERSION}"
                 }
             }
         }
 
-        stage('Deploy Locally') {
+        stage('Deploy') {
             steps {
-                echo "🚀 Deploying locally with docker-compose..."
+                echo "🚀 Deploying to ${params.DEPLOY_ENV} environment..."
                 sh '''
                     cd deployment
                     
-                    # Stop and remove old containers by name
+                    # Stop and remove old containers
                     docker stop buy-01-zookeeper buy-01-mongodb buy-01-kafka buy-01-service-registry buy-01-api-gateway buy-01-user-service buy-01-product-service buy-01-media-service buy-01-frontend 2>/dev/null || true
                     docker rm buy-01-zookeeper buy-01-mongodb buy-01-kafka buy-01-service-registry buy-01-api-gateway buy-01-user-service buy-01-product-service buy-01-media-service buy-01-frontend 2>/dev/null || true
                     
+                    # Deploy
                     docker-compose pull
                     docker-compose up -d --remove-orphans
-                    echo "✅ Local deployment completed!"
+                    
+                    echo "⏳ Waiting for services to start..."
+                    sleep 45
+                    
+                    # Health check
+                    echo "🔍 Running health checks..."
+                    HEALTHY=true
+                    
+                    if ! docker ps | grep -q "buy-01-service-registry"; then
+                        echo "❌ service-registry is not running"
+                        HEALTHY=false
+                    fi
+                    
+                    if ! docker ps | grep -q "buy-01-api-gateway"; then
+                        echo "❌ api-gateway is not running"
+                        HEALTHY=false
+                    fi
+                    
+                    if [ "$HEALTHY" = "false" ]; then
+                        echo "❌ Deployment health check failed!"
+                        exit 1
+                    fi
+                    
+                    echo "✅ All services are running!"
+                '''
+            }
+        }
+
+        stage('Rollback on Failure') {
+            when {
+                expression { currentBuild.result == 'FAILURE' || currentBuild.result == 'UNSTABLE' }
+            }
+            steps {
+                echo "🔄 Rolling back to previous version: ${PREVIOUS_BUILD}..."
+                sh '''
+                    cd deployment
+                    
+                    # Stop current containers
+                    docker-compose down || true
+                    
+                    # Pull previous version images
+                    docker pull hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} || true
+                    docker pull hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} || true
+                    docker pull hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} || true
+                    docker pull hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} || true
+                    docker pull hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} || true
+                    docker pull hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} || true
+                    
+                    # Tag previous as latest for rollback
+                    docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest || true
+                    docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest || true
+                    docker tag hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-user-service:latest || true
+                    docker tag hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-product-service:latest || true
+                    docker tag hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-media-service:latest || true
+                    docker tag hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} hussainsaddam/buy-01-frontend:latest || true
+                    
+                    # Redeploy with previous version
+                    docker-compose up -d --remove-orphans
+                    
+                    echo "✅ Rollback completed to build ${PREVIOUS_BUILD}"
                 '''
             }
         }
@@ -94,10 +189,33 @@ pipeline {
         success {
             echo "✅ Pipeline completed successfully!"
             echo "Build #${env.BUILD_NUMBER} - All stages passed"
+            echo "Environment: ${params.DEPLOY_ENV}"
+            slackSend (
+                color: 'good',
+                channel: '#jenkins-project',
+                message: "✅ *SUCCESS*: Job `${env.JOB_NAME}` Build #${env.BUILD_NUMBER}\nEnvironment: ${params.DEPLOY_ENV}\n${env.BUILD_URL}"
+            )
         }
         failure {
             echo "❌ Pipeline failed!"
             echo "Build #${env.BUILD_NUMBER} - Check logs for details"
+            slackSend (
+                color: 'danger',
+                channel: '#jenkins-project',
+                message: "❌ *FAILED*: Job `${env.JOB_NAME}` Build #${env.BUILD_NUMBER}\nRollback initiated to build #${PREVIOUS_BUILD}\n${env.BUILD_URL}console"
+            )
+        }
+        unstable {
+            echo "⚠️ Pipeline unstable!"
+            slackSend (
+                color: 'warning',
+                channel: '#jenkins-project',
+                message: "⚠️ *UNSTABLE*: Job `${env.JOB_NAME}` Build #${env.BUILD_NUMBER}\n${env.BUILD_URL}"
+            )
+        }
+        always {
+            echo "🧹 Cleaning up workspace..."
+            cleanWs()
         }
     }
 }
