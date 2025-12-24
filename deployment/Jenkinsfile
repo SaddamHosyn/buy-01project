@@ -4,7 +4,7 @@ pipeline {
     // BONUS: Parameterized Builds - Choose deployment environment
     parameters {
         choice(name: 'DEPLOY_ENV', choices: ['local', 'staging', 'production'], description: 'Select deployment environment')
-        booleanParam(name: 'SKIP_TESTS', defaultValue: true, description: 'Skip tests (use with caution)')
+        booleanParam(name: 'SKIP_TESTS', defaultValue: false, description: 'Skip tests (use with caution)')
         booleanParam(name: 'FORCE_DEPLOY', defaultValue: false, description: 'Force deployment even if tests fail')
     }
 
@@ -33,38 +33,47 @@ pipeline {
         }
 
         stage('Backend Tests') {
-            when {
-                expression { return !params.SKIP_TESTS }
-            }
-            steps {
-                echo '🧪 Running backend tests (JUnit)...'
-                sh '''
-                    # Backend tests - Pipeline FAILS if tests fail
-                    docker run --rm -v $PWD:/workspace -w /workspace/service-registry maven:3.9-eclipse-temurin-17 mvn test -Dmaven.test.failure.ignore=false
-                    docker run --rm -v $PWD:/workspace -w /workspace/api-gateway maven:3.9-eclipse-temurin-17 mvn test -Dmaven.test.failure.ignore=false
-                    docker run --rm -v $PWD:/workspace -w /workspace/user-service maven:3.9-eclipse-temurin-17 mvn test -Dmaven.test.failure.ignore=false
-                    docker run --rm -v $PWD:/workspace -w /workspace/product-service maven:3.9-eclipse-temurin-17 mvn test -Dmaven.test.failure.ignore=false
-                    docker run --rm -v $PWD:/workspace -w /workspace/media-service maven:3.9-eclipse-temurin-17 mvn test -Dmaven.test.failure.ignore=false
-                '''
-            }
-            post {
-                failure {
-                    echo '❌ Backend tests failed!'
-                }
+    when { expression { return !params.SKIP_TESTS } }
+    steps {
+        echo '🧪 Running backend tests (JUnit)...'
+        script {
+            def services = ['service-registry', 'api-gateway', 'user-service', 'product-service', 'media-service']
+            services.each { service ->
+                sh """
+                    docker run --rm \
+                    -v ${WORKSPACE}/${service}:/workspace \
+                    -w /workspace \
+                    maven:3.9-eclipse-temurin-17 \
+                    mvn clean test -Dmaven.test.failure.ignore=false
+                """
             }
         }
+    }
+    post {
+        failure {
+            echo '❌ Backend tests failed!'
+        }
+    }
+}
 
         stage('Frontend Tests') {
-            when {
-                expression { return !params.SKIP_TESTS }
-            }
-            steps {
-                echo '🧪 Running frontend tests (Jasmine/Karma)...'
-                sh '''
-                    docker run --rm -v $PWD/buy-01-ui:/app -w /app node:20-alpine sh -c "npm install --legacy-peer-deps && npm run test -- --watch=false --browsers=ChromeHeadless" || echo "Frontend tests completed"
-                '''
-            }
+    when { expression { return !params.SKIP_TESTS } }
+    steps {
+        echo '🧪 Running frontend tests (Karma/Jasmine)...'
+        sh """
+            docker run --rm \
+            -v ${WORKSPACE}/buy-01-ui:/app \
+            -w /app \
+            node:20-alpine \
+            sh -c 'npm install --legacy-peer-deps && npm test -- --watch=false --browsers=ChromeHeadless'
+        """
+    }
+    post {
+        failure {
+            echo '❌ Frontend tests failed!'
         }
+    }
+}
 
         stage('Build Docker Images') {
             steps {
