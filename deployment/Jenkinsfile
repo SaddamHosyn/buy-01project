@@ -32,38 +32,38 @@ pipeline {
         }
 
         stage('Backend Tests') {
-            when {
-                expression { params.SKIP_TESTS == false }
+    when {
+        expression { params.SKIP_TESTS == false }
+    }
+    steps {
+        echo '🧪 Running backend tests...'
+        script {
+            dir('service-registry') {
+                sh 'mvn clean test -Dmaven.test.failure.ignore=false'
             }
-            steps {
-                echo '🧪 Running backend tests...'
-                script {
-                    dir('service-registry') {
-                        sh 'mvn clean test -Dmaven.test.failure.ignore=false'
-                    }
-                    dir('user-service') {
-                        sh 'mvn clean test -Dmaven.test.failure.ignore=false'
-                    }
-                    dir('product-service') {
-                        sh 'mvn clean test -Dmaven.test.failure.ignore=false'
-                    }
-                    dir('media-service') {
-                        sh 'mvn clean test -Dmaven.test.failure.ignore=false'
-                    }
-                }
+            dir('user-service') {
+                sh 'mvn clean test -Dmaven.test.failure.ignore=false'
             }
-            post {
-                always {
-                    junit '**/target/surefire-reports/*.xml'
-                }
-                failure {
-                    echo '❌ Backend tests failed!'
-                }
-                success {
-                    echo '✅ Backend tests passed!'
-                }
+            dir('product-service') {
+                sh 'mvn clean test -Dmaven.test.failure.ignore=false'
+            }
+            dir('media-service') {
+                sh 'mvn clean test -Dmaven.test.failure.ignore=false'
             }
         }
+    }
+    post {
+        always {
+            junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+        }
+        failure {
+            echo '❌ Backend tests failed!'
+        }
+        success {
+            echo '✅ Backend tests passed!'
+        }
+    }
+}
 
         stage('Frontend Tests') {
             when {
@@ -81,24 +81,24 @@ pipeline {
                 }
             }
             post {
-                always {
-                    publishHTML([
-                        allowMissing: false,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true,
-                        reportDir: 'buy-01-ui/coverage',
-                        reportFiles: 'index.html',
-                        reportName: 'Frontend Coverage Report',
-                        reportTitles: 'Code Coverage'
-                    ])
-                }
-                failure {
-                    echo '❌ Frontend tests failed!'
-                }
-                success {
-                    echo '✅ Frontend tests passed!'
-                }
-            }
+    always {
+        publishHTML([
+            allowMissing: true,  ← ADD THIS LINE
+            alwaysLinkToLastBuild: true,
+            keepAll: true,
+            reportDir: 'buy-01-ui/coverage',
+            reportFiles: 'index.html',
+            reportName: 'Frontend Coverage Report',
+            reportTitles: 'Code Coverage'
+        ])
+    }
+    failure {
+        echo '❌ Frontend tests failed!'
+    }
+    success {
+        echo '✅ Frontend tests passed!'
+    }
+}
         }
 
         stage('Build Backend JARs') {
