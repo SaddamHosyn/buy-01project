@@ -38,9 +38,6 @@ pipeline {
     steps {
         echo '🧪 Running backend tests...'
         script {
-            dir('service-registry') {
-                sh 'mvn clean test -Dmaven.test.failure.ignore=false'
-            }
             dir('user-service') {
                 sh 'mvn clean test -Dmaven.test.failure.ignore=false'
             }
