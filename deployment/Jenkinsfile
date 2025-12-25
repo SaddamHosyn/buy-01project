@@ -53,6 +53,9 @@ pipeline {
                 }
             }
             post {
+                always {
+                    junit '**/target/surefire-reports/*.xml'
+                }
                 failure {
                     echo '❌ Backend tests failed!'
                 }
@@ -71,19 +74,24 @@ pipeline {
                 dir('buy-01-ui') {
                     sh '''
                         export CHROME_BIN=/usr/bin/chromium
-                        
-                        # CRITICAL FIX: Clean install to remove ghost dependencies causing "Ignoring framework" error
                         rm -rf node_modules package-lock.json
-                        
                         npm install --legacy-peer-deps
-                        
-                        # Run with specific flags for Docker environment
-                        # Ensure we force the correct browser launcher
                         npx ng test --watch=false --browsers=ChromeHeadlessCI --code-coverage
                     '''
                 }
             }
             post {
+                always {
+                    publishHTML([
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'buy-01-ui/coverage',
+                        reportFiles: 'index.html',
+                        reportName: 'Frontend Coverage Report',
+                        reportTitles: 'Code Coverage'
+                    ])
+                }
                 failure {
                     echo '❌ Frontend tests failed!'
                 }
@@ -93,8 +101,7 @@ pipeline {
             }
         }
 
-
-                stage('Build Backend JARs') {
+        stage('Build Backend JARs') {
             steps {
                 echo '📦 Building backend JAR files...'
                 script {
@@ -107,9 +114,6 @@ pipeline {
                 }
             }
         }
-
-
-
 
         stage('Build Docker Images') {
             steps {
@@ -144,10 +148,10 @@ pipeline {
                 echo "🚀 Pushing images to Docker Hub in parallel..."
                 withCredentials([usernamePassword(
                     credentialsId: REGISTRY_CREDENTIALS,
-                    usernameVariable: 'DOCKER_USER',
+                    usernameVariable: 'DOCKER_USER_CRED',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER_CRED --password-stdin'
                     script {
                         parallel(
                             'service-registry': {
@@ -186,18 +190,15 @@ pipeline {
                 sh '''
                     cd deployment
                     
-                    # Stop and remove old containers
                     docker stop buy-01-zookeeper buy-01-mongodb buy-01-kafka buy-01-service-registry buy-01-api-gateway buy-01-user-service buy-01-product-service buy-01-media-service buy-01-frontend 2>/dev/null || true
                     docker rm buy-01-zookeeper buy-01-mongodb buy-01-kafka buy-01-service-registry buy-01-api-gateway buy-01-user-service buy-01-product-service buy-01-media-service buy-01-frontend 2>/dev/null || true
                     
-                    # Deploy
                     docker-compose pull
                     docker-compose up -d --remove-orphans
                     
                     echo "⏳ Waiting for services to start..."
                     sleep 45
                     
-                    # Health check
                     echo "🔍 Running health checks..."
                     HEALTHY=true
                     
@@ -232,12 +233,12 @@ pipeline {
                     
                     docker-compose down || true
                     
-                    docker pull hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} || true
-                    docker pull hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} || true
-                    docker pull hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} || true
-                    docker pull hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} || true
-                    docker pull hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} || true
-                    docker pull hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} || true
+                    docker pull hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} || echo "Previous build not found"
+                    docker pull hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} || echo "Previous build not found"
+                    docker pull hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} || echo "Previous build not found"
+                    docker pull hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} || echo "Previous build not found"
+                    docker pull hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} || echo "Previous build not found"
+                    docker pull hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} || echo "Previous build not found"
                     
                     docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest || true
                     docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest || true
