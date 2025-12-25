@@ -63,28 +63,36 @@ pipeline {
         }
 
         stage('Frontend Tests') {
-    when {
-        expression { params.SKIP_TESTS == false }
-    }
-    steps {
-        echo '🧪 Running frontend tests (Karma/Jasmine)...'
-        dir('buy-01-ui') {
-            sh '''
-                export CHROME_BIN=/usr/bin/chromium
-                npm install --legacy-peer-deps
-                npm test -- --watch=false --browsers=ChromeHeadlessCI
-            '''
+            when {
+                expression { params.SKIP_TESTS == false }
+            }
+            steps {
+                echo '🧪 Running frontend tests (Karma/Jasmine)...'
+                dir('buy-01-ui') {
+                    sh '''
+                        export CHROME_BIN=/usr/bin/chromium
+                        
+                        # CRITICAL FIX: Clean install to remove ghost dependencies causing "Ignoring framework" error
+                        rm -rf node_modules package-lock.json
+                        
+                        npm install --legacy-peer-deps
+                        
+                        # Run with specific flags for Docker environment
+                        # Ensure we force the correct browser launcher
+                        npx ng test --watch=false --browsers=ChromeHeadlessCI --code-coverage
+                    '''
+                }
+            }
+            post {
+                failure {
+                    echo '❌ Frontend tests failed!'
+                }
+                success {
+                    echo '✅ Frontend tests passed!'
+                }
+            }
         }
-    }
-    post {
-        failure {
-            echo '❌ Frontend tests failed!'
-        }
-        success {
-            echo '✅ Frontend tests passed!'
-        }
-    }
-}
+
         stage('Build Docker Images') {
             steps {
                 echo "🐳 Building Docker Images in parallel with tag: ${BUILD_VERSION}..."
