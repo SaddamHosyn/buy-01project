@@ -19,7 +19,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: example
     volumes:
-      - ./uploads:/data/db
+      - ../uploads:/data/db
     networks:
       - buy-01-network
 
@@ -44,6 +44,7 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     networks:
       - buy-01-network
+
   service-registry:
     build: ./service-registry
     image: hussainsaddam/buy-01-service-registry:latest
@@ -123,7 +124,7 @@ services:
       EUREKA_INSTANCE_HOSTNAME: media-service
       API_GATEWAY_URL: http://localhost:8080/api/media
     volumes:
-      - ./media-service/uploads:/app/uploads
+      - ../media-service/uploads:/app/uploads
     depends_on:
       - kafka
       - service-registry
@@ -143,6 +144,26 @@ services:
     networks:
       - buy-01-network
 
+  jenkins-master:
+    build:
+      context: .
+      dockerfile: Dockerfile.jenkins
+    image: hussainsaddam/buy-01-jenkins:latest
+    container_name: jenkins-master
+    ports:
+      - "8086:8080"
+      - "50001:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    networks:
+      - buy-01-network
+
 networks:
   buy-01-network:
     external: true
+
+volumes:
+  jenkins_home:
+    driver: local

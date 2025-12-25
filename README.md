@@ -146,8 +146,172 @@ After starting the application, you can:
    - All services should show as "UP"
 
 3. **Start using the platform:**
+
    - **Sellers**: Upload products, manage inventory, upload media
    - **Clients**: Browse products, view details, manage profile
+
+   ## 🔄 CI/CD Pipeline with Jenkins
+
+This project includes a fully automated CI/CD pipeline using Jenkins for continuous integration, testing, and deployment.
+
+### Pipeline Overview
+
+The Jenkins pipeline automates the entire build, test, and deployment process:
+
+Code Push → GitHub → Jenkins Auto-Trigger → Build → Test → Docker Build → Push to Registry → Deploy → Notify
+
+### Features
+
+- ✅ **Automated Builds**: Pipeline triggers automatically on git push (SCM polling every 5 minutes)
+- ✅ **Automated Testing**: JUnit tests (backend) and Karma/Jasmine tests (frontend)
+- ✅ **Docker Integration**: Builds and pushes Docker images to Docker Hub
+- ✅ **Automated Deployment**: Deploys using docker-compose
+- ✅ **Rollback Strategy**: Automatic rollback on deployment failure
+- ✅ **Notifications**: Slack notifications for build status
+- ✅ **Parameterized Builds**: Customizable deployment environment and options
+- ✅ **Security**: Jenkins credentials for Docker Hub, secured with JWT
+
+### Jenkins Setup
+
+**Prerequisites:**
+
+- Docker and Docker Compose
+- GitHub repository access
+- Docker Hub account (for image registry)
+- Slack workspace (optional, for notifications)
+
+**Quick Start:**
+
+1. Clone the repository and navigate to project
+   git clone https://github.com/SaddamHosyn/buy-01project.git
+   cd buy-01project
+
+2. Create Docker network (first time only)
+   docker network create buy-01-network
+
+3. Navigate to deployment directory and start all services
+   cd deployment
+   docker-compose up -d
+
+4. Wait 2-3 minutes for Jenkins to initialize, then access at http://localhost:8086
+
+**To stop all services:**
+cd deployment
+docker-compose down
+
+**To restart Jenkins only:**
+cd deployment
+docker-compose restart jenkins-master
+
+**To view Jenkins logs:**
+docker logs jenkins-master
+
+**Jenkins is now integrated with docker-compose and starts automatically with all other services.**
+
+**Jenkins Configuration:**
+
+1. **Install Plugins**: Git, Pipeline, Docker Pipeline, Slack Notification (optional)
+2. **Add Credentials**:
+   - Docker Hub username/password (ID: `dockerhub-credentials`)
+   - Slack webhook URL (ID: `slack-webhook`, optional)
+3. **Create Pipeline Job**:
+   - New Item → Pipeline
+   - Git repository: `https://github.com/SaddamHosyn/buy-01project.git`
+   - Branch: `main`
+   - Script Path: `deployment/Jenkinsfile`
+
+### Pipeline Stages
+
+| Stage                   | Description       | Actions                            |
+| ----------------------- | ----------------- | ---------------------------------- |
+| **Checkout**            | Fetch latest code | Clone from GitHub                  |
+| **Backend Tests**       | Run unit tests    | Maven test for 3 microservices     |
+| **Frontend Tests**      | Run Angular tests | Karma/Jasmine tests                |
+| **Build Docker Images** | Build containers  | Build 6 service images in parallel |
+| **Push to Registry**    | Upload images     | Push to Docker Hub                 |
+| **Deploy**              | Start services    | Deploy with docker-compose         |
+| **Rollback**            | On failure        | Restore previous version           |
+
+### Pipeline Parameters
+
+- **DEPLOY_ENV**: Choose deployment environment (`dev`, `staging`, `production`)
+- **SKIP_TESTS**: Skip tests for faster builds (`true`/`false`)
+- **FORCE_DEPLOY**: Force deployment even if no changes (`true`/`false`)
+
+### Testing the Pipeline
+
+**Test Error Handling:**
+cd deployment
+./test-error-handling.sh
+
+Trigger build → Pipeline fails at test stage
+./restore-all.sh
+
+**Test Rollback:**
+cd deployment
+./test-rollback.sh
+
+Trigger build → Deployment fails → Auto-rollback
+./restore-all.sh
+
+**Test Auto-Trigger:**
+echo "// Test" >> README.md
+git add README.md
+git commit -m "test: Jenkins auto-trigger"
+git push origin main
+
+Wait 5 minutes → Jenkins auto-triggers
+
+### Build Results
+
+**Access Jenkins:**
+
+- Dashboard: http://localhost:8086
+- Pipeline: http://localhost:8086/job/buy-01-cicd-pipeline/
+- Test Results: Build → Test Results tab
+
+**Build Status:**
+
+- ✅ Green: Success
+- ❌ Red: Failed
+- ⚠️ Yellow: Unstable
+
+### Test Reports
+
+Backend Tests:
+✅ user-service: 2 tests passed
+✅ product-service: 2 tests passed
+✅ media-service: 2 tests passed
+Total: 6 tests, 0 failures
+
+### Security
+
+- **Authentication**: Jenkins user database
+- **Authorization**: Logged-in users only
+- **CSRF Protection**: Enabled
+- **Secrets**: Docker Hub credentials secured with `withCredentials`
+- **Best Practice**: Passwords never logged in console
+
+### Performance
+
+- **Full pipeline**: ~8-12 minutes
+- **With tests**: ~10-15 minutes
+- **Skip tests**: ~5-8 minutes
+- **Optimization**: Parallel builds, Docker layer caching
+
+### CI/CD Workflow
+
+1. Developer pushes code → GitHub
+2. Jenkins auto-triggers (within 5 min)
+3. Pipeline executes all stages
+4. Tests run (6 backend + frontend)
+5. Docker images built and pushed
+6. Services deployed
+7. Slack notification sent
+
+---
+
+**For detailed CI/CD documentation, see `deployment/README.md` and `deployment/AUDIT-CHECKLIST.md`**
 
 ## 📊 Service Ports & URLs
 
