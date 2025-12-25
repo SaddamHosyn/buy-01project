@@ -53,53 +53,42 @@ pipeline {
         }
     }
     post {
-    always {
-        junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+        always {
+            junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+        }
+        failure {
+            echo '❌ Backend tests failed!'
+        }
+        success {
+            echo '✅ Backend tests passed!'
+        }
     }
-    failure {
-        echo '❌ Backend tests failed!'
-    }
-    success {
-        echo '✅ Backend tests passed!'
-    }
-}
 }
 
         stage('Frontend Tests') {
-            when {
-                expression { params.SKIP_TESTS == false }
-            }
-            steps {
-                echo '🧪 Running frontend tests (Karma/Jasmine)...'
-                dir('buy-01-ui') {
-                    sh '''
-                        export CHROME_BIN=/usr/bin/chromium
-                        rm -rf node_modules package-lock.json
-                        npm install --legacy-peer-deps
-                        npx ng test --watch=false --browsers=ChromeHeadlessCI --code-coverage
-                    '''
-                }
-            }
-            post {
-    always {
-        publishHTML([
-            allowMissing: true,
-            alwaysLinkToLastBuild: true,
-            keepAll: true,
-            reportDir: 'buy-01-ui/coverage',
-            reportFiles: 'index.html',
-            reportName: 'Frontend Coverage Report',
-            reportTitles: 'Code Coverage'
-        ])
+    when {
+        expression { params.SKIP_TESTS == false }
     }
-    failure {
-        echo '❌ Frontend tests failed!'
+    steps {
+        echo '🧪 Running frontend tests (Karma/Jasmine)...'
+        dir('buy-01-ui') {
+            sh '''
+                export CHROME_BIN=/usr/bin/chromium
+                rm -rf node_modules package-lock.json
+                npm install --legacy-peer-deps
+                npx ng test --watch=false --browsers=ChromeHeadlessCI --code-coverage
+            '''
+        }
     }
-    success {
-        echo '✅ Frontend tests passed!'
+    post {
+        failure {
+            echo '❌ Frontend tests failed!'
+        }
+        success {
+            echo '✅ Frontend tests passed!'
+        }
     }
 }
-        }
 
         stage('Build Backend JARs') {
             steps {
