@@ -72,7 +72,7 @@ pipeline {
             sh '''
                 export CHROME_BIN=/usr/bin/chromium
                 npm install --legacy-peer-deps
-                npm test -- --watch=false --browsers=ChromeHeadless
+                npm test -- --watch=false --browsers=ChromeHeadlessCI
             '''
         }
     }
