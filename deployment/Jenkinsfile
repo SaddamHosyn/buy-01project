@@ -93,6 +93,24 @@ pipeline {
             }
         }
 
+
+                stage('Build Backend JARs') {
+            steps {
+                echo '📦 Building backend JAR files...'
+                script {
+                    def services = ['service-registry', 'user-service', 'product-service', 'media-service']
+                    for (service in services) {
+                        dir(service) {
+                            sh 'mvn clean package -DskipTests'
+                        }
+                    }
+                }
+            }
+        }
+
+
+
+
         stage('Build Docker Images') {
             steps {
                 echo "🐳 Building Docker Images in parallel with tag: ${BUILD_VERSION}..."
