@@ -53,16 +53,16 @@ pipeline {
         }
     }
     post {
-        always {
-            junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
-        }
-        failure {
-            echo '❌ Backend tests failed!'
-        }
-        success {
-            echo '✅ Backend tests passed!'
-        }
+    always {
+        junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
     }
+    failure {
+        echo '❌ Backend tests failed!'
+    }
+    success {
+        echo '✅ Backend tests passed!'
+    }
+}
 }
 
         stage('Frontend Tests') {
@@ -83,7 +83,7 @@ pipeline {
             post {
     always {
         publishHTML([
-            allowMissing: true,  ← ADD THIS LINE
+            allowMissing: true,
             alwaysLinkToLastBuild: true,
             keepAll: true,
             reportDir: 'buy-01-ui/coverage',
