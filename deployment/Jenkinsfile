@@ -23,11 +23,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo "📦 Checking out code..."
-                checkout([$class: 'GitSCM',
-                    branches: [[name: '*/jenkindev']],
-                    extensions: [[$class: 'WipeWorkspace']],
-                    userRemoteConfigs: [[url: 'https://github.com/SaddamHosyn/buy-01project.git']]
-                ])
+                checkout scm
             }
         }
 
