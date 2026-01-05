@@ -241,19 +241,36 @@ pipeline {
         }
 
         stage('Deploy') {
-            when {
-                expression { return false }  // Disabled - Docker Desktop crashes during deployment
-            }
             steps {
                 echo "🚀 Deploying to ${params.DEPLOY_ENV} environment..."
                 sh '''
                     cd deployment
                     
+                    # Stop and remove all containers
                     docker stop buy-01-zookeeper buy-01-mongodb buy-01-kafka buy-01-service-registry buy-01-api-gateway buy-01-user-service buy-01-product-service buy-01-media-service buy-01-frontend 2>/dev/null || true
                     docker rm buy-01-zookeeper buy-01-mongodb buy-01-kafka buy-01-service-registry buy-01-api-gateway buy-01-user-service buy-01-product-service buy-01-media-service buy-01-frontend 2>/dev/null || true
                     
+                    # Pull all images
                     docker-compose pull
-                    docker-compose up -d --remove-orphans
+                    
+                    # Start infrastructure first (one at a time to prevent crash)
+                    docker-compose up -d zookeeper
+                    sleep 10
+                    docker-compose up -d mongodb
+                    sleep 10
+                    docker-compose up -d kafka
+                    sleep 15
+                    
+                    # Start service registry
+                    docker-compose up -d service-registry
+                    sleep 20
+                    
+                    # Start microservices
+                    docker-compose up -d api-gateway user-service product-service media-service
+                    sleep 20
+                    
+                    # Start frontend
+                    docker-compose up -d frontend
                     
                     echo "⏳ Waiting for services to start..."
                     sleep 45
