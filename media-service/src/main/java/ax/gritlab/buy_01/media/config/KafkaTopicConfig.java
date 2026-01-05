@@ -20,6 +20,6 @@ public final class KafkaTopicConfig {
       return TopicBuilder.name("product.deleted")
             .partitions(1)
             .replicas(1)
-            .build()
+            .build();
    }
 }
