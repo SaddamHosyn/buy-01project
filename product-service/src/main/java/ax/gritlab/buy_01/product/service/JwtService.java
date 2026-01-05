@@ -15,24 +15,51 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Service for JWT token operations.
+ */
 @Service
-public class JwtService {
+public final class JwtService {
 
+    /**
+     * Secret key for JWT signing.
+     */
     @Value("${jwt.secret.key}")
     private String secretKey;
 
-    public String extractUsername(String token) {
+    /**
+     * Extract username from JWT token.
+     *
+     * @param token the JWT token
+     * @return the username
+     */
+    public String extractUsername(final String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public String extractUserId(String token) {
-        return extractClaim(token, claims -> claims.get("userId", String.class));
+    /**
+     * Extract user ID from JWT token.
+     *
+     * @param token the JWT token
+     * @return the user ID
+     */
+    public String extractUserId(final String token) {
+        return extractClaim(token,
+            claims -> claims.get("userId", String.class));
     }
 
-    public List<GrantedAuthority> extractAuthorities(String token) {
-        List<Map<String, String>> authoritiesMaps = extractClaim(token, claims -> claims.get("authorities", List.class));
+    /**
+     * Extract authorities from JWT token.
+     *
+     * @param token the JWT token
+     * @return list of granted authorities
+     */
+    public List<GrantedAuthority> extractAuthorities(final String token) {
+        List<Map<String, String>> authoritiesMaps = extractClaim(
+            token, claims -> claims.get("authorities", List.class));
         return authoritiesMaps.stream()
-                .map(authorityMap -> new SimpleGrantedAuthority(authorityMap.get("authority")))
+                .map(authorityMap -> new SimpleGrantedAuthority(
+                    authorityMap.get("authority")))
                 .collect(Collectors.toList());
     }
 

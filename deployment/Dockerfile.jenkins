@@ -35,7 +35,11 @@ RUN apt-get update && \
 ENV CHROME_BIN=/usr/bin/chromium
 ENV CHROMIUM_FLAGS="--no-sandbox --disable-dev-shm-usage"
 
-# Add jenkins to docker group
-RUN usermod -aG docker jenkins
+# Add jenkins to docker group and give proper permissions
+# Get the host docker GID from docker.sock and create matching group
+RUN groupadd -g 999 docker || true && \
+    usermod -aG docker jenkins && \
+    usermod -aG root jenkins && \
+    chmod 666 /var/run/docker.sock || true
 
 USER jenkins

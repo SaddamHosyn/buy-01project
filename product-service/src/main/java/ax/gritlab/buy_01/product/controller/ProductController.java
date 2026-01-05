@@ -66,20 +66,26 @@ public class ProductController {
     }
 
     /**
-     * Remove media ID from product's mediaIds array
-     * Called by Media Service when media is deleted
+     * Remove media ID from product's mediaIds array.
+     * Called by Media Service when media is deleted.
+     *
+     * @param productId the ID of the product to update
+     * @param mediaId the ID of the media to remove
+     * @return ResponseEntity with no content
      */
     @DeleteMapping("/{productId}/remove-media/{mediaId}")
     public ResponseEntity<Void> removeMediaFromProduct(
-            @PathVariable String productId,
-            @PathVariable String mediaId) {
+            @PathVariable final String productId,
+            @PathVariable final String mediaId) {
         productService.removeMediaFromProduct(productId, mediaId);
         return ResponseEntity.ok().build();
     }
 
     /**
-     * Clean up all orphaned media IDs from products
-     * This removes media IDs that no longer exist in the media database
+     * Clean up all orphaned media IDs from products.
+     * This removes media IDs that no longer exist in the media database.
+     *
+     * @return ResponseEntity with cleanup result message
      */
     @PostMapping("/cleanup-orphaned-media")
     public ResponseEntity<String> cleanupOrphanedMedia() {
