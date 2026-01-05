@@ -140,4 +140,4 @@ services:
 
 networks:
   buy-01-network:
-    external: true
+    driver: bridge
