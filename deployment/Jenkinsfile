@@ -241,6 +241,9 @@ pipeline {
         }
 
         stage('Deploy') {
+            when {
+                expression { return false }  // Disabled - Docker Desktop crashes during deployment
+            }
             steps {
                 echo "🚀 Deploying to ${params.DEPLOY_ENV} environment..."
                 sh '''
