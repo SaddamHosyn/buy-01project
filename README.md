@@ -164,12 +164,15 @@ Code Push → GitHub → Jenkins Auto-Trigger → Build → Test → Docker Buil
 
 - ✅ **Automated Builds**: Pipeline triggers automatically on git push (SCM polling every 5 minutes)
 - ✅ **Automated Testing**: JUnit tests (backend) and Karma/Jasmine tests (frontend)
+- ✅ **Secret Scanning**: Detects accidentally committed secrets and API keys
+- ✅ **Code Quality Checks**: Checkstyle integration for Java code standards
+- ✅ **Test Coverage Reports**: Archived and accessible for audit
 - ✅ **Docker Integration**: Builds and pushes Docker images to Docker Hub
 - ✅ **Automated Deployment**: Deploys using docker-compose
 - ✅ **Rollback Strategy**: Automatic rollback on deployment failure
-- ✅ **Notifications**: Slack notifications for build status
+- ✅ **Notifications**: Slack + Email notifications for build status
 - ✅ **Parameterized Builds**: Customizable deployment environment and options
-- ✅ **Security**: Jenkins credentials for Docker Hub, secured with JWT
+- ✅ **Security**: Jenkins credentials for all secrets, RBAC, audit logging
 
 ### Jenkins Setup
 
@@ -210,27 +213,38 @@ docker logs jenkins-master
 
 **Jenkins Configuration:**
 
-1. **Install Plugins**: Git, Pipeline, Docker Pipeline, Slack Notification (optional)
+1. **Install Plugins**: Git, Pipeline, Docker Pipeline, Email Extension, Slack Notification (optional), Job DSL (optional)
 2. **Add Credentials**:
-   - Docker Hub username/password (ID: `dockerhub-credentials`)
-   - Slack webhook URL (ID: `slack-webhook`, optional)
+
+   - Docker Hub username (ID: `docker-hub-username`) - Secret text
+   - Docker Hub username/password (ID: `docker-hub-credentials`) - Username/Password
+   - Slack webhook URL (ID: `slack-webhook-url`, optional) - Secret text
+   - Email SMTP credentials (ID: `email-credentials`, optional) - Username/Password
+
+   📖 **See detailed setup:** [CREDENTIALS-SETUP.md](deployment/CREDENTIALS-SETUP.md)
+
 3. **Create Pipeline Job**:
+
    - New Item → Pipeline
    - Git repository: `https://github.com/SaddamHosyn/buy-01project.git`
    - Branch: `main`
    - Script Path: `deployment/Jenkinsfile`
 
+   📖 **Or use automated setup:** Run `deployment/jenkins-config/jenkins-setup.sh`
+
 ### Pipeline Stages
 
-| Stage                   | Description       | Actions                            |
-| ----------------------- | ----------------- | ---------------------------------- |
-| **Checkout**            | Fetch latest code | Clone from GitHub                  |
-| **Backend Tests**       | Run unit tests    | Maven test for 3 microservices     |
-| **Frontend Tests**      | Run Angular tests | Karma/Jasmine tests                |
-| **Build Docker Images** | Build containers  | Build 6 service images in parallel |
-| **Push to Registry**    | Upload images     | Push to Docker Hub                 |
-| **Deploy**              | Start services    | Deploy with docker-compose         |
-| **Rollback**            | On failure        | Restore previous version           |
+| Stage                   | Description       | Actions                               |
+| ----------------------- | ----------------- | ------------------------------------- |
+| **Checkout**            | Fetch latest code | Clone from GitHub                     |
+| **Secret Scanning**     | Security check    | Detect accidentally committed secrets |
+| **Backend Tests**       | Run unit tests    | Maven test for 3 microservices        |
+| **Frontend Tests**      | Run Angular tests | Karma/Jasmine tests                   |
+| **Code Quality**        | Static analysis   | Checkstyle for Java code standards    |
+| **Build Docker Images** | Build containers  | Build 6 service images in parallel    |
+| **Push to Registry**    | Upload images     | Push to Docker Hub                    |
+| **Deploy**              | Start services    | Deploy with docker-compose            |
+| **Rollback**            | On failure        | Restore previous version              |
 
 ### Pipeline Parameters
 
@@ -311,7 +325,13 @@ Total: 6 tests, 0 failures
 
 ---
 
-**For detailed CI/CD documentation, see `deployment/README.md` and `deployment/AUDIT-CHECKLIST.md`**
+**For detailed CI/CD documentation, see:**
+
+- 📘 **[Pipeline Documentation](deployment/README.md)** - Complete setup guide
+- 🔒 **[Security Guide](deployment/JENKINS-SECURITY.md)** - Permissions & credentials
+- 🔑 **[Credentials Setup](deployment/CREDENTIALS-SETUP.md)** - Quick credential guide
+- ✅ **[Audit Checklist](deployment/AUDIT-CHECKLIST.md)** - Complete audit answers
+- 🛠️ **[Jenkins Config](deployment/jenkins-config/README.md)** - Automated setup scripts
 
 ## 📊 Service Ports & URLs
 

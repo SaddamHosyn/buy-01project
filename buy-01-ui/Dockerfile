@@ -21,13 +21,11 @@ FROM nginx:alpine
 # Copy built files from build stage
 COPY --from=build /app/dist/buy-01-ui/browser /usr/share/nginx/html
 
-# Copy nginx HTTPS configuration
-COPY nginx-https.conf /etc/nginx/conf.d/default.conf
+# Copy nginx HTTP configuration (simple, no HTTPS)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy SSL certificates
-# COPY certs /etc/nginx/certs
-
-# Expose ports
+# Expose port 80 for HTTP
+EXPOSE 80
 EXPOSE 80
 EXPOSE 443
 

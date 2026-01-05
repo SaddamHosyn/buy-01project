@@ -8,14 +8,14 @@ pipeline {
     }
 
     environment {
-        DOCKER_USER          = 'hussainsaddam'
+        DOCKER_USER          = credentials('docker-hub-username') // Configurable from Jenkins credentials
         REGISTRY_CREDENTIALS = 'docker-hub-credentials'
         BUILD_VERSION        = "${env.BUILD_NUMBER}"
         PREVIOUS_BUILD       = "${env.BUILD_NUMBER.toInteger() - 1}"
     }
 
     triggers {
-        pollSCM('H/5 * * * *')
+        pollSCM('H/2 * * * *')
     }
 
     stages {
@@ -28,6 +28,36 @@ pipeline {
                     extensions: [[$class: 'WipeWorkspace']],
                     userRemoteConfigs: [[url: 'https://github.com/SaddamHosyn/buy-01project.git']]
                 ])
+            }
+        }
+
+        stage('Secret Scanning') {
+            steps {
+                echo '🔍 Scanning for accidentally committed secrets...'
+                script {
+                    def secretsFound = false
+                    def secretPatterns = [
+                        'AWS.*ACCESS.*KEY.*=.*[A-Z0-9]{20}',
+                        'AWS.*SECRET.*KEY.*=.*[A-Za-z0-9/+=]{40}',
+                        'api[_-]?key.*=.*[\"\'][A-Za-z0-9]{32,}[\"\']',
+                        'password.*=.*[\"\'][^\"\'{]{8,}[\"\']',
+                        '-----BEGIN.*PRIVATE KEY-----'
+                    ]
+                    
+                    for (pattern in secretPatterns) {
+                        def result = sh(script: "grep -r -E -i '${pattern}' --include='*.java' --include='*.js' --include='*.ts' --include='*.yml' --include='*.properties' . || true", returnStdout: true).trim()
+                        if (result) {
+                            echo "⚠️ Potential secret found: ${result}"
+                            secretsFound = true
+                        }
+                    }
+                    
+                    if (secretsFound) {
+                        error('❌ Secrets detected in code! Please remove them and use Jenkins credentials.')
+                    } else {
+                        echo '✅ No secrets detected in code.'
+                    }
+                }
             }
         }
 
@@ -52,6 +82,8 @@ pipeline {
     post {
         always {
             junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+            // Archive test coverage reports
+            archiveArtifacts artifacts: '**/target/surefire-reports/**, **/target/site/jacoco/**', allowEmptyArchive: true
         }
         failure {
             echo '❌ Backend tests failed!'
@@ -78,6 +110,10 @@ pipeline {
         }
     }
     post {
+        always {
+            // Archive frontend test coverage
+            archiveArtifacts artifacts: 'buy-01-ui/coverage/**', allowEmptyArchive: true
+        }
         failure {
             echo '❌ Frontend tests failed!'
         }
@@ -86,6 +122,31 @@ pipeline {
         }
     }
 }
+
+        stage('Code Quality Check') {
+            when {
+                expression { params.SKIP_TESTS == false }
+            }
+            steps {
+                echo '📊 Running code quality checks...'
+                script {
+                    // Run Checkstyle for Java code
+                    def services = ['user-service', 'product-service', 'media-service']
+                    for (service in services) {
+                        dir(service) {
+                            sh 'mvn checkstyle:check || true'  // Don't fail build, just report
+                        }
+                    }
+                    echo '✅ Code quality check completed (warnings only, not blocking)'
+                }
+            }
+            post {
+                always {
+                    // Archive code quality reports
+                    archiveArtifacts artifacts: '**/target/checkstyle-result.xml', allowEmptyArchive: true
+                }
+            }
+        }
 
         stage('Build Backend JARs') {
             steps {
@@ -245,27 +306,102 @@ pipeline {
         success {
             echo "✅ Pipeline completed successfully!"
             echo "Build #${env.BUILD_NUMBER} - All stages passed"
-            withCredentials([string(credentialsId: 'slack-webhook-url', variable: 'SLACK_URL')]) {
-                sh '''
-                    curl -X POST -H 'Content-type: application/json' \
-                    --data "{\\"text\\":\\"✅ *SUCCESS*: Job ${JOB_NAME} Build #${BUILD_NUMBER}\\\\n${BUILD_URL}\\"}" \
-                    ${SLACK_URL}
-                '''
+            
+            // Slack notification
+            script {
+                try {
+                    withCredentials([string(credentialsId: 'slack-webhook-url', variable: 'SLACK_URL')]) {
+                        sh '''
+                            curl -X POST -H 'Content-type: application/json' \
+                            --data "{\\"text\\":\\"✅ *SUCCESS*: Job ${JOB_NAME} Build #${BUILD_NUMBER}\\\\n${BUILD_URL}\\"}" \
+                            ${SLACK_URL}
+                        '''
+                    }
+                } catch (Exception e) {
+                    echo "⚠️ Slack notification skipped (credential not configured): ${e.message}"
+                }
+            }
+            
+            // Email notification
+            script {
+                try {
+                    emailext (
+                        subject: "✅ Jenkins Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: """<html>
+                            <body>
+                                <h2>Build Successful! ✅</h2>
+                                <p><strong>Job:</strong> ${env.JOB_NAME}</p>
+                                <p><strong>Build Number:</strong> ${env.BUILD_NUMBER}</p>
+                                <p><strong>Status:</strong> <span style='color:green'>SUCCESS</span></p>
+                                <p><strong>Duration:</strong> ${currentBuild.durationString}</p>
+                                <p><strong>Environment:</strong> ${params.DEPLOY_ENV}</p>
+                                <hr>
+                                <p><a href='${env.BUILD_URL}'>View Build</a> | <a href='${env.BUILD_URL}console'>Console Output</a></p>
+                                <p><strong>Changes:</strong></p>
+                                <pre>${currentBuild.changeSets}</pre>
+                            </body>
+                        </html>""",
+                        to: 'team@example.com',
+                        mimeType: 'text/html',
+                        recipientProviders: [developers(), requestor()]
+                    )
+                } catch (Exception e) {
+                    echo "⚠️ Email notification skipped (not configured): ${e.message}"
+                }
             }
         }
         failure {
             echo "❌ Pipeline failed!"
             echo "Build #${env.BUILD_NUMBER} - Check logs for details"
-            withCredentials([string(credentialsId: 'slack-webhook-url', variable: 'SLACK_URL')]) {
-                sh '''
-                    curl -X POST -H 'Content-type: application/json' \
-                    --data "{\\"text\\":\\"❌ *FAILED*: Job ${JOB_NAME} Build #${BUILD_NUMBER}\\\\n${BUILD_URL}console\\"}" \
-                    ${SLACK_URL}
-                '''
+            
+            // Slack notification
+            script {
+                try {
+                    withCredentials([string(credentialsId: 'slack-webhook-url', variable: 'SLACK_URL')]) {
+                        sh '''
+                            curl -X POST -H 'Content-type: application/json' \
+                            --data "{\\"text\\":\\"❌ *FAILED*: Job ${JOB_NAME} Build #${BUILD_NUMBER}\\\\n${BUILD_URL}console\\"}" \
+                            ${SLACK_URL}
+                        '''
+                    }
+                } catch (Exception e) {
+                    echo "⚠️ Slack notification skipped (credential not configured): ${e.message}"
+                }
+            }
+            
+            // Email notification
+            script {
+                try {
+                    emailext (
+                        subject: "❌ Jenkins Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: """<html>
+                            <body>
+                                <h2>Build Failed! ❌</h2>
+                                <p><strong>Job:</strong> ${env.JOB_NAME}</p>
+                                <p><strong>Build Number:</strong> ${env.BUILD_NUMBER}</p>
+                                <p><strong>Status:</strong> <span style='color:red'>FAILURE</span></p>
+                                <p><strong>Duration:</strong> ${currentBuild.durationString}</p>
+                                <p><strong>Environment:</strong> ${params.DEPLOY_ENV}</p>
+                                <hr>
+                                <p><a href='${env.BUILD_URL}'>View Build</a> | <a href='${env.BUILD_URL}console'>Console Output</a></p>
+                                <p><strong>Please check the console output for error details.</strong></p>
+                                <p><strong>Changes:</strong></p>
+                                <pre>${currentBuild.changeSets}</pre>
+                            </body>
+                        </html>""",
+                        to: 'team@example.com',
+                        mimeType: 'text/html',
+                        recipientProviders: [developers(), requestor(), culprits()]
+                    )
+                } catch (Exception e) {
+                    echo "⚠️ Email notification skipped (not configured): ${e.message}"
+                }
             }
         }
         always {
             echo "🧹 Cleaning up workspace..."
+            // Archive build artifacts before cleanup
+            archiveArtifacts artifacts: '**/target/*.jar', allowEmptyArchive: true, fingerprint: true
             cleanWs()
         }
     }
