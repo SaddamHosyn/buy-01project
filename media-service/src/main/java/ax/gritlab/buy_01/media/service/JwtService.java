@@ -44,8 +44,7 @@ public final class JwtService {
      * @return the user ID
      */
     public String extractUserId(final String token) {
-        return extractClaim(token, claims ->
-            claims.get("userId", String.class));
+        return extractClaim(token, claims -> claims.get("userId", String.class));
     }
 
     /**
@@ -56,12 +55,10 @@ public final class JwtService {
      */
     public List<GrantedAuthority> extractAuthorities(
             final String token) {
-        List<Map<String, String>> authoritiesMaps =
-            extractClaim(token,
+        List<Map<String, String>> authoritiesMaps = extractClaim(token,
                 claims -> claims.get("authorities", List.class));
         return authoritiesMaps.stream()
-                .map(authorityMap ->
-                    new SimpleGrantedAuthority(
+                .map(authorityMap -> new SimpleGrantedAuthority(
                         authorityMap.get("authority")))
                 .collect(Collectors.toList());
     }
@@ -69,8 +66,8 @@ public final class JwtService {
     /**
      * Extract claim from JWT token.
      *
-     * @param <T> the type of the claim
-     * @param token the JWT token
+     * @param <T>            the type of the claim
+     * @param token          the JWT token
      * @param claimsResolver the function to extract the claim
      * @return the extracted claim
      */

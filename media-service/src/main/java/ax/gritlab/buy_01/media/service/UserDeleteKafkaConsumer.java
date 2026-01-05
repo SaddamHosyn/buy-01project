@@ -22,11 +22,10 @@ public class UserDeleteKafkaConsumer {
      *
      * @param userId the ID of the deleted user
      */
-    @KafkaListener(topics = "user.deleted",
-                   groupId = "media-service-group")
+    @KafkaListener(topics = "user.deleted", groupId = "media-service-group")
     public void consumeUserDeleted(final String userId) {
         System.out.println("Received user deletion event for ID: "
-                           + userId);
+                + userId);
         mediaService.deleteMediaByUserId(userId);
     }
 }

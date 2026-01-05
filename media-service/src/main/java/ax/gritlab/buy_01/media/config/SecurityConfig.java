@@ -41,7 +41,7 @@ public final class SecurityConfig {
                         // Public endpoints - anyone can VIEW
                         // images
                         .requestMatchers(HttpMethod.GET,
-                                         "/media/images/**")
+                                "/media/images/**")
                         .permitAll()
                         .requestMatchers("/actuator/**")
                         .permitAll()
@@ -49,13 +49,13 @@ public final class SecurityConfig {
                         // Protected endpoints - authenticated
                         // users can upload/modify images
                         .requestMatchers(HttpMethod.POST,
-                                         "/media/images/**")
+                                "/media/images/**")
                         .authenticated()
                         .requestMatchers(HttpMethod.PUT,
-                                         "/media/images/**")
+                                "/media/images/**")
                         .authenticated()
                         .requestMatchers(HttpMethod.DELETE,
-                                         "/media/images/**")
+                                "/media/images/**")
                         .authenticated()
 
                         .anyRequest().authenticated())

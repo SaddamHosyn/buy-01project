@@ -66,8 +66,7 @@ public class MediaService {
      */
     @PostConstruct
     public void init() {
-        this.rootLocation =
-                Paths.get(storageProperties.getLocation());
+        this.rootLocation = Paths.get(storageProperties.getLocation());
         try {
             Files.createDirectories(rootLocation);
         } catch (IOException e) {
@@ -83,14 +82,14 @@ public class MediaService {
      */
     private void deletePhysicalFile(final String filePath) {
         if (filePath != null
-            && !filePath.startsWith("http://")
-            && !filePath.startsWith("https://")) {
+                && !filePath.startsWith("http://")
+                && !filePath.startsWith("https://")) {
             try {
                 Path file = rootLocation.resolve(filePath);
                 Files.deleteIfExists(file);
             } catch (IOException e) {
                 System.err.println("Failed to delete file: "
-                                   + filePath);
+                        + filePath);
             }
         }
     }
@@ -108,21 +107,21 @@ public class MediaService {
     /**
      * Associate media with a product.
      *
-     * @param mediaId the media ID
+     * @param mediaId   the media ID
      * @param productId the product ID
-     * @param userId the user ID
+     * @param userId    the user ID
      * @return updated media
      */
     public Media associateWithProduct(final String mediaId,
-                                      final String productId,
-                                      final String userId) {
+            final String productId,
+            final String userId) {
         Media media = mediaRepository.findById(mediaId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Media not found with id: " + mediaId));
         if (!media.getUserId().equals(userId)) {
             throw new UnauthorizedException(
                     "You do not have permission to "
-                    + "associate this media");
+                            + "associate this media");
         }
         media.setProductId(productId);
         media.setUpdatedAt(LocalDateTime.now());
@@ -136,8 +135,7 @@ public class MediaService {
      * @param productId the product ID
      */
     public void deleteMediaByProductId(final String productId) {
-        List<Media> medias =
-                mediaRepository.findByProductId(productId);
+        List<Media> medias = mediaRepository.findByProductId(productId);
         for (Media media : medias) {
             deletePhysicalFile(media.getFilePath());
         }
@@ -208,14 +206,13 @@ public class MediaService {
 
         String contentType = file.getContentType();
         if (contentType == null
-            || !contentType.startsWith("image/")) {
+                || !contentType.startsWith("image/")) {
             throw new InvalidFileTypeException(
                     "Invalid file type. Only images are allowed.");
         }
 
         try {
-            String originalFilename =
-                    Objects.requireNonNull(file.getOriginalFilename());
+            String originalFilename = Objects.requireNonNull(file.getOriginalFilename());
             String extension = originalFilename.substring(
                     originalFilename.lastIndexOf("."));
             String uniqueFilename = UUID.randomUUID() + extension;
@@ -225,16 +222,15 @@ public class MediaService {
                     .normalize()
                     .toAbsolutePath();
             if (!destinationFile.getParent()
-                 .equals(this.rootLocation.toAbsolutePath())) {
+                    .equals(this.rootLocation.toAbsolutePath())) {
                 throw new InvalidFileTypeException(
                         "Cannot store file outside "
-                        + "current directory.");
+                                + "current directory.");
             }
 
-            try (InputStream inputStream =
-                         file.getInputStream()) {
+            try (InputStream inputStream = file.getInputStream()) {
                 Files.copy(inputStream, destinationFile,
-                           StandardCopyOption.REPLACE_EXISTING);
+                        StandardCopyOption.REPLACE_EXISTING);
             }
 
             LocalDateTime now = LocalDateTime.now();
@@ -253,7 +249,7 @@ public class MediaService {
 
             // Set the URL after saving to get the ID
             savedMedia.setUrl(apiGatewayUrl + "/images/"
-                              + savedMedia.getId());
+                    + savedMedia.getId());
             return mediaRepository.save(savedMedia);
 
         } catch (IOException e) {
@@ -286,7 +282,7 @@ public class MediaService {
         try {
             // Check if it's an external URL
             if (filename.startsWith("http://")
-                || filename.startsWith("https://")) {
+                    || filename.startsWith("https://")) {
                 // Return external URL as resource
                 return new UrlResource(filename);
             }
@@ -309,7 +305,7 @@ public class MediaService {
     /**
      * Delete media by ID.
      *
-     * @param id the media ID
+     * @param id   the media ID
      * @param user the user deleting the media
      */
     public void delete(final String id, final User user) {
@@ -320,7 +316,7 @@ public class MediaService {
         if (!media.getUserId().equals(user.getId())) {
             throw new UnauthorizedException(
                     "You do not have permission to "
-                    + "delete this media");
+                            + "delete this media");
         }
 
         // If media is associated with a product, notify
@@ -333,7 +329,7 @@ public class MediaService {
 
                 System.out.println(
                         "Calling Product Service to "
-                        + "remove media: " + url);
+                                + "remove media: " + url);
 
                 restTemplate.delete(url);
 
@@ -343,7 +339,7 @@ public class MediaService {
                 // Log the full error
                 System.err.println(
                         "Failed to update product after "
-                        + "media deletion: " + e.getMessage());
+                                + "media deletion: " + e.getMessage());
                 e.printStackTrace();
 
                 // DON'T throw exception - still proceed with

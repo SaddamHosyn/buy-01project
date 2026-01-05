@@ -33,23 +33,21 @@ public class ProductDeleteKafkaConsumer {
      *
      * @param message the deletion event message
      */
-    @KafkaListener(topics = "product.deleted",
-                   groupId = "media-service-group")
+    @KafkaListener(topics = "product.deleted", groupId = "media-service-group")
     public void consumeProductDeleted(final String message) {
         System.out.println("Received product deletion event: "
-                           + message);
+                + message);
 
         try {
             // If producer sends JSON with mediaIds, prefer
             // deleting by explicit media ids
             if (message != null
-                && message.trim().startsWith("{")) {
+                    && message.trim().startsWith("{")) {
                 JsonNode node = objectMapper.readTree(message);
                 List<String> mediaIds = new ArrayList<>();
                 if (node.has("mediaIds")
-                    && node.get("mediaIds").isArray()) {
-                    for (JsonNode idNode
-                            : node.get("mediaIds")) {
+                        && node.get("mediaIds").isArray()) {
+                    for (JsonNode idNode : node.get("mediaIds")) {
                         mediaIds.add(idNode.asText());
                     }
                 }
@@ -63,14 +61,14 @@ public class ProductDeleteKafkaConsumer {
                 if (node.has("id")) {
                     String productId = node.get("id").asText();
                     mediaService
-                        .deleteMediaByProductId(productId);
+                            .deleteMediaByProductId(productId);
                     return;
                 }
             }
         } catch (Exception e) {
             System.err.println(
-                "Failed to parse product.deleted message: "
-                    + e.getMessage());
+                    "Failed to parse product.deleted message: "
+                            + e.getMessage());
         }
 
         // Fallback: treat the payload as a raw productId string

@@ -41,7 +41,8 @@ public class ProductController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('SELLER')")
-    public ResponseEntity<ProductResponse> updateProduct(@PathVariable String id, @Valid @RequestBody ProductRequest request,
+    public ResponseEntity<ProductResponse> updateProduct(@PathVariable String id,
+            @Valid @RequestBody ProductRequest request,
             Authentication authentication) {
         String userId = ((User) authentication.getPrincipal()).getId();
         ProductResponse updatedProduct = productService.updateProduct(id, request, userId);
@@ -70,7 +71,7 @@ public class ProductController {
      * Called by Media Service when media is deleted.
      *
      * @param productId the ID of the product to update
-     * @param mediaId the ID of the media to remove
+     * @param mediaId   the ID of the media to remove
      * @return ResponseEntity with no content
      */
     @DeleteMapping("/{productId}/remove-media/{mediaId}")

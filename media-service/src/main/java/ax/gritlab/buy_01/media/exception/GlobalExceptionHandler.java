@@ -26,18 +26,17 @@ public final class GlobalExceptionHandler {
      * @return error response
      */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<ErrorResponse>
-    handleMaxUploadSizeExceededException(
+    public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceededException(
             final MaxUploadSizeExceededException ex) {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.PAYLOAD_TOO_LARGE.value())
                 .error("File Too Large")
                 .message("File size exceeds the maximum limit"
-                         + " of 2 MB")
+                        + " of 2 MB")
                 .build();
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
-                             .body(error);
+                .body(error);
     }
 
     /**
@@ -47,8 +46,7 @@ public final class GlobalExceptionHandler {
      * @return error response
      */
     @ExceptionHandler(InvalidFileTypeException.class)
-    public ResponseEntity<ErrorResponse>
-    handleInvalidFileTypeException(
+    public ResponseEntity<ErrorResponse> handleInvalidFileTypeException(
             final InvalidFileTypeException ex) {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
@@ -57,7 +55,7 @@ public final class GlobalExceptionHandler {
                 .message(ex.getMessage())
                 .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                             .body(error);
+                .body(error);
     }
 
     /**
@@ -67,8 +65,7 @@ public final class GlobalExceptionHandler {
      * @return validation error response
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ValidationErrorResponse>
-    handleValidationExceptions(
+    public ResponseEntity<ValidationErrorResponse> handleValidationExceptions(
             final MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach((error) -> {
@@ -77,8 +74,7 @@ public final class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
 
-        ValidationErrorResponse response =
-                ValidationErrorResponse.builder()
+        ValidationErrorResponse response = ValidationErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error("Validation Failed")
@@ -87,7 +83,7 @@ public final class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                             .body(response);
+                .body(response);
     }
 
     /**
@@ -97,8 +93,7 @@ public final class GlobalExceptionHandler {
      * @return error response
      */
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErrorResponse>
-    handleResourceNotFoundException(
+    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(
             final ResourceNotFoundException ex) {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
@@ -107,7 +102,7 @@ public final class GlobalExceptionHandler {
                 .message(ex.getMessage())
                 .build();
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                             .body(error);
+                .body(error);
     }
 
     /**
@@ -117,8 +112,7 @@ public final class GlobalExceptionHandler {
      * @return error response
      */
     @ExceptionHandler(UnauthorizedException.class)
-    public ResponseEntity<ErrorResponse>
-    handleUnauthorizedException(final UnauthorizedException ex) {
+    public ResponseEntity<ErrorResponse> handleUnauthorizedException(final UnauthorizedException ex) {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.FORBIDDEN.value())
@@ -126,7 +120,7 @@ public final class GlobalExceptionHandler {
                 .message(ex.getMessage())
                 .build();
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                             .body(error);
+                .body(error);
     }
 
     /**
@@ -136,17 +130,16 @@ public final class GlobalExceptionHandler {
      * @return error response
      */
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorResponse>
-    handleAccessDeniedException(final AccessDeniedException ex) {
+    public ResponseEntity<ErrorResponse> handleAccessDeniedException(final AccessDeniedException ex) {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.FORBIDDEN.value())
                 .error("Forbidden")
                 .message("Access Denied - You do not have "
-                         + "permission to perform this action")
+                        + "permission to perform this action")
                 .build();
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                             .body(error);
+                .body(error);
     }
 
     /**
@@ -156,14 +149,13 @@ public final class GlobalExceptionHandler {
      * @return error response
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse>
-    handleGenericException(final Exception ex) {
+    public ResponseEntity<ErrorResponse> handleGenericException(final Exception ex) {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .error("Internal Server Error")
                 .message("An unexpected error occurred. "
-                         + "Please try again later.")
+                        + "Please try again later.")
                 .build();
         ex.printStackTrace();
         return ResponseEntity
@@ -178,16 +170,16 @@ public final class GlobalExceptionHandler {
      * @return error response
      */
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ErrorResponse>
-    handleRuntimeException(final RuntimeException ex) {
+    public ResponseEntity<ErrorResponse> handleRuntimeException(final RuntimeException ex) {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error("Bad Request")
                 .message(ex.getMessage() != null
-                         ? ex.getMessage() : "Invalid request")
+                        ? ex.getMessage()
+                        : "Invalid request")
                 .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                             .body(error);
+                .body(error);
     }
 }

@@ -45,7 +45,7 @@ public final class JwtService {
      */
     public String extractUserId(final String token) {
         return extractClaim(token,
-            claims -> claims.get("userId", String.class));
+                claims -> claims.get("userId", String.class));
     }
 
     /**
@@ -56,10 +56,10 @@ public final class JwtService {
      */
     public List<GrantedAuthority> extractAuthorities(final String token) {
         List<Map<String, String>> authoritiesMaps = extractClaim(
-            token, claims -> claims.get("authorities", List.class));
+                token, claims -> claims.get("authorities", List.class));
         return authoritiesMaps.stream()
                 .map(authorityMap -> new SimpleGrantedAuthority(
-                    authorityMap.get("authority")))
+                        authorityMap.get("authority")))
                 .collect(Collectors.toList());
     }
 

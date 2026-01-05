@@ -52,7 +52,7 @@ public final class MediaController {
     /**
      * Uploads a new image.
      *
-     * @param file the image file
+     * @param file           the image file
      * @param authentication the authentication object
      * @return the saved media
      */
@@ -76,8 +76,7 @@ public final class MediaController {
     public ResponseEntity<Resource> serveImage(
             @PathVariable final String id) {
         try {
-            MediaService.MediaResource mediaResource =
-                    mediaService.getResourceById(id);
+            MediaService.MediaResource mediaResource = mediaService.getResourceById(id);
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_TYPE,
                             mediaResource.getContentType())
@@ -92,7 +91,7 @@ public final class MediaController {
     /**
      * Deletes an image by ID.
      *
-     * @param id the media ID
+     * @param id             the media ID
      * @param authentication the authentication object
      * @return no content response
      */
@@ -109,8 +108,8 @@ public final class MediaController {
     /**
      * Associates media with a product.
      *
-     * @param id the media ID
-     * @param productId the product ID
+     * @param id             the media ID
+     * @param productId      the product ID
      * @param authentication the authentication object
      * @return the updated media
      */
@@ -120,11 +119,9 @@ public final class MediaController {
             @PathVariable final String id,
             @PathVariable final String productId,
             final Authentication authentication) {
-        String userId =
-                ((User) authentication.getPrincipal()).getId();
+        String userId = ((User) authentication.getPrincipal()).getId();
         Media updatedMedia = mediaService.associateWithProduct(
                 id, productId, userId);
         return ResponseEntity.ok(updatedMedia);
     }
 }
-

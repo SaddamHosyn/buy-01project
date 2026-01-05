@@ -49,17 +49,17 @@ public final class JwtAuthenticationFilter
 
         // Skip JWT filter for GET requests to images
         return "GET".equals(method)
-               && path.contains("/media/images/");
+                && path.contains("/media/images/");
     }
 
     /**
      * Performs the JWT authentication.
      *
-     * @param request the HTTP request
-     * @param response the HTTP response
+     * @param request     the HTTP request
+     * @param response    the HTTP response
      * @param filterChain the filter chain
      * @throws ServletException if an error occurs
-     * @throws IOException if an I/O error occurs
+     * @throws IOException      if an I/O error occurs
      */
     @Override
     protected void doFilterInternal(
@@ -67,11 +67,10 @@ public final class JwtAuthenticationFilter
             @NonNull final HttpServletResponse response,
             @NonNull final FilterChain filterChain)
             throws ServletException, IOException {
-        final String authHeader =
-                request.getHeader("Authorization");
+        final String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null
-            || !authHeader.startsWith("Bearer ")) {
+                || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -80,13 +79,11 @@ public final class JwtAuthenticationFilter
             final String jwt = authHeader.substring(7);
 
             if (SecurityContextHolder.getContext()
-                .getAuthentication() == null
-                && jwtService.isTokenValid(jwt)) {
-                String userEmail =
-                        jwtService.extractUsername(jwt);
+                    .getAuthentication() == null
+                    && jwtService.isTokenValid(jwt)) {
+                String userEmail = jwtService.extractUsername(jwt);
                 String userId = jwtService.extractUserId(jwt);
-                List<GrantedAuthority> authorities =
-                        jwtService.extractAuthorities(jwt);
+                List<GrantedAuthority> authorities = jwtService.extractAuthorities(jwt);
 
                 // Create UserDetails object on the fly from
                 // token claims
@@ -94,29 +91,28 @@ public final class JwtAuthenticationFilter
                 userDetails.setId(userId);
                 userDetails.setEmail(userEmail);
 
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails,
                         null,
                         authorities);
                 authToken.setDetails(
                         new WebAuthenticationDetailsSource()
-                        .buildDetails(request));
+                                .buildDetails(request));
                 SecurityContextHolder.getContext()
                         .setAuthentication(authToken);
 
                 log.debug(
                         "JWT authentication successful for "
-                        + "user: {}", userEmail);
+                                + "user: {}",
+                        userEmail);
             }
         } catch (Exception e) {
             // Log the error but continue - let Spring
             // Security handle the unauthenticated request
             log.error("JWT validation failed: {}",
-                      e.getMessage(), e);
+                    e.getMessage(), e);
         }
 
         filterChain.doFilter(request, response);
     }
 }
-
