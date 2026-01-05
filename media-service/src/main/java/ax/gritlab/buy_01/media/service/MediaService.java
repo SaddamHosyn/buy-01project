@@ -29,20 +29,100 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+/**
+ * Service class for managing media operations.
+ */
 @Service
 @RequiredArgsConstructor
 public class MediaService {
-    // Find media by user ID
-    public List<Media> findByUserId(String userId) {
+    /**
+     * Maximum file size allowed (2MB).
+     */
+    private static final long MAX_FILE_SIZE = 2 * 1024 * 1024;
+
+    private final MediaRepository mediaRepository;
+    private final StorageProperties storageProperties;
+    private final RestTemplate restTemplate;
+    private Path rootLocation;
+
+    @Value("${api.gateway.url:http://localhost:8080/api/media}")
+    private String apiGatewayUrl;
+
+    @Value("${product.service.url:http://localhost:8082}")
+    private String productServiceUrl;
+
+    /**
+     * Wrapper class for media resource with content type.
+     */
+    @Getter
+    @RequiredArgsConstructor
+    public static final class MediaResource {
+        private final Resource resource;
+        private final String contentType;
+    }
+
+    /**
+     * Initializes the storage location.
+     */
+    @PostConstruct
+    public void init() {
+        this.rootLocation =
+                Paths.get(storageProperties.getLocation());
+        try {
+            Files.createDirectories(rootLocation);
+        } catch (IOException e) {
+            throw new RuntimeException(
+                    "Could not initialize storage", e);
+        }
+    }
+
+    /**
+     * Helper method to delete physical file.
+     *
+     * @param filePath the path of the file to delete
+     */
+    private void deletePhysicalFile(final String filePath) {
+        if (filePath != null
+            && !filePath.startsWith("http://")
+            && !filePath.startsWith("https://")) {
+            try {
+                Path file = rootLocation.resolve(filePath);
+                Files.deleteIfExists(file);
+            } catch (IOException e) {
+                System.err.println("Failed to delete file: "
+                                   + filePath);
+            }
+        }
+    }
+
+    /**
+     * Find media by user ID.
+     *
+     * @param userId the user ID
+     * @return list of media
+     */
+    public List<Media> findByUserId(final String userId) {
         return mediaRepository.findByUserId(userId);
     }
 
-    // Associate media with a product
-    public Media associateWithProduct(String mediaId, String productId, String userId) {
+    /**
+     * Associate media with a product.
+     *
+     * @param mediaId the media ID
+     * @param productId the product ID
+     * @param userId the user ID
+     * @return updated media
+     */
+    public Media associateWithProduct(final String mediaId,
+                                      final String productId,
+                                      final String userId) {
         Media media = mediaRepository.findById(mediaId)
-                .orElseThrow(() -> new ResourceNotFoundException("Media not found with id: " + mediaId));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Media not found with id: " + mediaId));
         if (!media.getUserId().equals(userId)) {
-            throw new UnauthorizedException("You do not have permission to associate this media");
+            throw new UnauthorizedException(
+                    "You do not have permission to "
+                    + "associate this media");
         }
         media.setProductId(productId);
         media.setUpdatedAt(LocalDateTime.now());
@@ -50,9 +130,14 @@ public class MediaService {
         return updatedMedia;
     }
 
-    // Delete all media associated with a product
-    public void deleteMediaByProductId(String productId) {
-        List<Media> medias = mediaRepository.findByProductId(productId);
+    /**
+     * Delete all media associated with a product.
+     *
+     * @param productId the product ID
+     */
+    public void deleteMediaByProductId(final String productId) {
+        List<Media> medias =
+                mediaRepository.findByProductId(productId);
         for (Media media : medias) {
             deletePhysicalFile(media.getFilePath());
         }
@@ -63,11 +148,15 @@ public class MediaService {
         }
     }
 
-    // Delete media by explicit list of media IDs (used when producer includes
-    // mediaIds in the event)
-    public void deleteMediaByIds(List<String> ids) {
-        if (ids == null || ids.isEmpty())
+    /**
+     * Delete media by explicit list of media IDs.
+     *
+     * @param ids list of media IDs
+     */
+    public void deleteMediaByIds(final List<String> ids) {
+        if (ids == null || ids.isEmpty()) {
             return;
+        }
 
         List<Media> medias = mediaRepository.findAllById(ids);
         for (Media media : medias) {
@@ -79,10 +168,15 @@ public class MediaService {
         }
     }
 
-    // Delete all media owned by a user (used when user.deleted events are received)
-    public void deleteMediaByUserId(String userId) {
-        if (userId == null)
+    /**
+     * Delete all media owned by a user.
+     *
+     * @param userId the user ID
+     */
+    public void deleteMediaByUserId(final String userId) {
+        if (userId == null) {
             return;
+        }
 
         List<Media> medias = mediaRepository.findByUserId(userId);
         for (Media media : medias) {
@@ -94,74 +188,53 @@ public class MediaService {
         }
     }
 
-    private static final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
-
-    private final MediaRepository mediaRepository;
-    private final StorageProperties storageProperties;
-    private final RestTemplate restTemplate; // ADD THIS for inter-service communication
-    private Path rootLocation;
-
-    @Value("${api.gateway.url:http://localhost:8080/api/media}")
-    private String apiGatewayUrl;
-
-    @Value("${product.service.url:http://localhost:8082}")
-    private String productServiceUrl; // ADD THIS
-
-    @Getter
-    @RequiredArgsConstructor
-    public static class MediaResource {
-        private final Resource resource;
-        private final String contentType;
-    }
-
-    @PostConstruct
-    public void init() {
-        this.rootLocation = Paths.get(storageProperties.getLocation());
-        try {
-            Files.createDirectories(rootLocation);
-        } catch (IOException e) {
-            throw new RuntimeException("Could not initialize storage", e);
-        }
-    }
-
-    // Helper method to delete physical file
-    private void deletePhysicalFile(String filePath) {
-        if (filePath != null && !filePath.startsWith("http://") && !filePath.startsWith("https://")) {
-            try {
-                Path file = rootLocation.resolve(filePath);
-                Files.deleteIfExists(file);
-            } catch (IOException e) {
-                System.err.println("Failed to delete file: " + filePath);
-            }
-        }
-    }
-
-    public Media save(MultipartFile file, User user) {
+    /**
+     * Save uploaded media file.
+     *
+     * @param file the uploaded file
+     * @param user the user uploading the file
+     * @return saved media entity
+     */
+    public Media save(final MultipartFile file, final User user) {
         if (file.isEmpty()) {
-            throw new InvalidFileTypeException("Failed to store empty file.");
+            throw new InvalidFileTypeException(
+                    "Failed to store empty file.");
         }
 
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new InvalidFileTypeException("File exceeds maximum size of 2MB.");
+            throw new InvalidFileTypeException(
+                    "File exceeds maximum size of 2MB.");
         }
 
         String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
-            throw new InvalidFileTypeException("Invalid file type. Only images are allowed.");
+        if (contentType == null
+            || !contentType.startsWith("image/")) {
+            throw new InvalidFileTypeException(
+                    "Invalid file type. Only images are allowed.");
         }
 
         try {
-            String originalFilename = Objects.requireNonNull(file.getOriginalFilename());
-            String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            String originalFilename =
+                    Objects.requireNonNull(file.getOriginalFilename());
+            String extension = originalFilename.substring(
+                    originalFilename.lastIndexOf("."));
             String uniqueFilename = UUID.randomUUID() + extension;
 
-            Path destinationFile = this.rootLocation.resolve(Paths.get(uniqueFilename)).normalize().toAbsolutePath();
-            if (!destinationFile.getParent().equals(this.rootLocation.toAbsolutePath())) {
-                throw new InvalidFileTypeException("Cannot store file outside current directory.");
+            Path destinationFile = this.rootLocation
+                    .resolve(Paths.get(uniqueFilename))
+                    .normalize()
+                    .toAbsolutePath();
+            if (!destinationFile.getParent()
+                 .equals(this.rootLocation.toAbsolutePath())) {
+                throw new InvalidFileTypeException(
+                        "Cannot store file outside "
+                        + "current directory.");
             }
 
-            try (InputStream inputStream = file.getInputStream()) {
-                Files.copy(inputStream, destinationFile, StandardCopyOption.REPLACE_EXISTING);
+            try (InputStream inputStream =
+                         file.getInputStream()) {
+                Files.copy(inputStream, destinationFile,
+                           StandardCopyOption.REPLACE_EXISTING);
             }
 
             LocalDateTime now = LocalDateTime.now();
@@ -179,7 +252,8 @@ public class MediaService {
             Media savedMedia = mediaRepository.save(media);
 
             // Set the URL after saving to get the ID
-            savedMedia.setUrl(apiGatewayUrl + "/images/" + savedMedia.getId());
+            savedMedia.setUrl(apiGatewayUrl + "/images/"
+                              + savedMedia.getId());
             return mediaRepository.save(savedMedia);
 
         } catch (IOException e) {
@@ -187,18 +261,32 @@ public class MediaService {
         }
     }
 
-    public MediaResource getResourceById(String id) {
+    /**
+     * Get resource by ID.
+     *
+     * @param id the media ID
+     * @return media resource
+     */
+    public MediaResource getResourceById(final String id) {
         Media media = mediaRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Media not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Media not found with id: " + id));
 
         Resource resource = loadAsResource(media.getFilePath());
         return new MediaResource(resource, media.getContentType());
     }
 
-    public Resource loadAsResource(String filename) {
+    /**
+     * Load file as resource.
+     *
+     * @param filename the filename
+     * @return the resource
+     */
+    public Resource loadAsResource(final String filename) {
         try {
-            // Check if it's an external URL (starts with http:// or https://)
-            if (filename.startsWith("http://") || filename.startsWith("https://")) {
+            // Check if it's an external URL
+            if (filename.startsWith("http://")
+                || filename.startsWith("https://")) {
                 // Return external URL as resource
                 return new UrlResource(filename);
             }
@@ -209,38 +297,57 @@ public class MediaService {
             if (resource.exists() || resource.isReadable()) {
                 return resource;
             } else {
-                throw new ResourceNotFoundException("Could not read file: " + filename);
+                throw new ResourceNotFoundException(
+                        "Could not read file: " + filename);
             }
         } catch (MalformedURLException e) {
-            throw new ResourceNotFoundException("Could not read file: " + filename);
+            throw new ResourceNotFoundException(
+                    "Could not read file: " + filename);
         }
     }
 
-    public void delete(String id, User user) {
+    /**
+     * Delete media by ID.
+     *
+     * @param id the media ID
+     * @param user the user deleting the media
+     */
+    public void delete(final String id, final User user) {
         Media media = mediaRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Media not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Media not found with id: " + id));
 
         if (!media.getUserId().equals(user.getId())) {
-            throw new UnauthorizedException("You do not have permission to delete this media");
+            throw new UnauthorizedException(
+                    "You do not have permission to "
+                    + "delete this media");
         }
 
-        // If media is associated with a product, notify product service to remove it
+        // If media is associated with a product, notify
+        // product service to remove it
         if (media.getProductId() != null) {
             try {
-                String url = productServiceUrl + "/products/" + media.getProductId() +
-                        "/remove-media/" + media.getId();
+                String url = productServiceUrl + "/products/"
+                        + media.getProductId()
+                        + "/remove-media/" + media.getId();
 
-                System.out.println("Calling Product Service to remove media: " + url); // DEBUG LOG
+                System.out.println(
+                        "Calling Product Service to "
+                        + "remove media: " + url);
 
                 restTemplate.delete(url);
 
-                System.out.println("Successfully removed media from product"); // DEBUG LOG
+                System.out.println(
+                        "Successfully removed media from product");
             } catch (Exception e) {
                 // Log the full error
-                System.err.println("Failed to update product after media deletion: " + e.getMessage());
-                e.printStackTrace(); // Print full stack trace
+                System.err.println(
+                        "Failed to update product after "
+                        + "media deletion: " + e.getMessage());
+                e.printStackTrace();
 
-                // DON'T throw exception - still proceed with media deletion
+                // DON'T throw exception - still proceed with
+                // media deletion
             }
         }
 

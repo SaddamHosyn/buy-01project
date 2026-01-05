@@ -11,31 +11,59 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/**
+ * Security configuration for the media service.
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 @RequiredArgsConstructor
-public class SecurityConfig {
+public final class SecurityConfig {
 
+    /**
+     * JWT authentication filter.
+     */
     private final JwtAuthenticationFilter jwtAuthFilter;
 
+    /**
+     * Configures the security filter chain.
+     *
+     * @param http the HttpSecurity to configure
+     * @return the configured SecurityFilterChain
+     * @throws Exception if configuration fails
+     */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            final HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints - anyone can VIEW images
-                        .requestMatchers(HttpMethod.GET, "/media/images/**").permitAll()
-                        .requestMatchers("/actuator/**").permitAll()
+                        // Public endpoints - anyone can VIEW
+                        // images
+                        .requestMatchers(HttpMethod.GET,
+                                         "/media/images/**")
+                        .permitAll()
+                        .requestMatchers("/actuator/**")
+                        .permitAll()
 
-                        // Protected endpoints - authenticated users can upload/modify images
-                        .requestMatchers(HttpMethod.POST, "/media/images/**").authenticated()
-                        .requestMatchers(HttpMethod.PUT, "/media/images/**").authenticated()
-                        .requestMatchers(HttpMethod.DELETE, "/media/images/**").authenticated()
+                        // Protected endpoints - authenticated
+                        // users can upload/modify images
+                        .requestMatchers(HttpMethod.POST,
+                                         "/media/images/**")
+                        .authenticated()
+                        .requestMatchers(HttpMethod.PUT,
+                                         "/media/images/**")
+                        .authenticated()
+                        .requestMatchers(HttpMethod.DELETE,
+                                         "/media/images/**")
+                        .authenticated()
 
                         .anyRequest().authenticated())
-                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .sessionManagement(sess -> sess
+                        .sessionCreationPolicy(
+                                SessionCreationPolicy.STATELESS))
+                .addFilterBefore(jwtAuthFilter,
+                        UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

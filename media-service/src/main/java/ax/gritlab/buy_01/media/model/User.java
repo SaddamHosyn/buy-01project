@@ -11,19 +11,44 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.List;
 
-// This is a local representation of the User model for Spring Security.
-// It is not persisted in this service's database.
+/**
+ * Local representation of the User model for Spring Security.
+ * Not persisted in this service's database.
+ */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class User implements UserDetails {
+public final class User implements UserDetails {
 
+    /**
+     * The unique identifier for the user.
+     */
     private String id;
+
+    /**
+     * The name of the user.
+     */
     private String name;
+
+    /**
+     * The email address of the user.
+     */
     private String email;
-    private String password; // Will be null in this context
+
+    /**
+     * The password (will be null in this context).
+     */
+    private String password;
+
+    /**
+     * The role of the user.
+     */
     private Role role;
+
+    /**
+     * The avatar URL of the user.
+     */
     private String avatar;
 
     @Override

@@ -5,8 +5,16 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.TopicBuilder;
 
+/**
+ * Configuration for Kafka topics.
+ */
 @Configuration
-public class KafkaTopicConfig {
+public final class KafkaTopicConfig {
+   /**
+    * Creates the product.deleted topic.
+    *
+    * @return the configured topic
+    */
    @Bean
    public NewTopic productDeletedTopic() {
       return TopicBuilder.name("product.deleted")

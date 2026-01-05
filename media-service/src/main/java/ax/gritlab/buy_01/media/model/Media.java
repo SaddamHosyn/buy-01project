@@ -11,33 +11,66 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 
+/**
+ * Represents a media entity stored in the database.
+ */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "media")
-public class Media {
+public final class Media {
 
+    /**
+     * The unique identifier for the media.
+     */
     @Id
     private String id;
 
+    /**
+     * The original filename of the uploaded media.
+     */
     private String originalFilename;
 
+    /**
+     * The content type of the media (e.g., image/jpeg).
+     */
     private String contentType;
 
+    /**
+     * The size of the media file in bytes.
+     */
     private long size;
 
-    private String filePath; // Path to the file on disk or key in object storage
+    /**
+     * Path to the file on disk or key in object storage.
+     */
+    private String filePath;
 
-    private String userId; // The user (seller) who owns this media
+    /**
+     * The user (seller) who owns this media.
+     */
+    private String userId;
 
-    private String productId; // Optional: The product this media is associated with
+    /**
+     * Optional: The product this media is associated with.
+     */
+    private String productId;
 
-    private String url; // The public URL to access this media
+    /**
+     * The public URL to access this media.
+     */
+    private String url;
 
+    /**
+     * The timestamp when the media was created.
+     */
     @CreatedDate
     private LocalDateTime createdAt;
 
+    /**
+     * The timestamp when the media was last updated.
+     */
     @LastModifiedDate
     private LocalDateTime updatedAt;
 }
