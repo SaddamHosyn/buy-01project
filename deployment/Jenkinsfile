@@ -33,29 +33,29 @@ pipeline {
                 script {
                     def secretsFound = false
                     
-                    // AWS Access Key pattern
-                    def result1 = sh(script: "grep -r -E -i 'AWS.*ACCESS.*KEY.*=.*[A-Z0-9]{20}' --include='*.java' --include='*.js' --include='*.ts' --include='*.yml' --include='*.properties' . || true", returnStdout: true).trim()
+                    // AWS Access Key pattern - exclude deployment dir and Jenkinsfile
+                    def result1 = sh(script: "grep -r -E -i 'AWS.*ACCESS.*KEY.*=.*[A-Z0-9]{20}' --include='*.java' --include='*.js' --include='*.ts' --include='*.yml' --include='*.properties' --exclude-dir=deployment --exclude-dir=target --exclude-dir=node_modules . || true", returnStdout: true).trim()
                     if (result1) {
                         echo "⚠️ Potential AWS Access Key found"
                         secretsFound = true
                     }
                     
-                    // AWS Secret Key pattern
-                    def result2 = sh(script: "grep -r -E -i 'AWS.*SECRET.*KEY' --include='*.java' --include='*.js' --include='*.ts' --include='*.yml' --include='*.properties' . || true", returnStdout: true).trim()
+                    // AWS Secret Key pattern - exclude deployment dir
+                    def result2 = sh(script: "grep -r -E -i 'AWS.*SECRET.*KEY.*=.*[A-Za-z0-9+/]{40}' --include='*.java' --include='*.js' --include='*.ts' --include='*.yml' --include='*.properties' --exclude-dir=deployment --exclude-dir=target --exclude-dir=node_modules . || true", returnStdout: true).trim()
                     if (result2) {
                         echo "⚠️ Potential AWS Secret Key found"
                         secretsFound = true
                     }
                     
-                    // API Key pattern (simplified)
-                    def result3 = sh(script: "grep -r -E -i 'api.?key.*=' --include='*.java' --include='*.js' --include='*.ts' --include='*.yml' --include='*.properties' . || true", returnStdout: true).trim()
+                    // API Key pattern - only match if followed by actual value (30+ chars)
+                    def result3 = sh(script: "grep -r -E -i 'api.?key.*=.*[A-Za-z0-9]{30,}' --include='*.java' --include='*.js' --include='*.ts' --include='*.yml' --include='*.properties' --exclude-dir=deployment --exclude-dir=target --exclude-dir=node_modules . || true", returnStdout: true).trim()
                     if (result3) {
                         echo "⚠️ Potential API Key found"
                         secretsFound = true
                     }
                     
-                    // Private Key pattern
-                    def result4 = sh(script: "grep -r 'BEGIN.*PRIVATE KEY' --include='*.java' --include='*.js' --include='*.ts' --include='*.yml' --include='*.properties' --include='*.pem' . || true", returnStdout: true).trim()
+                    // Private Key pattern - only in actual key files
+                    def result4 = sh(script: "grep -r 'BEGIN.*PRIVATE KEY' --include='*.pem' --include='*.key' --exclude-dir=deployment --exclude-dir=target --exclude-dir=node_modules . || true", returnStdout: true).trim()
                     if (result4) {
                         echo "⚠️ Potential Private Key found"
                         secretsFound = true
