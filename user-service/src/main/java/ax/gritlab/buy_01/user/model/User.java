@@ -76,13 +76,11 @@ public final class User implements UserDetails {
     /**
      * URL to user's avatar image.
      */
-    /**
-     * URL to user's avatar image.
-     */
     private String avatar;
 
     /**
      * Returns the authorities granted to the user.
+
      *
      * @return Collection of granted authorities based on user role
      */

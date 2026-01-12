@@ -5,13 +5,21 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Request DTO for updating user profile.
+ */
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class UpdateProfileRequest {
+    /** User's new display name. */
     private String name;
+    /** URL to user's new avatar image. */
     private String avatar;
-    private String password; // Current password for verification
-    private String newPassword; // New password to set
+    /** Current password for verification. */
+    private String password;
+    /** New password to set. */
+    private String newPassword;
 }
+

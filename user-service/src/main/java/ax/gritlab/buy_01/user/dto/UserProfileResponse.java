@@ -6,14 +6,22 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Response DTO containing user profile information.
+ */
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserProfileResponse {
-    private String id;
+    /** User's unique identifier. */
+    private Long id;
+    /** User's display name. */
     private String name;
+    /** User's email address. */
     private String email;
+    /** User's role (CLIENT or SELLER). */
     private Role role;
+    /** URL to user's avatar image. */
     private String avatar;
 }
