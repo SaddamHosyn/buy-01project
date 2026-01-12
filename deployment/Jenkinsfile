@@ -254,8 +254,8 @@ pipeline {
                     docker stop buy-01-zookeeper buy-01-mongodb buy-01-kafka buy-01-service-registry buy-01-api-gateway buy-01-user-service buy-01-product-service buy-01-media-service buy-01-frontend 2>/dev/null || true
                     docker rm buy-01-zookeeper buy-01-mongodb buy-01-kafka buy-01-service-registry buy-01-api-gateway buy-01-user-service buy-01-product-service buy-01-media-service buy-01-frontend 2>/dev/null || true
                     
-                    # Pull all images
-                    docker-compose pull
+                    # Use locally built images (skip pull to avoid Docker Hub timeouts)
+                    echo "✅ Using locally built images (already pushed to Docker Hub)"
                     
                     # Start infrastructure first (one at a time to prevent crash)
                     docker-compose up -d zookeeper
