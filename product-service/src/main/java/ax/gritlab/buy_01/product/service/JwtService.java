@@ -63,24 +63,58 @@ public final class JwtService {
                 .collect(Collectors.toList());
     }
 
-    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+    /**
+     * Extract a specific claim from JWT token.
+     *
+     * @param <T> the type of the claim
+     * @param token the JWT token
+     * @param claimsResolver function to extract claim
+     * @return the extracted claim
+     */
+    public <T> T extractClaim(
+            final String token,
+            final Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
 
-    public boolean isTokenValid(String token) {
+    /**
+     * Validate if JWT token is valid.
+     *
+     * @param token the JWT token
+     * @return true if token is valid
+     */
+    public boolean isTokenValid(final String token) {
         return !isTokenExpired(token);
     }
 
-    private boolean isTokenExpired(String token) {
+    /**
+     * Check if JWT token is expired.
+     *
+     * @param token the JWT token
+     * @return true if token is expired
+     */
+    private boolean isTokenExpired(final String token) {
         return extractExpiration(token).before(new java.util.Date());
     }
 
-    private java.util.Date extractExpiration(String token) {
+    /**
+     * Extract expiration date from JWT token.
+     *
+     * @param token the JWT token
+     * @return the expiration date
+     */
+    private java.util.Date extractExpiration(final String token) {
         return extractClaim(token, Claims::getExpiration);
     }
 
-    private Claims extractAllClaims(String token) {
+    /**
+     * Extract all claims from JWT token.
+     *
+     * @param token the JWT token
+     * @return all claims
+     */
+    private Claims extractAllClaims(final String token) {
         return Jwts
                 .parserBuilder()
                 .setSigningKey(getSignInKey())
@@ -89,8 +123,14 @@ public final class JwtService {
                 .getBody();
     }
 
+    /**
+     * Get signing key for JWT operations.
+     *
+     * @return the signing key
+     */
     private Key getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }
+

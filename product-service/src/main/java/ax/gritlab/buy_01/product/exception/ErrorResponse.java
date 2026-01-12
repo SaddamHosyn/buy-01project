@@ -7,13 +7,32 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+/**
+ * Error response DTO.
+ */
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class ErrorResponse {
+public final class ErrorResponse {
+    /**
+     * Timestamp of the error.
+     */
     private LocalDateTime timestamp;
+
+    /**
+     * HTTP status code.
+     */
     private int status;
+
+    /**
+     * Error type.
+     */
     private String error;
+
+    /**
+     * Error message.
+     */
     private String message;
 }
+

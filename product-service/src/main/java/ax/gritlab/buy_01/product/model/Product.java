@@ -15,37 +15,83 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Product entity.
+ */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "products")
-public class Product {
+public final class Product {
+
+    /**
+     * Minimum length for product name.
+     */
+    private static final int MIN_NAME_LENGTH = 2;
+
+    /**
+     * Maximum length for product name.
+     */
+    private static final int MAX_NAME_LENGTH = 100;
+
+    /**
+     * Maximum length for description.
+     */
+    private static final int MAX_DESCRIPTION_LENGTH = 500;
+
+    /**
+     * Product ID.
+     */
     @Id
     private String id;
 
+    /**
+     * Product name.
+     */
     @NotNull
-    @Size(min = 2, max = 100)
+    @Size(min = MIN_NAME_LENGTH, max = MAX_NAME_LENGTH)
     private String name;
 
-    @Size(max = 500)
+    /**
+     * Product description.
+     */
+    @Size(max = MAX_DESCRIPTION_LENGTH)
     private String description;
 
+    /**
+     * Product price.
+     */
     @NotNull
     private Double price;
 
+    /**
+     * Product quantity.
+     */
     @NotNull
     private Integer quantity;
 
+    /**
+     * User ID of the seller.
+     */
     @NotNull
     private String userId;
 
+    /**
+     * List of media IDs associated with the product.
+     */
     @Builder.Default
     private List<String> mediaIds = new ArrayList<>();
 
+    /**
+     * Creation timestamp.
+     */
     @CreatedDate
     private LocalDateTime createdAt;
 
+    /**
+     * Last update timestamp.
+     */
     @LastModifiedDate
     private LocalDateTime updatedAt;
 }
