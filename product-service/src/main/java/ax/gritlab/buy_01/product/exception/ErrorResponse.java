@@ -35,4 +35,3 @@ public final class ErrorResponse {
      */
     private String message;
 }
-

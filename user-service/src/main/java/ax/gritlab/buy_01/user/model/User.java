@@ -55,8 +55,7 @@ public final class User implements UserDetails {
      */
     @NotNull
     @Email(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+"
-            + "\\.[a-zA-Z]{2,}$",
-            message = "Invalid email format")
+            + "\\.[a-zA-Z]{2,}$", message = "Invalid email format")
     @Indexed(unique = true)
     private String email;
 
@@ -80,8 +79,8 @@ public final class User implements UserDetails {
 
     /**
      * Returns the authorities granted to the user.
-
      *
+     * 
      * @return Collection of granted authorities based on user role
      */
     @Override

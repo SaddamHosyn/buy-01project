@@ -27,4 +27,3 @@ public class ValidationErrorResponse {
     /** Map of field names to validation error messages. */
     private Map<String, String> fieldErrors;
 }
-

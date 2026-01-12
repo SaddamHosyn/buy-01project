@@ -41,4 +41,3 @@ public final class ValidationErrorResponse {
      */
     private Map<String, String> fieldErrors;
 }
-

@@ -61,7 +61,7 @@ public final class ProductController {
     /**
      * Create a new product.
      *
-     * @param request the product request
+     * @param request        the product request
      * @param authentication the authentication
      * @return the created product
      */
@@ -71,16 +71,15 @@ public final class ProductController {
             @Valid @RequestBody final ProductRequest request,
             final Authentication authentication) {
         String userId = ((User) authentication.getPrincipal()).getId();
-        ProductResponse createdProduct =
-                productService.createProduct(request, userId);
+        ProductResponse createdProduct = productService.createProduct(request, userId);
         return ResponseEntity.ok(createdProduct);
     }
 
     /**
      * Update an existing product.
      *
-     * @param id the product ID
-     * @param request the product request
+     * @param id             the product ID
+     * @param request        the product request
      * @param authentication the authentication
      * @return the updated product
      */
@@ -91,15 +90,14 @@ public final class ProductController {
             @Valid @RequestBody final ProductRequest request,
             final Authentication authentication) {
         String userId = ((User) authentication.getPrincipal()).getId();
-        ProductResponse updatedProduct =
-                productService.updateProduct(id, request, userId);
+        ProductResponse updatedProduct = productService.updateProduct(id, request, userId);
         return ResponseEntity.ok(updatedProduct);
     }
 
     /**
      * Delete a product.
      *
-     * @param id the product ID
+     * @param id             the product ID
      * @param authentication the authentication
      * @return no content
      */
@@ -116,8 +114,8 @@ public final class ProductController {
     /**
      * Associate media with a product.
      *
-     * @param productId the product ID
-     * @param mediaId the media ID
+     * @param productId      the product ID
+     * @param mediaId        the media ID
      * @param authentication the authentication
      * @return the updated product
      */
@@ -128,8 +126,7 @@ public final class ProductController {
             @PathVariable final String mediaId,
             final Authentication authentication) {
         String userId = ((User) authentication.getPrincipal()).getId();
-        ProductResponse updatedProduct =
-                productService.associateMedia(productId, mediaId, userId);
+        ProductResponse updatedProduct = productService.associateMedia(productId, mediaId, userId);
         return ResponseEntity.ok(updatedProduct);
     }
 

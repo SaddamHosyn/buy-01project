@@ -60,11 +60,11 @@ public final class JwtAuthenticationFilter extends OncePerRequestFilter {
     /**
      * Perform JWT authentication filter logic.
      *
-     * @param request the HTTP request
-     * @param response the HTTP response
+     * @param request     the HTTP request
+     * @param response    the HTTP response
      * @param filterChain the filter chain
      * @throws ServletException if servlet error occurs
-     * @throws IOException if I/O error occurs
+     * @throws IOException      if I/O error occurs
      */
     @Override
     protected void doFilterInternal(
@@ -83,19 +83,17 @@ public final class JwtAuthenticationFilter extends OncePerRequestFilter {
                 && jwtService.isTokenValid(jwt)) {
             String userEmail = jwtService.extractUsername(jwt);
             String userId = jwtService.extractUserId(jwt);
-            List<GrantedAuthority> authorities =
-                    jwtService.extractAuthorities(jwt);
+            List<GrantedAuthority> authorities = jwtService.extractAuthorities(jwt);
 
             // Create UserDetails object on the fly from token claims
             User userDetails = new User();
             userDetails.setId(userId);
             userDetails.setEmail(userEmail);
 
-            UsernamePasswordAuthenticationToken authToken =
-                    new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            authorities);
+            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                    userDetails,
+                    null,
+                    authorities);
             authToken.setDetails(
                     new WebAuthenticationDetailsSource()
                             .buildDetails(request));

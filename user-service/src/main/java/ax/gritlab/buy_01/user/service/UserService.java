@@ -55,7 +55,7 @@ public final class UserService {
     /**
      * Updates user profile with new information.
      *
-     * @param user user to update
+     * @param user    user to update
      * @param request update request with new values
      * @return updated user profile response
      */

@@ -50,8 +50,7 @@ public final class ProductService {
     /**
      * Kafka template for event publishing.
      */
-    private final org.springframework.kafka.core.KafkaTemplate<String,
-            String> kafkaTemplate;
+    private final org.springframework.kafka.core.KafkaTemplate<String, String> kafkaTemplate;
 
     /**
      * Object mapper for JSON operations.
@@ -98,7 +97,7 @@ public final class ProductService {
      * Create a new product.
      *
      * @param request the product request
-     * @param userId the user ID
+     * @param userId  the user ID
      * @return the created product response
      */
     public ProductResponse createProduct(
@@ -121,9 +120,9 @@ public final class ProductService {
     /**
      * Update an existing product.
      *
-     * @param id the product ID
+     * @param id      the product ID
      * @param request the product request
-     * @param userId the user ID
+     * @param userId  the user ID
      * @return the updated product response
      */
     public ProductResponse updateProduct(
@@ -150,7 +149,7 @@ public final class ProductService {
     /**
      * Delete a product.
      *
-     * @param id the product ID
+     * @param id     the product ID
      * @param userId the user ID
      */
     public void deleteProduct(
@@ -186,8 +185,8 @@ public final class ProductService {
      * Associate media with a product.
      *
      * @param productId the product ID
-     * @param mediaId the media ID
-     * @param userId the user ID
+     * @param mediaId   the media ID
+     * @param userId    the user ID
      * @return the updated product response
      */
     public ProductResponse associateMedia(
@@ -224,7 +223,7 @@ public final class ProductService {
      * Called by Media Service when media is deleted.
      *
      * @param productId the product ID
-     * @param mediaId the media ID to remove
+     * @param mediaId   the media ID to remove
      */
     public void removeMediaFromProduct(
             final String productId,
@@ -258,12 +257,10 @@ public final class ProductService {
                     restTemplate.headForHeaders(url);
                     // If no exception, media exists
                     validMediaIds.add(mediaId);
-                } catch (org.springframework.web.client
-                        .HttpClientErrorException e) {
+                } catch (org.springframework.web.client.HttpClientErrorException e) {
                     // Media doesn't exist or forbidden - remove it
                     if (e.getStatusCode().value() == HTTP_NOT_FOUND
-                            || e.getStatusCode().value()
-                                    == HTTP_FORBIDDEN) {
+                            || e.getStatusCode().value() == HTTP_FORBIDDEN) {
                         System.out.println(
                                 "Removing orphaned/inaccessible media ID: "
                                         + mediaId + " from product: "

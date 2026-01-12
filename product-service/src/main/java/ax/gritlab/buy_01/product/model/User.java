@@ -111,4 +111,3 @@ public final class User implements UserDetails {
         return true;
     }
 }
-

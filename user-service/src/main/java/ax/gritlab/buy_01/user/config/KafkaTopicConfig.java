@@ -10,13 +10,13 @@ import org.springframework.kafka.config.TopicBuilder;
  */
 @Configuration
 public final class KafkaTopicConfig {
-    /**
-     * Creates Kafka topic for user deletion events.
-     *
-     * @return configured NewTopic for user.deleted
-     */
-    @Bean
-    public NewTopic userDeletedTopic() {
+   /**
+    * Creates Kafka topic for user deletion events.
+    *
+    * @return configured NewTopic for user.deleted
+    */
+   @Bean
+   public NewTopic userDeletedTopic() {
       return TopicBuilder.name("user.deleted")
             .partitions(1)
             .replicas(1)

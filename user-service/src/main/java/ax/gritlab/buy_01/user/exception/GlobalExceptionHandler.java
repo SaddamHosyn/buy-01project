@@ -35,8 +35,8 @@ public final class GlobalExceptionHandler {
                 .status(HttpStatus.CONFLICT.value())
                 .error("Conflict")
                 .message(
-                    "Email already exists. "
-                    + "Please use a different email address.")
+                        "Email already exists. "
+                                + "Please use a different email address.")
                 .build();
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
@@ -66,8 +66,7 @@ public final class GlobalExceptionHandler {
      * @return ResponseEntity with validation error details
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ValidationErrorResponse>
-        handleValidationExceptions(
+    public ResponseEntity<ValidationErrorResponse> handleValidationExceptions(
             final MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach((error) -> {
@@ -76,8 +75,7 @@ public final class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
 
-        ValidationErrorResponse response =
-            ValidationErrorResponse.builder()
+        ValidationErrorResponse response = ValidationErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error("Validation Failed")
@@ -86,7 +84,7 @@ public final class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-            .body(response);
+                .body(response);
     }
 
     /**
@@ -139,8 +137,8 @@ public final class GlobalExceptionHandler {
                 .status(HttpStatus.FORBIDDEN.value())
                 .error("Forbidden")
                 .message(
-                    "Access Denied - You do not have permission "
-                    + "to perform this action")
+                        "Access Denied - You do not have permission "
+                                + "to perform this action")
                 .build();
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
@@ -159,13 +157,13 @@ public final class GlobalExceptionHandler {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .error("Internal Server Error")
                 .message(
-                    "An unexpected error occurred. "
-                    + "Please try again later.")
+                        "An unexpected error occurred. "
+                                + "Please try again later.")
                 .build();
         // Log the actual exception for debugging
         ex.printStackTrace();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(error);
+                .body(error);
     }
 
     /**
@@ -182,7 +180,8 @@ public final class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error("Bad Request")
                 .message(ex.getMessage() != null
-                    ? ex.getMessage() : "Invalid request")
+                        ? ex.getMessage()
+                        : "Invalid request")
                 .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }

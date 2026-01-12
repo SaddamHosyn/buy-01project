@@ -48,7 +48,8 @@ public final class SecurityConfig {
                         .requestMatchers("/products").permitAll()
                         .requestMatchers("/products/*").permitAll()
                         .requestMatchers(
-                                "/products/*/remove-media/*").permitAll()
+                                "/products/*/remove-media/*")
+                        .permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthFilter,
                         UsernamePasswordAuthenticationFilter.class);

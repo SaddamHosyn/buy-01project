@@ -66,8 +66,8 @@ public final class JwtService {
     /**
      * Extract a specific claim from JWT token.
      *
-     * @param <T> the type of the claim
-     * @param token the JWT token
+     * @param <T>            the type of the claim
+     * @param token          the JWT token
      * @param claimsResolver function to extract claim
      * @return the extracted claim
      */
@@ -133,4 +133,3 @@ public final class JwtService {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }
-

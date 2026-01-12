@@ -54,15 +54,14 @@ public final class UserController {
     /**
      * Updates current user's profile.
      *
-     * @param request update request
+     * @param request        update request
      * @param authentication authentication context
      * @return updated user profile response
      */
     @PutMapping("/me")
     public ResponseEntity<UserProfileResponse> updateMyProfile(
             @RequestBody final UpdateProfileRequest request,
-            final Authentication authentication
-    ) {
+            final Authentication authentication) {
         User user = (User) authentication.getPrincipal();
         return ResponseEntity.ok(userService.updateProfile(user, request));
     }

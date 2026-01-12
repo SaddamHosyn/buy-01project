@@ -22,4 +22,3 @@ public class UpdateProfileRequest {
     /** New password to set. */
     private String newPassword;
 }
-

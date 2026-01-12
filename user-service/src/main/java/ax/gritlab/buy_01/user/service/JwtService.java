@@ -48,8 +48,8 @@ public final class JwtService {
     /**
      * Extracts specific claim from JWT token.
      *
-     * @param <T> type of claim
-     * @param token JWT token
+     * @param <T>            type of claim
+     * @param token          JWT token
      * @param claimsResolver function to extract claim
      * @return extracted claim value
      */
@@ -91,7 +91,7 @@ public final class JwtService {
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis()
                         + MILLIS_PER_SECOND * SECONDS_PER_MINUTE
-                        * MINUTES_PER_HOUR * TOKEN_VALIDITY_HOURS))
+                                * MINUTES_PER_HOUR * TOKEN_VALIDITY_HOURS))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -99,7 +99,7 @@ public final class JwtService {
     /**
      * Validates JWT token against user details.
      *
-     * @param token JWT token
+     * @param token       JWT token
      * @param userDetails user details to validate against
      * @return true if token is valid
      */

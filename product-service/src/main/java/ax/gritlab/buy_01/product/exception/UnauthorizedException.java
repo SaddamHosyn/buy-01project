@@ -13,4 +13,3 @@ public final class UnauthorizedException extends RuntimeException {
         super(message);
     }
 }
-

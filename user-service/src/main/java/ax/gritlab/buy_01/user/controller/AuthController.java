@@ -33,8 +33,7 @@ public final class AuthController {
      */
     @PostMapping("/register")
     public ResponseEntity<UserProfileResponse> register(
-            @Valid @RequestBody final RegisterRequest request
-    ) {
+            @Valid @RequestBody final RegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(authenticationService.register(request));
     }
@@ -47,8 +46,7 @@ public final class AuthController {
      */
     @PostMapping("/login")
     public ResponseEntity<AuthenticationResponse> authenticate(
-            @Valid @RequestBody final AuthenticationRequest request
-    ) {
+            @Valid @RequestBody final AuthenticationRequest request) {
         return ResponseEntity.ok(authenticationService.authenticate(request));
     }
 }

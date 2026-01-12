@@ -25,9 +25,8 @@ public final class GlobalExceptionHandler {
      * @return validation error response
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ValidationErrorResponse>
-            handleValidationExceptions(
-                    final MethodArgumentNotValidException ex) {
+    public ResponseEntity<ValidationErrorResponse> handleValidationExceptions(
+            final MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach((error) -> {
             String fieldName = ((FieldError) error).getField();
@@ -35,14 +34,13 @@ public final class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
 
-        ValidationErrorResponse response =
-                ValidationErrorResponse.builder()
-                        .timestamp(LocalDateTime.now())
-                        .status(HttpStatus.BAD_REQUEST.value())
-                        .error("Validation Failed")
-                        .message("Invalid input data")
-                        .fieldErrors(errors)
-                        .build();
+        ValidationErrorResponse response = ValidationErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Validation Failed")
+                .message("Invalid input data")
+                .fieldErrors(errors)
+                .build();
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
@@ -139,7 +137,8 @@ public final class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error("Bad Request")
                 .message(ex.getMessage() != null
-                        ? ex.getMessage() : "Invalid request")
+                        ? ex.getMessage()
+                        : "Invalid request")
                 .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }

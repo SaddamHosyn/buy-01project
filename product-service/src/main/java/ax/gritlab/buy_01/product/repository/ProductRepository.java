@@ -7,21 +7,20 @@ import ax.gritlab.buy_01.product.model.Product;
  * Repository for Product entities.
  */
 public interface ProductRepository
-        extends MongoRepository<Product, String> {
+		extends MongoRepository<Product, String> {
 
-    /**
-     * Delete all products for a user.
-     *
-     * @param userId the user ID
-     */
-    void deleteByUserId(String userId);
+	/**
+	 * Delete all products for a user.
+	 *
+	 * @param userId the user ID
+	 */
+	void deleteByUserId(String userId);
 
-    /**
-     * Find all products for a user.
-     *
-     * @param userId the user ID
-     * @return list of products
-     */
-    java.util.List<Product> findByUserId(String userId);
+	/**
+	 * Find all products for a user.
+	 *
+	 * @param userId the user ID
+	 * @return list of products
+	 */
+	java.util.List<Product> findByUserId(String userId);
 }
-

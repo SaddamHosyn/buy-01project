@@ -36,15 +36,13 @@ public final class ProductRequest {
      * Product name.
      */
     @NotNull(message = "Product name is required")
-    @Size(min = MIN_NAME_LENGTH, max = MAX_NAME_LENGTH,
-            message = "Product name must be between 2 and 100 characters")
+    @Size(min = MIN_NAME_LENGTH, max = MAX_NAME_LENGTH, message = "Product name must be between 2 and 100 characters")
     private String name;
 
     /**
      * Product description.
      */
-    @Size(max = MAX_DESCRIPTION_LENGTH,
-            message = "Description must not exceed 500 characters")
+    @Size(max = MAX_DESCRIPTION_LENGTH, message = "Description must not exceed 500 characters")
     private String description;
 
     /**
@@ -58,7 +56,6 @@ public final class ProductRequest {
      * Product quantity.
      */
     @NotNull(message = "Quantity is required")
-    @Min(value = 0,
-            message = "Quantity must be greater than or equal to 0")
+    @Min(value = 0, message = "Quantity must be greater than or equal to 0")
     private Integer quantity;
 }

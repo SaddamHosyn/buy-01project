@@ -9,4 +9,3 @@ public enum Role {
     /** Seller role with product management permissions. */
     SELLER
 }
-

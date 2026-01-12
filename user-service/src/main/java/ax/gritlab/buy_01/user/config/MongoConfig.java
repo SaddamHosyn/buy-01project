@@ -28,9 +28,8 @@ public final class MongoConfig {
     @PostConstruct
     public void initIndexes() {
         IndexOperations indexOps = mongoTemplate.indexOps(User.class);
-        IndexResolver resolver =
-                new MongoPersistentEntityIndexResolver(
-                        mongoMappingContext);
+        IndexResolver resolver = new MongoPersistentEntityIndexResolver(
+                mongoMappingContext);
         resolver.resolveIndexFor(User.class)
                 .forEach(indexOps::ensureIndex);
     }

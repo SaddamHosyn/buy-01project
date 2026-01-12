@@ -36,22 +36,26 @@ public final class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(final HttpSecurity http)
             throws Exception {
-    http
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
+        http
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
                         // Public endpoints (Login, Register, Health)
                         .requestMatchers("/auth/**",
-                                "/actuator/**").permitAll()
+                                "/actuator/**")
+                        .permitAll()
 
                         // Allow anyone to VIEW user profiles
                         .requestMatchers(HttpMethod.GET,
-                                "/users/**").permitAll()
+                                "/users/**")
+                        .permitAll()
 
                         // Protected - require authentication
                         .requestMatchers(HttpMethod.PUT,
-                                "/users/**").authenticated()
+                                "/users/**")
+                        .authenticated()
                         .requestMatchers(HttpMethod.DELETE,
-                                "/users/**").authenticated()
+                                "/users/**")
+                        .authenticated()
 
                         // All other requests require authentication
                         .anyRequest().authenticated())

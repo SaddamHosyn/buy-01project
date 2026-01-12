@@ -39,7 +39,7 @@ public final class AuthenticationService {
                                 .name(request.getName())
                                 .email(request.getEmail())
                                 .password(passwordEncoder.encode(
-                                        request.getPassword()))
+                                                request.getPassword()))
                                 .role(request.getRole())
                                 .build();
                 User savedUser = userRepository.save(user);
@@ -59,7 +59,7 @@ public final class AuthenticationService {
          * @return authentication response with token
          */
         public AuthenticationResponse authenticate(
-                final AuthenticationRequest request) {
+                        final AuthenticationRequest request) {
                 authenticationManager.authenticate(
                                 new UsernamePasswordAuthenticationToken(
                                                 request.getEmail(),

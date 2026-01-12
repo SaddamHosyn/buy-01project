@@ -24,4 +24,3 @@ public class ErrorResponse {
     /** Detailed error message. */
     private String message;
 }
-
