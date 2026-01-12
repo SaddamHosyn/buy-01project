@@ -9,15 +9,27 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.kafka.core.KafkaTemplate;
 
+/**
+ * User service for profile management and user operations.
+ */
 @Service
 @RequiredArgsConstructor
-public class UserService {
+public final class UserService {
 
+    /** Kafka template for messaging. */
     private final KafkaTemplate<String, String> kafkaTemplate;
+    /** User repository for database access. */
     private final UserRepository userRepository;
+    /** Password encoder for hashing. */
     private final PasswordEncoder passwordEncoder;
 
-    public UserProfileResponse getProfile(User user) {
+    /**
+     * Builds user profile response from user entity.
+     *
+     * @param user user entity
+     * @return user profile response
+     */
+    public UserProfileResponse getProfile(final User user) {
         return UserProfileResponse.builder()
                 .id(user.getId())
                 .name(user.getName())
@@ -27,28 +39,47 @@ public class UserService {
                 .build();
     }
 
-    // NEW: Get user by ID (for viewing seller profiles)
-    public UserProfileResponse getUserById(String id) {
+    /**
+     * Gets user profile by ID.
+     *
+     * @param id user ID
+     * @return user profile response
+     */
+    public UserProfileResponse getUserById(final String id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException(
+                        "User not found"));
         return getProfile(user);
     }
 
-    public UserProfileResponse updateProfile(User user, UpdateProfileRequest request) {
+    /**
+     * Updates user profile with new information.
+     *
+     * @param user user to update
+     * @param request update request with new values
+     * @return updated user profile response
+     */
+    public UserProfileResponse updateProfile(final User user,
+            final UpdateProfileRequest request) {
         // 1. Handle Password Change Logic
-        if (request.getNewPassword() != null && !request.getNewPassword().isEmpty()) {
+        if (request.getNewPassword() != null
+                && !request.getNewPassword().isEmpty()) {
             // Must provide current password to change it
-            if (request.getPassword() == null || request.getPassword().isEmpty()) {
-                throw new IllegalArgumentException("Current password is required to set a new password");
+            if (request.getPassword() == null
+                    || request.getPassword().isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Current password required to set new password");
             }
 
             // Verify current password matches DB
-            if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            if (!passwordEncoder.matches(request.getPassword(),
+                    user.getPassword())) {
                 throw new RuntimeException("Incorrect current password");
             }
 
             // Update to new password
-            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            user.setPassword(passwordEncoder.encode(
+                    request.getNewPassword()));
         }
 
         // 2. Handle Name Update
@@ -65,7 +96,12 @@ public class UserService {
         return getProfile(updatedUser);
     }
 
-    public void deleteUser(User user) {
+    /**
+     * Deletes user and publishes deletion event.
+     *
+     * @param user user to delete
+     */
+    public void deleteUser(final User user) {
         userRepository.delete(user);
         // Publish Kafka event for user deletion
         kafkaTemplate.send("user.deleted", user.getId());

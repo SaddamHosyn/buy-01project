@@ -1,4 +1,5 @@
 /Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/UserServiceApplication.java
+/Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/controller/package-info.java
 /Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/service/UserService.java
 /Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/exception/package-info.java
 /Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/model/User.java
@@ -9,11 +10,14 @@
 /Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/dto/AuthenticationResponse.java
 /Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/service/JwtService.java
 /Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/controller/UserController.java
+/Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/service/package-info.java
 /Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/exception/GlobalExceptionHandler.java
 /Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/config/MongoConfig.java
+/Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/dto/package-info.java
 /Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/exception/ValidationErrorResponse.java
 /Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/repository/UserRepository.java
 /Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/dto/UpdateProfileRequest.java
+/Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/config/package-info.java
 /Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/model/Role.java
 /Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/dto/AuthenticationRequest.java
 /Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/repository/package-info.java
@@ -25,3 +29,4 @@
 /Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/config/KafkaTopicConfig.java
 /Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/controller/AuthController.java
 /Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/exception/ErrorResponse.java
+/Users/saddam.hussain/Desktop/buy-01project/user-service/src/main/java/ax/gritlab/buy_01/user/package-info.java
