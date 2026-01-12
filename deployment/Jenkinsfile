@@ -354,34 +354,6 @@ pipeline {
                     echo "⚠️ Slack notification skipped (credential not configured): ${e.message}"
                 }
             }
-            
-            // Email notification
-            script {
-                try {
-                    emailext (
-                        subject: "✅ Jenkins Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                        body: """<html>
-                            <body>
-                                <h2>Build Successful! ✅</h2>
-                                <p><strong>Job:</strong> ${env.JOB_NAME}</p>
-                                <p><strong>Build Number:</strong> ${env.BUILD_NUMBER}</p>
-                                <p><strong>Status:</strong> <span style='color:green'>SUCCESS</span></p>
-                                <p><strong>Duration:</strong> ${currentBuild.durationString}</p>
-                                <p><strong>Environment:</strong> ${params.DEPLOY_ENV}</p>
-                                <hr>
-                                <p><a href='${env.BUILD_URL}'>View Build</a> | <a href='${env.BUILD_URL}console'>Console Output</a></p>
-                                <p><strong>Changes:</strong></p>
-                                <pre>${currentBuild.changeSets}</pre>
-                            </body>
-                        </html>""",
-                        to: 'team@example.com',
-                        mimeType: 'text/html',
-                        recipientProviders: [developers(), requestor()]
-                    )
-                } catch (Exception e) {
-                    echo "⚠️ Email notification skipped (not configured): ${e.message}"
-                }
-            }
         }
         failure {
             echo "❌ Pipeline failed!"
@@ -399,35 +371,6 @@ pipeline {
                     }
                 } catch (Exception e) {
                     echo "⚠️ Slack notification skipped (credential not configured): ${e.message}"
-                }
-            }
-            
-            // Email notification
-            script {
-                try {
-                    emailext (
-                        subject: "❌ Jenkins Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                        body: """<html>
-                            <body>
-                                <h2>Build Failed! ❌</h2>
-                                <p><strong>Job:</strong> ${env.JOB_NAME}</p>
-                                <p><strong>Build Number:</strong> ${env.BUILD_NUMBER}</p>
-                                <p><strong>Status:</strong> <span style='color:red'>FAILURE</span></p>
-                                <p><strong>Duration:</strong> ${currentBuild.durationString}</p>
-                                <p><strong>Environment:</strong> ${params.DEPLOY_ENV}</p>
-                                <hr>
-                                <p><a href='${env.BUILD_URL}'>View Build</a> | <a href='${env.BUILD_URL}console'>Console Output</a></p>
-                                <p><strong>Please check the console output for error details.</strong></p>
-                                <p><strong>Changes:</strong></p>
-                                <pre>${currentBuild.changeSets}</pre>
-                            </body>
-                        </html>""",
-                        to: 'team@example.com',
-                        mimeType: 'text/html',
-                        recipientProviders: [developers(), requestor(), culprits()]
-                    )
-                } catch (Exception e) {
-                    echo "⚠️ Email notification skipped (not configured): ${e.message}"
                 }
             }
         }
