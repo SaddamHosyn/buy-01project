@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class UserProfileResponse {
     /** User's unique identifier. */
-    private Long id;
+    private String id;
     /** User's display name. */
     private String name;
     /** User's email address. */
