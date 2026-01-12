@@ -139,11 +139,13 @@ pipeline {
             steps {
                 echo '📊 Running code quality checks...'
                 script {
-                    // Run Checkstyle for Java code
+                    // Run Checkstyle for Java code (warnings only, non-blocking)
                     def services = ['user-service', 'product-service', 'media-service']
                     for (service in services) {
                         dir(service) {
-                            sh 'mvn checkstyle:check || true'  // Don't fail build, just report
+                            catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                                sh 'mvn checkstyle:check'
+                            }
                         }
                     }
                     echo '✅ Code quality check completed (warnings only, not blocking)'
