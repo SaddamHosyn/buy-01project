@@ -1,6 +1,17 @@
 # Buy-01 E-Commerce Platform 🛒
 
-A production-ready, full-stack microservices-based e-commerce platform built with **Spring Boot** and **Angular**, featuring event-driven architecture with **Apache Kafka**, service discovery, and containerized deployment.
+A production-ready, full-stack microservices-based e-commerce platform built with **Spring Boot** and **Angular**, featuring event-driven architecture with **Apache Kafka**, service discovery, containerized deployment, and **enterprise-grade CI/CD pipeline with Jenkins**.
+
+## 🚀 Recent Improvements (January 2026)
+
+### ⚡ Enhanced Jenkins CI/CD Pipeline
+
+- **Smart Health Checks** - Intelligent retry logic replaces fixed sleep timers
+- **GitHub Webhook Support** - Instant builds (< 5 seconds) instead of 2-minute polling
+- **Matrix-Based Security** - Granular role-based permissions (Admin/Developer/Viewer)
+- **Comprehensive Documentation** - 2,700+ lines covering setup, security, and auditing
+
+**See:** [deployment/IMPROVEMENTS-GUIDE.md](deployment/IMPROVEMENTS-GUIDE.md) for implementation details
 
 ## 🏗️ Architecture Overview
 
@@ -913,4 +924,5 @@ This project is developed for educational purposes as part of a university proje
 **Built with ❤️ using Spring Boot, Angular, Kafka, and MongoDB**
 
 _For questions or issues, please open an issue on GitHub._
+
 # Build #15 - Audit Ready

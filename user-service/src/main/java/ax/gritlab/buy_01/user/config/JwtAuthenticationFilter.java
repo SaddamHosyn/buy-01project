@@ -23,56 +23,58 @@ import java.io.IOException;
 @Component
 @RequiredArgsConstructor
 public final class JwtAuthenticationFilter
-        extends OncePerRequestFilter {
+                extends OncePerRequestFilter {
 
-    /** Length of "Bearer " prefix in Authorization header. */
-    private static final int BEARER_PREFIX_LENGTH = 7;
+        /** Length of "Bearer " prefix in Authorization header. */
+        private static final int BEARER_PREFIX_LENGTH = 7;
 
-    /** JWT service for token operations. */
-    private final JwtService jwtService;
-    /** User details service for loading user data. */
-    private final UserDetailsService userDetailsService;
+        /** JWT service for token operations. */
+        private final JwtService jwtService;
+        /** User details service for loading user data. */
+        private final UserDetailsService userDetailsService;
 
-    /**
-     * Filters incoming requests to validate JWT tokens.
-     *
-     * @param request     HTTP request
-     * @param response    HTTP response
-     * @param filterChain filter chain
-     * @throws ServletException if filter processing fails
-     * @throws IOException      if I/O error occurs
-     */
-    @Override
-    protected void doFilterInternal(
-            @NonNull final HttpServletRequest request,
-            @NonNull final HttpServletResponse response,
-            @NonNull final FilterChain filterChain) throws ServletException, IOException {
-        final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String userEmail;
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
+        /**
+         * Filters incoming requests to validate JWT tokens.
+         *
+         * @param request     HTTP request
+         * @param response    HTTP response
+         * @param filterChain filter chain
+         * @throws ServletException if filter processing fails
+         * @throws IOException      if I/O error occurs
+         */
+        @Override
+        protected void doFilterInternal(
+                        @NonNull final HttpServletRequest request,
+                        @NonNull final HttpServletResponse response,
+                        @NonNull final FilterChain filterChain)
+                        throws ServletException, IOException {
+                final String authHeader = request.getHeader("Authorization");
+                final String jwt;
+                final String userEmail;
+                if (authHeader == null
+                                || !authHeader.startsWith("Bearer ")) {
+                        filterChain.doFilter(request, response);
+                        return;
+                }
+                jwt = authHeader.substring(BEARER_PREFIX_LENGTH);
+                userEmail = jwtService.extractUsername(jwt);
+                if (userEmail != null
+                                && SecurityContextHolder.getContext()
+                                                .getAuthentication() == null) {
+                        UserDetails userDetails = this.userDetailsService
+                                        .loadUserByUsername(userEmail);
+                        if (jwtService.isTokenValid(jwt, userDetails)) {
+                                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                                                userDetails,
+                                                null,
+                                                userDetails.getAuthorities());
+                                authToken.setDetails(
+                                                new WebAuthenticationDetailsSource()
+                                                                .buildDetails(request));
+                                SecurityContextHolder.getContext()
+                                                .setAuthentication(authToken);
+                        }
+                }
+                filterChain.doFilter(request, response);
         }
-        jwt = authHeader.substring(BEARER_PREFIX_LENGTH);
-        userEmail = jwtService.extractUsername(jwt);
-        if (userEmail != null
-                && SecurityContextHolder.getContext()
-                        .getAuthentication() == null) {
-            UserDetails userDetails = this.userDetailsService
-                    .loadUserByUsername(userEmail);
-            if (jwtService.isTokenValid(jwt, userDetails)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities());
-                authToken.setDetails(
-                        new WebAuthenticationDetailsSource()
-                                .buildDetails(request));
-                SecurityContextHolder.getContext()
-                        .setAuthentication(authToken);
-            }
-        }
-        filterChain.doFilter(request, response);
-    }
 }

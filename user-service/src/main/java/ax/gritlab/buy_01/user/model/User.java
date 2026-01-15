@@ -80,7 +80,6 @@ public final class User implements UserDetails {
     /**
      * Returns the authorities granted to the user.
      *
-     * 
      * @return Collection of granted authorities based on user role
      */
     @Override

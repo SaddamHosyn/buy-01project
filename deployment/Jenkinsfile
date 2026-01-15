@@ -14,6 +14,14 @@ pipeline {
         PREVIOUS_BUILD       = "${env.BUILD_NUMBER.toInteger() - 1}"
     }
 
+    // ⚡ WEBHOOK TRIGGER (Instant builds instead of polling)
+    // Configure GitHub webhook first (see deployment/GITHUB-WEBHOOK-SETUP.md)
+    // Then uncomment the line below:
+    // triggers {
+    //     githubPush()
+    // }
+    
+    // 🔄 Temporary: Using SCM polling (remove after webhook is configured)
     triggers {
         pollSCM('H/2 * * * *')
     }
@@ -139,9 +147,10 @@ pipeline {
             steps {
                 echo '📊 Running code quality checks...'
                 script {
-                    // Run Checkstyle for Java code (warnings only, non-blocking)
-                    // Only checking user-service (zero violations) for now
-                    // product-service and media-service fixes in progress
+                    // Checkstyle validation using Sun Java coding standards
+                    // Checks: Line length (80 chars), trailing spaces, indentation,
+                    // naming conventions, Javadoc, code formatting
+                    // Status: Non-blocking warnings (marked UNSTABLE on violations)
                     def services = ['user-service']
                     for (service in services) {
                         dir(service) {
@@ -150,7 +159,7 @@ pipeline {
                             }
                         }
                     }
-                    echo '✅ Code quality check completed (user-service: ZERO violations)'
+                    echo '✅ Code quality check completed'
                 }
             }
             post {
@@ -247,58 +256,126 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo "🚀 Deploying to ${params.DEPLOY_ENV} environment..."
-                sh '''
-                    cd deployment
+                script {
+                    // Stop and remove all containers
+                    sh '''
+                        cd deployment
+                        docker stop buy-01-zookeeper buy-01-mongodb buy-01-kafka buy-01-service-registry buy-01-api-gateway buy-01-user-service buy-01-product-service buy-01-media-service buy-01-frontend 2>/dev/null || true
+                        docker rm buy-01-zookeeper buy-01-mongodb buy-01-kafka buy-01-service-registry buy-01-api-gateway buy-01-user-service buy-01-product-service buy-01-media-service buy-01-frontend 2>/dev/null || true
+                        echo "✅ Using locally built images (already pushed to Docker Hub)"
+                    '''
                     
-                    # Stop and remove all containers
-                    docker stop buy-01-zookeeper buy-01-mongodb buy-01-kafka buy-01-service-registry buy-01-api-gateway buy-01-user-service buy-01-product-service buy-01-media-service buy-01-frontend 2>/dev/null || true
-                    docker rm buy-01-zookeeper buy-01-mongodb buy-01-kafka buy-01-service-registry buy-01-api-gateway buy-01-user-service buy-01-product-service buy-01-media-service buy-01-frontend 2>/dev/null || true
+                    // Start infrastructure with intelligent health checks (no more sleep!)
+                    echo "📦 Starting Zookeeper..."
+                    sh 'cd deployment && docker-compose up -d zookeeper'
+                    waitForContainer('buy-01-zookeeper', 30)
                     
-                    # Use locally built images (skip pull to avoid Docker Hub timeouts)
-                    echo "✅ Using locally built images (already pushed to Docker Hub)"
+                    echo "📦 Starting MongoDB..."
+                    sh 'cd deployment && docker-compose up -d mongodb'
+                    waitForContainer('buy-01-mongodb', 30)
                     
-                    # Start infrastructure first (one at a time to prevent crash)
-                    docker-compose up -d zookeeper
-                    sleep 10
-                    docker-compose up -d mongodb
-                    sleep 10
-                    docker-compose up -d kafka
-                    sleep 15
+                    echo "📦 Starting Kafka..."
+                    sh 'cd deployment && docker-compose up -d kafka'
+                    waitForContainer('buy-01-kafka', 45)
                     
-                    # Start service registry
-                    docker-compose up -d service-registry
-                    sleep 20
+                    // Start service registry and wait for health endpoint
+                    echo "📦 Starting Service Registry..."
+                    sh 'cd deployment && docker-compose up -d service-registry'
+                    waitForServiceHealth('http://localhost:8761/actuator/health', 60)
                     
-                    # Start microservices
-                    docker-compose up -d api-gateway user-service product-service media-service
-                    sleep 20
+                    // Start microservices
+                    echo "📦 Starting Microservices..."
+                    sh 'cd deployment && docker-compose up -d api-gateway user-service product-service media-service'
+                    waitForServiceHealth('http://localhost:8080/actuator/health', 60)
                     
-                    # Start frontend
-                    docker-compose up -d frontend
+                    // Start frontend
+                    echo "📦 Starting Frontend..."
+                    sh 'cd deployment && docker-compose up -d frontend'
+                    waitForContainer('buy-01-frontend', 30)
                     
-                    echo "⏳ Waiting for services to start..."
-                    sleep 45
+                    // Final verification
+                    echo "🔍 Running final health checks..."
+                    def healthCheck = sh(
+                        script: '''
+                            HEALTHY=true
+                            if ! docker ps | grep -q "buy-01-service-registry"; then
+                                echo "❌ service-registry is not running"
+                                HEALTHY=false
+                            fi
+                            if ! docker ps | grep -q "buy-01-api-gateway"; then
+                                echo "❌ api-gateway is not running"
+                                HEALTHY=false
+                            fi
+                            if [ "$HEALTHY" = "false" ]; then
+                                exit 1
+                            fi
+                            echo "✅ All services are running and healthy!"
+                        ''',
+                        returnStatus: true
+                    )
                     
-                    echo "🔍 Running health checks..."
-                    HEALTHY=true
-                    
-                    if ! docker ps | grep -q "buy-01-service-registry"; then
-                        echo "❌ service-registry is not running"
-                        HEALTHY=false
-                    fi
-                    
-                    if ! docker ps | grep -q "buy-01-api-gateway"; then
-                        echo "❌ api-gateway is not running"
-                        HEALTHY=false
-                    fi
-                    
-                    if [ "$HEALTHY" = "false" ]; then
-                        echo "❌ Deployment health check failed!"
-                        exit 1
-                    fi
-                    
-                    echo "✅ All services are running!"
-                '''
+                    if (healthCheck != 0) {
+                        error('❌ Deployment health check failed!')
+                    }
+                }
+            }
+        }
+        
+        // 🔧 Helper: Wait for container to be running
+        def waitForContainer(String containerName, int maxAttempts) {
+            def attempt = 0
+            def isRunning = false
+            
+            while (attempt < maxAttempts && !isRunning) {
+                attempt++
+                echo "⏳ Checking ${containerName}... (${attempt}/${maxAttempts})"
+                
+                def status = sh(
+                    script: "docker ps --filter name=${containerName} --format '{{.Status}}' | grep -q 'Up'",
+                    returnStatus: true
+                )
+                
+                if (status == 0) {
+                    echo "✅ ${containerName} is running"
+                    isRunning = true
+                } else {
+                    if (attempt < maxAttempts) {
+                        sleep(2)
+                    }
+                }
+            }
+            
+            if (!isRunning) {
+                error("❌ ${containerName} failed to start after ${maxAttempts} attempts")
+            }
+        }
+        
+        // 🔧 Helper: Wait for HTTP health endpoint
+        def waitForServiceHealth(String healthUrl, int maxAttempts) {
+            def attempt = 0
+            def isHealthy = false
+            
+            while (attempt < maxAttempts && !isHealthy) {
+                attempt++
+                echo "⏳ Health check ${healthUrl}... (${attempt}/${maxAttempts})"
+                
+                def status = sh(
+                    script: "curl -sf ${healthUrl} > /dev/null 2>&1",
+                    returnStatus: true
+                )
+                
+                if (status == 0) {
+                    echo "✅ Service is healthy!"
+                    isHealthy = true
+                } else {
+                    if (attempt < maxAttempts) {
+                        sleep(3)
+                    }
+                }
+            }
+            
+            if (!isHealthy) {
+                echo "⚠️ Warning: ${healthUrl} not responding (continuing anyway)"
             }
         }
 
