@@ -14,16 +14,9 @@ pipeline {
         PREVIOUS_BUILD       = "${env.BUILD_NUMBER.toInteger() - 1}"
     }
 
-    // ⚡ WEBHOOK TRIGGER (Instant builds instead of polling)
-    // Configure GitHub webhook first (see deployment/GITHUB-WEBHOOK-SETUP.md)
-    // Then uncomment the line below:
-    // triggers {
-    //     githubPush()
-    // }
-    
-    // 🔄 Temporary: Using SCM polling (remove after webhook is configured)
+    // ⚡ WEBHOOK TRIGGER (Instant builds - webhook configured!)
     triggers {
-        pollSCM('H/2 * * * *')
+        githubPush()
     }
 
     stages {
