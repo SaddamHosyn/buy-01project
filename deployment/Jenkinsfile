@@ -250,6 +250,64 @@ pipeline {
             steps {
                 echo "🚀 Deploying to ${params.DEPLOY_ENV} environment..."
                 script {
+                    // Helper function: Wait for container to be running
+                    def waitForContainer = { String containerName, int maxAttempts ->
+                        def attempt = 0
+                        def isRunning = false
+                        
+                        while (attempt < maxAttempts && !isRunning) {
+                            attempt++
+                            echo "⏳ Checking ${containerName}... (${attempt}/${maxAttempts})"
+                            
+                            def status = sh(
+                                script: "docker ps --filter name=${containerName} --format '{{.Status}}' | grep -q 'Up'",
+                                returnStatus: true
+                            )
+                            
+                            if (status == 0) {
+                                echo "✅ ${containerName} is running"
+                                isRunning = true
+                            } else {
+                                if (attempt < maxAttempts) {
+                                    sleep(2)
+                                }
+                            }
+                        }
+                        
+                        if (!isRunning) {
+                            error("❌ ${containerName} failed to start after ${maxAttempts} attempts")
+                        }
+                    }
+                    
+                    // Helper function: Wait for HTTP health endpoint
+                    def waitForServiceHealth = { String healthUrl, int maxAttempts ->
+                        def attempt = 0
+                        def isHealthy = false
+                        
+                        while (attempt < maxAttempts && !isHealthy) {
+                            attempt++
+                            echo "⏳ Health check ${healthUrl}... (${attempt}/${maxAttempts})"
+                            
+                            def status = sh(
+                                script: "curl -sf ${healthUrl} > /dev/null 2>&1",
+                                returnStatus: true
+                            )
+                            
+                            if (status == 0) {
+                                echo "✅ Service is healthy!"
+                                isHealthy = true
+                            } else {
+                                if (attempt < maxAttempts) {
+                                    sleep(3)
+                                }
+                            }
+                        }
+                        
+                        if (!isHealthy) {
+                            echo "⚠️ Warning: ${healthUrl} not responding (continuing anyway)"
+                        }
+                    }
+                    
                     // Stop and remove all containers
                     sh '''
                         cd deployment
@@ -258,7 +316,7 @@ pipeline {
                         echo "✅ Using locally built images (already pushed to Docker Hub)"
                     '''
                     
-                    // Start infrastructure with intelligent health checks (no more sleep!)
+                    // Start infrastructure with intelligent health checks
                     echo "📦 Starting Zookeeper..."
                     sh 'cd deployment && docker-compose up -d zookeeper'
                     waitForContainer('buy-01-zookeeper', 30)
@@ -311,64 +369,6 @@ pipeline {
                         error('❌ Deployment health check failed!')
                     }
                 }
-            }
-        }
-        
-        // 🔧 Helper: Wait for container to be running
-        def waitForContainer(String containerName, int maxAttempts) {
-            def attempt = 0
-            def isRunning = false
-            
-            while (attempt < maxAttempts && !isRunning) {
-                attempt++
-                echo "⏳ Checking ${containerName}... (${attempt}/${maxAttempts})"
-                
-                def status = sh(
-                    script: "docker ps --filter name=${containerName} --format '{{.Status}}' | grep -q 'Up'",
-                    returnStatus: true
-                )
-                
-                if (status == 0) {
-                    echo "✅ ${containerName} is running"
-                    isRunning = true
-                } else {
-                    if (attempt < maxAttempts) {
-                        sleep(2)
-                    }
-                }
-            }
-            
-            if (!isRunning) {
-                error("❌ ${containerName} failed to start after ${maxAttempts} attempts")
-            }
-        }
-        
-        // 🔧 Helper: Wait for HTTP health endpoint
-        def waitForServiceHealth(String healthUrl, int maxAttempts) {
-            def attempt = 0
-            def isHealthy = false
-            
-            while (attempt < maxAttempts && !isHealthy) {
-                attempt++
-                echo "⏳ Health check ${healthUrl}... (${attempt}/${maxAttempts})"
-                
-                def status = sh(
-                    script: "curl -sf ${healthUrl} > /dev/null 2>&1",
-                    returnStatus: true
-                )
-                
-                if (status == 0) {
-                    echo "✅ Service is healthy!"
-                    isHealthy = true
-                } else {
-                    if (attempt < maxAttempts) {
-                        sleep(3)
-                    }
-                }
-            }
-            
-            if (!isHealthy) {
-                echo "⚠️ Warning: ${healthUrl} not responding (continuing anyway)"
             }
         }
 
