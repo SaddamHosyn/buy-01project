@@ -162,27 +162,29 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 echo "🐳 Building Docker Images in parallel with tag: ${BUILD_VERSION}..."
-                script {
-                    parallel(
-                        'service-registry': {
-                            sh "docker build -t ${DOCKER_USER}/buy-01-service-registry:latest -t ${DOCKER_USER}/buy-01-service-registry:${BUILD_VERSION} ./service-registry"
-                        },
-                        'api-gateway': {
-                            sh "docker build -t ${DOCKER_USER}/buy-01-api-gateway:latest -t ${DOCKER_USER}/buy-01-api-gateway:${BUILD_VERSION} ./api-gateway"
-                        },
-                        'user-service': {
-                            sh "docker build -t ${DOCKER_USER}/buy-01-user-service:latest -t ${DOCKER_USER}/buy-01-user-service:${BUILD_VERSION} ./user-service"
-                        },
-                        'product-service': {
-                            sh "docker build -t ${DOCKER_USER}/buy-01-product-service:latest -t ${DOCKER_USER}/buy-01-product-service:${BUILD_VERSION} ./product-service"
-                        },
-                        'media-service': {
-                            sh "docker build -t ${DOCKER_USER}/buy-01-media-service:latest -t ${DOCKER_USER}/buy-01-media-service:${BUILD_VERSION} ./media-service"
-                        },
-                        'frontend': {
-                            sh "docker build -t ${DOCKER_USER}/buy-01-frontend:latest -t ${DOCKER_USER}/buy-01-frontend:${BUILD_VERSION} ./buy-01-ui"
-                        }
-                    )
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    script {
+                        parallel(
+                            'service-registry': {
+                                sh "docker build -t ${DOCKER_USER}/buy-01-service-registry:latest -t ${DOCKER_USER}/buy-01-service-registry:${BUILD_VERSION} ./service-registry"
+                            },
+                            'api-gateway': {
+                                sh "docker build -t ${DOCKER_USER}/buy-01-api-gateway:latest -t ${DOCKER_USER}/buy-01-api-gateway:${BUILD_VERSION} ./api-gateway"
+                            },
+                            'user-service': {
+                                sh "docker build -t ${DOCKER_USER}/buy-01-user-service:latest -t ${DOCKER_USER}/buy-01-user-service:${BUILD_VERSION} ./user-service"
+                            },
+                            'product-service': {
+                                sh "docker build -t ${DOCKER_USER}/buy-01-product-service:latest -t ${DOCKER_USER}/buy-01-product-service:${BUILD_VERSION} ./product-service"
+                            },
+                            'media-service': {
+                                sh "docker build -t ${DOCKER_USER}/buy-01-media-service:latest -t ${DOCKER_USER}/buy-01-media-service:${BUILD_VERSION} ./media-service"
+                            },
+                            'frontend': {
+                                sh "docker build -t ${DOCKER_USER}/buy-01-frontend:latest -t ${DOCKER_USER}/buy-01-frontend:${BUILD_VERSION} ./buy-01-ui"
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -190,14 +192,15 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 echo "🚀 Pushing images to Docker Hub in parallel..."
-                withCredentials([usernamePassword(
-                    credentialsId: REGISTRY_CREDENTIALS,
-                    usernameVariable: 'DOCKER_USER_CRED',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER_CRED --password-stdin'
-                    script {
-                        def dockerUser = env.DOCKER_USER
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    withCredentials([usernamePassword(
+                        credentialsId: REGISTRY_CREDENTIALS,
+                        usernameVariable: 'DOCKER_USER_CRED',
+                        passwordVariable: 'DOCKER_PASS'
+                    )]) {
+                        sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER_CRED --password-stdin'
+                        script {
+                            def dockerUser = env.DOCKER_USER
                         def buildVer = env.BUILD_VERSION
                         parallel(
                             'service-registry': {
@@ -228,6 +231,7 @@ pipeline {
                             }
                         )
                     }
+                }
                 }
             }
         }
