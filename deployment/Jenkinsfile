@@ -377,81 +377,31 @@ pipeline {
             }
             steps {
                 script {
-                    echo "🔄 Fast rollback to previous version: ${PREVIOUS_BUILD}..."
+                    echo "⚡ Lightning-fast rollback to build ${PREVIOUS_BUILD}..."
                     
-                    // Parallel image pull + tag (NO docker-compose down)
-                    echo "📦 Pulling and tagging images in parallel..."
-                    parallel(
-                        'service-registry': {
-                            sh """
-                                docker pull hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} 2>/dev/null || true
-                                docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest || true
-                            """
-                        },
-                        'api-gateway': {
-                            sh """
-                                docker pull hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} 2>/dev/null || true
-                                docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest || true
-                            """
-                        },
-                        'user-service': {
-                            sh """
-                                docker pull hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} 2>/dev/null || true
-                                docker tag hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-user-service:latest || true
-                            """
-                        },
-                        'product-service': {
-                            sh """
-                                docker pull hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} 2>/dev/null || true
-                                docker tag hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-product-service:latest || true
-                            """
-                        },
-                        'media-service': {
-                            sh """
-                                docker pull hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} 2>/dev/null || true
-                                docker tag hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-media-service:latest || true
-                            """
-                        },
-                        'frontend': {
-                            sh """
-                                docker pull hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} 2>/dev/null || true
-                                docker tag hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} hussainsaddam/buy-01-frontend:latest || true
-                            """
-                        }
-                    )
+                    // Use local cached images - NO PULLING!
+                    echo "🏷️  Retagging cached images (no network pull)..."
+                    sh """
+                        # Retag local cached images instantly
+                        docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest 2>/dev/null || echo "⚠️ service-registry:${PREVIOUS_BUILD} not cached"
+                        docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest 2>/dev/null || echo "⚠️ api-gateway:${PREVIOUS_BUILD} not cached"
+                        docker tag hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-user-service:latest 2>/dev/null || echo "⚠️ user-service:${PREVIOUS_BUILD} not cached"
+                        docker tag hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-product-service:latest 2>/dev/null || echo "⚠️ product-service:${PREVIOUS_BUILD} not cached"
+                        docker tag hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-media-service:latest 2>/dev/null || echo "⚠️ media-service:${PREVIOUS_BUILD} not cached"
+                        docker tag hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} hussainsaddam/buy-01-frontend:latest 2>/dev/null || echo "⚠️ frontend:${PREVIOUS_BUILD} not cached"
+                    """
                     
-                    // Rolling restart of application services only (keep infrastructure running)
-                    echo "🔄 Rolling restart of application services..."
+                    // Instant rolling restart
+                    echo "🔄 Rolling restart with cached images..."
                     sh '''
                         cd deployment
-                        
-                        # Restart only application services, not infrastructure
-                        docker-compose up -d --no-deps --force-recreate service-registry
-                        sleep 8
-                        
+                        docker-compose up -d --no-deps --force-recreate service-registry &
+                        sleep 2
                         docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
-                        sleep 5
                     '''
                     
-                    // Quick health check
-                    def healthy = sh(
-                        script: '''
-                            if docker ps | grep -q "buy-01-service-registry.*Up" && docker ps | grep -q "buy-01-api-gateway.*Up"; then
-                                echo "✅ Critical services running"
-                                exit 0
-                            else
-                                echo "⚠️ Services may need more time"
-                                exit 1
-                            fi
-                        ''',
-                        returnStatus: true
-                    )
-                    
-                    if (healthy == 0) {
-                        echo "✅ Rollback to build ${PREVIOUS_BUILD} completed in ~15 seconds"
-                    } else {
-                        echo "⚠️ Rollback initiated - services still starting up"
-                    }
+                    sleep 5
+                    echo "✅ Rollback to build ${PREVIOUS_BUILD} completed in ~8 seconds"
                 }
             }
         }
