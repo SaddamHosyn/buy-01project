@@ -17,8 +17,8 @@ services:
     # ===========================================================================
     # Security & Permissions
     # ===========================================================================
-    # privileged: Required for Docker-in-Docker operations
-    # user: root: Needed to access Docker socket and manage containers
+    # privileged: Required for Docker-in-Docker operations.
+    # user: root: Needed to access Docker socket and manage containers.
     # ===========================================================================
     privileged: true
     user: root
