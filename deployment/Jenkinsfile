@@ -5,7 +5,6 @@ pipeline {
         choice(name: 'DEPLOY_ENV', choices: ['local', 'staging', 'production'], description: 'Select deployment environment')
         booleanParam(name: 'SKIP_TESTS', defaultValue: false, description: 'Skip tests (use with caution)')
         booleanParam(name: 'FORCE_DEPLOY', defaultValue: false, description: 'Force deployment even if tests fail')
-        booleanParam(name: 'SIMULATE_DEPLOY_FAILURE', defaultValue: false, description: 'Demo mode: skip deploy and force rollback')
     }
 
     environment {
@@ -258,7 +257,7 @@ pipeline {
 
         stage('Deploy') {
             when {
-                expression { env.DEPLOYMENT_FAILED != 'true' }
+                expression { (currentBuild.currentResult == null || currentBuild.currentResult == 'SUCCESS') && env.DEPLOYMENT_FAILED != 'true' }
             }
             steps {
                 echo "🚀 Deploying to ${params.DEPLOY_ENV} environment..."
@@ -341,10 +340,6 @@ pipeline {
                             sleep 3
                         '''
 
-                        // TEMPORARY: Simulate deploy failure to verify rollback
-                        env.DEPLOYMENT_FAILED = 'true'
-                        error('❌ Simulated deployment failure - testing rollback')
-                        
                         // Quick health verification
                         echo "🔍 Verifying deployment..."
                         def healthCheck = sh(
@@ -371,19 +366,9 @@ pipeline {
                             error('❌ Deployment health check failed!')
                         }
                     }
-                }
-            }
-        }
-
-        stage('Force Failure (Demo)') {
-            when {
-                expression { params.SIMULATE_DEPLOY_FAILURE }
-            }
-            steps {
-                script {
-                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    
+                    if (currentBuild.currentResult == 'FAILURE') {
                         env.DEPLOYMENT_FAILED = 'true'
-                        error('❌ Simulated failure before deploy - rollback expected')
                     }
                 }
             }
@@ -391,7 +376,7 @@ pipeline {
 
         stage('Rollback on Failure') {
             when {
-                expression { env.DEPLOYMENT_FAILED == 'true' }
+                expression { env.DEPLOYMENT_FAILED == 'true' || currentBuild.currentResult == 'FAILURE' }
             }
             steps {
                 script {
