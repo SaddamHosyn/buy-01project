@@ -334,6 +334,10 @@ pipeline {
                             docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
                             sleep 3
                         '''
+
+                        // TEMPORARY: Simulate deploy failure to verify rollback
+                        env.DEPLOYMENT_FAILED = 'true'
+                        error('❌ Simulated deployment failure - testing rollback')
                         
                         // Quick health verification
                         echo "🔍 Verifying deployment..."
