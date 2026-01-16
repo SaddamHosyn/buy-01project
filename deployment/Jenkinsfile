@@ -210,12 +210,6 @@ pipeline {
         }
 
         stage('Push to Docker Hub') {
-            when {
-                expression {
-                    // Only push if all tests passed
-                    return currentBuild.result == null || currentBuild.result == 'SUCCESS'
-                }
-            }
             steps {
                 echo "🚀 Pushing images to Docker Hub in parallel..."
                 withCredentials([usernamePassword(
@@ -261,121 +255,111 @@ pipeline {
         }
 
         stage('Deploy') {
-            when {
-                expression {
-                    // Only deploy if build is successful (no test failures)
-                    return currentBuild.result == null || currentBuild.result == 'SUCCESS'
-                }
-            }
             steps {
                 echo "🚀 Deploying to ${params.DEPLOY_ENV} environment..."
                 script {
                     env.DEPLOYMENT_FAILED = 'false'
-                    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                    // Helper function: Wait for container to be running
-                    def waitForContainer = { String containerName, int maxAttempts ->
-                        def attempt = 0
-                        def isRunning = false
-                        
-                        while (attempt < maxAttempts && !isRunning) {
-                            attempt++
-                            echo "⏳ Checking ${containerName}... (${attempt}/${maxAttempts})"
+                    
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        // Helper function: Wait for container to be running
+                        def waitForContainer = { String containerName, int maxAttempts ->
+                            def attempt = 0
+                            def isRunning = false
                             
-                            def status = sh(
-                                script: "docker ps --filter name=${containerName} --format '{{.Status}}' | grep -q 'Up'",
-                                returnStatus: true
-                            )
-                            
-                            if (status == 0) {
-                                echo "✅ ${containerName} is running"
-                                isRunning = true
-                            } else {
-                                if (attempt < maxAttempts) {
-                                    sleep(1)  // Reduced from 2 to 1 second
+                            while (attempt < maxAttempts && !isRunning) {
+                                attempt++
+                                echo "⏳ Checking ${containerName}... (${attempt}/${maxAttempts})"
+                                
+                                def status = sh(
+                                    script: "docker ps --filter name=${containerName} --format '{{.Status}}' | grep -q 'Up'",
+                                    returnStatus: true
+                                )
+                                
+                                if (status == 0) {
+                                    echo "✅ ${containerName} is running"
+                                    isRunning = true
+                                } else {
+                                    if (attempt < maxAttempts) {
+                                        sleep(1)  // Reduced from 2 to 1 second
+                                    }
                                 }
+                            }
+                            
+                            if (!isRunning) {
+                                env.DEPLOYMENT_FAILED = 'true'
+                                error("❌ ${containerName} failed to start after ${maxAttempts} attempts")
                             }
                         }
                         
-                        if (!isRunning) {
-                            error("❌ ${containerName} failed to start after ${maxAttempts} attempts")
-                        }
-                    }
-                    
-                    // Helper function: Wait for HTTP health endpoint
-                    def waitForServiceHealth = { String healthUrl, int maxAttempts ->
-                        def attempt = 0
-                        def isHealthy = false
-                        
-                        while (attempt < maxAttempts && !isHealthy) {
-                            attempt++
-                            echo "⏳ Health check ${healthUrl}... (${attempt}/${maxAttempts})"
+                        // Helper function: Wait for HTTP health endpoint
+                        def waitForServiceHealth = { String healthUrl, int maxAttempts ->
+                            def attempt = 0
+                            def isHealthy = false
                             
-                            def status = sh(
-                                script: "curl -sf ${healthUrl} > /dev/null 2>&1",
-                                returnStatus: true
-                            )
-                            
-                            if (status == 0) {
-                                echo "✅ Service is healthy!"
-                                isHealthy = true
-                            } else {
-                                if (attempt < maxAttempts) {
-                                    sleep(2)  // Reduced from 3 to 2 seconds
+                            while (attempt < maxAttempts && !isHealthy) {
+                                attempt++
+                                echo "⏳ Health check ${healthUrl}... (${attempt}/${maxAttempts})"
+                                
+                                def status = sh(
+                                    script: "curl -sf ${healthUrl} > /dev/null 2>&1",
+                                    returnStatus: true
+                                )
+                                
+                                if (status == 0) {
+                                    echo "✅ Service is healthy!"
+                                    isHealthy = true
+                                } else {
+                                    if (attempt < maxAttempts) {
+                                        sleep(2)  // Reduced from 3 to 2 seconds
+                                    }
                                 }
+                            }
+                            
+                            if (!isHealthy) {
+                                echo "⚠️ Warning: ${healthUrl} not responding (continuing anyway)"
                             }
                         }
                         
-                        if (!isHealthy) {
-                            echo "⚠️ Warning: ${healthUrl} not responding (continuing anyway)"
+                        // Smart deployment: Only restart app services, keep infrastructure running
+                        echo "🚀 Deploying application services..."
+                        sh '''
+                            cd deployment
+                            
+                            # Keep infrastructure running (Zookeeper, MongoDB, Kafka)
+                            # Only restart application services with new images
+                            docker-compose up -d --no-deps --force-recreate service-registry
+                            sleep 5
+                            
+                            docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
+                            sleep 3
+                        '''
+                        
+                        // Quick health verification
+                        echo "🔍 Verifying deployment..."
+                        def healthCheck = sh(
+                            script: '''
+                                sleep 10
+                                
+                                if ! docker ps | grep -q "buy-01-service-registry.*Up"; then
+                                    echo "❌ service-registry is not running"
+                                    exit 1
+                                fi
+                                if ! docker ps | grep -q "buy-01-api-gateway.*Up"; then
+                                    echo "❌ api-gateway is not running"
+                                    exit 1
+                                fi
+                                
+                                echo "✅ All services deployed and running!"
+                                exit 0
+                            ''',
+                            returnStatus: true
+                        )
+                        
+                        if (healthCheck != 0) {
+                            env.DEPLOYMENT_FAILED = 'true'
+                            error('❌ Deployment health check failed!')
                         }
                     }
-                    
-                    // Smart deployment: Only restart app services, keep infrastructure running
-                    echo "🚀 Deploying application services..."
-                    
-                    sh '''
-                        cd deployment
-                        
-                        # Keep infrastructure running (Zookeeper, MongoDB, Kafka)
-                        # Only restart application services with new images
-                        docker-compose up -d --no-deps --force-recreate service-registry
-                        sleep 5
-                        
-                        docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
-                        sleep 3
-                    '''
-                    
-                    // TEMPORARY: Simulate deployment failure to test rollback
-                    echo "⚠️ TESTING: Simulating deployment failure AFTER deployment..."
-                    env.DEPLOYMENT_FAILED = 'true'
-                    error('❌ Simulated deployment failure - Testing rollback mechanism')
-                    
-                    // Quick health verification
-                    echo "🔍 Verifying deployment..."
-                    def healthCheck = sh(
-                        script: '''
-                            sleep 10
-                            
-                            if ! docker ps | grep -q "buy-01-service-registry.*Up"; then
-                                echo "❌ service-registry is not running"
-                                exit 1
-                            fi
-                            if ! docker ps | grep -q "buy-01-api-gateway.*Up"; then
-                                echo "❌ api-gateway is not running"
-                                exit 1
-                            fi
-                            
-                            echo "✅ All services deployed and running!"
-                            exit 0
-                        ''',
-                        returnStatus: true
-                    )
-                    
-                    if (healthCheck != 0) {
-                        env.DEPLOYMENT_FAILED = 'true'
-                        error('❌ Deployment health check failed!')
-                    }
-                    } // end catchError
                 }
             }
         }
@@ -384,39 +368,28 @@ pipeline {
             steps {
                 script {
                     if (env.DEPLOYMENT_FAILED == 'true') {
-                        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                        echo "⚡ ROLLBACK TRIGGERED!"
-                        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                        echo "❌ Build #${env.BUILD_NUMBER} deployment FAILED"
-                        echo "🔄 Rolling back to stable build #${PREVIOUS_BUILD}"
-                        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                        echo "⚡ Rollback triggered - Build ${env.BUILD_NUMBER} failed!"
+                        echo "🔄 Rolling back to build ${PREVIOUS_BUILD}..."
                         
-                        catchError(buildResult: 'FAILURE', stageResult: 'SUCCESS') {
-                            sh """
-                                # Retag cached images
-                                docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest 2>/dev/null || true
-                                docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest 2>/dev/null || true
-                                docker tag hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-user-service:latest 2>/dev/null || true
-                                docker tag hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-product-service:latest 2>/dev/null || true
-                                docker tag hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-media-service:latest 2>/dev/null || true
-                                docker tag hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} hussainsaddam/buy-01-frontend:latest 2>/dev/null || true
-                                
-                                # Rolling restart
-                                cd deployment
-                                docker-compose up -d --no-deps --force-recreate service-registry &
-                                sleep 2
-                                docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
-                            """
-                        }
-                        
+                        sh """
+                            # Retag cached images
+                            docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest 2>/dev/null || true
+                            docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest 2>/dev/null || true
+                            docker tag hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-user-service:latest 2>/dev/null || true
+                            docker tag hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-product-service:latest 2>/dev/null || true
+                            docker tag hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-media-service:latest 2>/dev/null || true
+                            docker tag hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} hussainsaddam/buy-01-frontend:latest 2>/dev/null || true
+                            
+                            # Rolling restart
+                            cd deployment
+                            docker-compose up -d --no-deps --force-recreate service-registry &
+                            sleep 2
+                            docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
+                        """
                         sleep 3
-                        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                        echo "✅ Rollback completed successfully!"
-                        echo "🎯 System restored to build #${PREVIOUS_BUILD}"
-                        echo "📊 All services running stable version"
-                        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                        echo "✅ Rollback to build ${PREVIOUS_BUILD} completed successfully"
                     } else {
-                        echo "✅ No deployment failure - Rollback not needed"
+                        echo "✅ Build successful - No rollback needed"
                     }
                 }
             }
