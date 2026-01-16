@@ -270,6 +270,8 @@ pipeline {
             steps {
                 echo "🚀 Deploying to ${params.DEPLOY_ENV} environment..."
                 script {
+                    env.DEPLOYMENT_FAILED = 'false'
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     // Helper function: Wait for container to be running
                     def waitForContainer = { String containerName, int maxAttempts ->
                         def attempt = 0
@@ -333,6 +335,7 @@ pipeline {
                     
                     // TEMPORARY: Simulate deployment failure to test rollback
                     echo "⚠️ TESTING: Simulating deployment failure..."
+                    env.DEPLOYMENT_FAILED = 'true'
                     error('❌ Simulated deployment failure - Testing rollback mechanism')
                     
                     sh '''
@@ -369,7 +372,13 @@ pipeline {
                     )
                     
                     if (healthCheck != 0) {
+                        env.DEPLOYMENT_FAILED = 'true'
                         error('❌ Deployment health check failed!')
+                    }
+                    } // end catchError
+                    
+                    if (env.DEPLOYMENT_FAILED == 'true') {
+                        error('Deployment failed - triggering rollback')
                     }
                 }
             }
@@ -378,9 +387,9 @@ pipeline {
         stage('Rollback on Failure') {
             when {
                 expression {
-                    // Only rollback if deployment was attempted and failed
-                    // Tests failures don't trigger rollback (deployment is skipped)
-                    return currentBuild.result == 'FAILURE'
+                    // Always run if deployment was attempted
+                    // Check deployment flag to decide if rollback needed
+                    return env.DEPLOYMENT_FAILED == 'true'
                 }
             }
             steps {
