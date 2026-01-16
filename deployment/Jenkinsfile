@@ -339,6 +339,10 @@ pipeline {
                             sleep 3
                         '''
 
+                        // DELIBERATE FAILURE for rollback demo
+                        env.DEPLOYMENT_FAILED = 'true'
+                        error('❌ Deliberate deploy failure to trigger rollback')
+
                         // Quick health verification
                         echo "🔍 Verifying deployment..."
                         def healthCheck = sh(
