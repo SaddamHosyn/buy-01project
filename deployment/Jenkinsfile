@@ -12,6 +12,7 @@ pipeline {
         REGISTRY_CREDENTIALS = 'docker-hub-credentials'
         BUILD_VERSION        = "${env.BUILD_NUMBER}"
         PREVIOUS_BUILD       = "${env.BUILD_NUMBER.toInteger() - 1}"
+        DEPLOYMENT_FAILED    = 'false'
     }
 
     // ⚡ WEBHOOK TRIGGER (Instant builds - webhook configured!)
@@ -365,32 +366,31 @@ pipeline {
         }
 
         stage('Rollback on Failure') {
+            when {
+                expression { env.DEPLOYMENT_FAILED == 'true' }
+            }
             steps {
                 script {
-                    if (env.DEPLOYMENT_FAILED == 'true') {
-                        echo "⚡ Rollback triggered - Build ${env.BUILD_NUMBER} failed!"
-                        echo "🔄 Rolling back to build ${PREVIOUS_BUILD}..."
+                    echo "⚡ Rollback triggered - Build ${env.BUILD_NUMBER} failed!"
+                    echo "🔄 Rolling back to build ${PREVIOUS_BUILD}..."
+                    
+                    sh """
+                        # Retag cached images
+                        docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest 2>/dev/null || true
+                        docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest 2>/dev/null || true
+                        docker tag hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-user-service:latest 2>/dev/null || true
+                        docker tag hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-product-service:latest 2>/dev/null || true
+                        docker tag hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-media-service:latest 2>/dev/null || true
+                        docker tag hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} hussainsaddam/buy-01-frontend:latest 2>/dev/null || true
                         
-                        sh """
-                            # Retag cached images
-                            docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest 2>/dev/null || true
-                            docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest 2>/dev/null || true
-                            docker tag hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-user-service:latest 2>/dev/null || true
-                            docker tag hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-product-service:latest 2>/dev/null || true
-                            docker tag hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-media-service:latest 2>/dev/null || true
-                            docker tag hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} hussainsaddam/buy-01-frontend:latest 2>/dev/null || true
-                            
-                            # Rolling restart
-                            cd deployment
-                            docker-compose up -d --no-deps --force-recreate service-registry &
-                            sleep 2
-                            docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
-                        """
-                        sleep 3
-                        echo "✅ Rollback to build ${PREVIOUS_BUILD} completed successfully"
-                    } else {
-                        echo "✅ Build successful - No rollback needed"
-                    }
+                        # Rolling restart
+                        cd deployment
+                        docker-compose up -d --no-deps --force-recreate service-registry &
+                        sleep 2
+                        docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
+                    """
+                    sleep 3
+                    echo "✅ Rollback to build ${PREVIOUS_BUILD} completed successfully"
                 }
             }
         }
