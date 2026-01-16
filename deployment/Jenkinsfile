@@ -269,7 +269,7 @@ pipeline {
                                 isRunning = true
                             } else {
                                 if (attempt < maxAttempts) {
-                                    sleep(2)
+                                    sleep(1)  // Reduced from 2 to 1 second
                                 }
                             }
                         }
@@ -298,7 +298,7 @@ pipeline {
                                 isHealthy = true
                             } else {
                                 if (attempt < maxAttempts) {
-                                    sleep(3)
+                                    sleep(2)  // Reduced from 3 to 2 seconds
                                 }
                             }
                         }
@@ -316,33 +316,28 @@ pipeline {
                         echo "✅ Using locally built images (already pushed to Docker Hub)"
                     '''
                     
-                    // Start infrastructure with intelligent health checks
-                    echo "📦 Starting Zookeeper..."
-                    sh 'cd deployment && docker-compose up -d zookeeper'
-                    waitForContainer('buy-01-zookeeper', 30)
+                    // Start all infrastructure in parallel
+                    echo "📦 Starting Infrastructure (Zookeeper, MongoDB, Kafka)..."
+                    sh 'cd deployment && docker-compose up -d zookeeper mongodb kafka'
                     
-                    echo "📦 Starting MongoDB..."
-                    sh 'cd deployment && docker-compose up -d mongodb'
-                    waitForContainer('buy-01-mongodb', 30)
+                    // Wait for infrastructure in parallel (faster!)
+                    parallel(
+                        'zookeeper': { waitForContainer('buy-01-zookeeper', 20) },
+                        'mongodb': { waitForContainer('buy-01-mongodb', 20) },
+                        'kafka': { waitForContainer('buy-01-kafka', 30) }
+                    )
                     
-                    echo "📦 Starting Kafka..."
-                    sh 'cd deployment && docker-compose up -d kafka'
-                    waitForContainer('buy-01-kafka', 45)
-                    
-                    // Start service registry and wait for health endpoint
+                    // Start service registry (needed by microservices)
                     echo "📦 Starting Service Registry..."
                     sh 'cd deployment && docker-compose up -d service-registry'
-                    waitForServiceHealth('http://localhost:8761/actuator/health', 60)
+                    waitForServiceHealth('http://localhost:8761/actuator/health', 40)
                     
-                    // Start microservices
-                    echo "📦 Starting Microservices..."
-                    sh 'cd deployment && docker-compose up -d api-gateway user-service product-service media-service'
-                    waitForServiceHealth('http://localhost:8080/actuator/health', 60)
+                    // Start all microservices in parallel
+                    echo "📦 Starting Microservices in parallel..."
+                    sh 'cd deployment && docker-compose up -d api-gateway user-service product-service media-service frontend'
                     
-                    // Start frontend
-                    echo "📦 Starting Frontend..."
-                    sh 'cd deployment && docker-compose up -d frontend'
-                    waitForContainer('buy-01-frontend', 30)
+                    // Wait for critical services only
+                    waitForServiceHealth('http://localhost:8080/actuator/health', 40)
                     
                     // Final verification
                     echo "🔍 Running final health checks..."
