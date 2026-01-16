@@ -78,14 +78,16 @@ pipeline {
     steps {
         echo '🧪 Running backend tests...'
         script {
-            dir('user-service') {
-                sh 'mvn clean test -Dmaven.test.failure.ignore=false'
-            }
-            dir('product-service') {
-                sh 'mvn clean test -Dmaven.test.failure.ignore=false'
-            }
-            dir('media-service') {
-                sh 'mvn clean test -Dmaven.test.failure.ignore=false'
+            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                dir('user-service') {
+                    sh 'mvn clean test -Dmaven.test.failure.ignore=false'
+                }
+                dir('product-service') {
+                    sh 'mvn clean test -Dmaven.test.failure.ignore=false'
+                }
+                dir('media-service') {
+                    sh 'mvn clean test -Dmaven.test.failure.ignore=false'
+                }
             }
         }
     }
