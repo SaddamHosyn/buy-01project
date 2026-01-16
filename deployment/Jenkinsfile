@@ -394,6 +394,7 @@ pipeline {
                     echo "⚠️ Slack notification skipped (credential not configured): ${e.message}"
                 }
             }
+            cleanWs()
         }
         failure {
             echo "❌ Pipeline failed!"
@@ -433,12 +434,12 @@ pipeline {
                     echo "⚠️ Slack notification skipped (credential not configured): ${e.message}"
                 }
             }
+            cleanWs()
         }
         always {
             echo "🧹 Cleaning up workspace..."
             // Archive build artifacts before cleanup
             archiveArtifacts artifacts: '**/target/*.jar', allowEmptyArchive: true, fingerprint: true
-            cleanWs()
         }
     }
 }
