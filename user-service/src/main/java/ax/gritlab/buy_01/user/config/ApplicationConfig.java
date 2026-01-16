@@ -15,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
  * Application configuration for security and authentication.
+ * INTENTIONAL ERROR: This line is way too long and will fail Checkstyle validation because it exceeds the 80 character limit
  */
 @Configuration
 @RequiredArgsConstructor
