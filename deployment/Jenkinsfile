@@ -330,6 +330,11 @@ pipeline {
                     
                     // Smart deployment: Only restart app services, keep infrastructure running
                     echo "🚀 Deploying application services..."
+                    
+                    // TEMPORARY: Simulate deployment failure to test rollback
+                    echo "⚠️ TESTING: Simulating deployment failure..."
+                    error('❌ Simulated deployment failure - Testing rollback mechanism')
+                    
                     sh '''
                         cd deployment
                         
