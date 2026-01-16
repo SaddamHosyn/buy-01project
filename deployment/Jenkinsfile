@@ -396,26 +396,23 @@ pipeline {
                         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                         
                         catchError(buildResult: 'FAILURE', stageResult: 'SUCCESS') {
-                    echo "🔄 Rolling back to stable build #${PREVIOUS_BUILD}"
-                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                    
-                    catchError(buildResult: 'FAILURE', stageResult: 'SUCCESS') {
-                        sh """
-                            # Retag cached images
-                            docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest 2>/dev/null || true
-                            docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest 2>/dev/null || true
-                            docker tag hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-user-service:latest 2>/dev/null || true
-                            docker tag hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-product-service:latest 2>/dev/null || true
-                            docker tag hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-media-service:latest 2>/dev/null || true
-                            docker tag hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} hussainsaddam/buy-01-frontend:latest 2>/dev/null || true
-                            
-                            # Rolling restart
-                            cd deployment
-                            docker-compose up -d --no-deps --force-recreate service-registry &
-                            sleep 2
-                            docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
-                        """
+                            sh """
+                                # Retag cached images
+                                docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest 2>/dev/null || true
+                                docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest 2>/dev/null || true
+                                docker tag hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-user-service:latest 2>/dev/null || true
+                                docker tag hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-product-service:latest 2>/dev/null || true
+                                docker tag hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-media-service:latest 2>/dev/null || true
+                                docker tag hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} hussainsaddam/buy-01-frontend:latest 2>/dev/null || true
+                                
+                                # Rolling restart
+                                cd deployment
+                                docker-compose up -d --no-deps --force-recreate service-registry &
+                                sleep 2
+                                docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
+                            """
                         }
+                        
                         sleep 3
                         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                         echo "✅ Rollback completed successfully!"
