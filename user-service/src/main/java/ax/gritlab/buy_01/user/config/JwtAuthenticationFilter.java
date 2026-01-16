@@ -64,15 +64,17 @@ public final class JwtAuthenticationFilter
                         UserDetails userDetails = this.userDetailsService
                                         .loadUserByUsername(userEmail);
                         if (jwtService.isTokenValid(jwt, userDetails)) {
-                                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                                UsernamePasswordAuthenticationToken authToken;
+                                authToken =
+                                        new UsernamePasswordAuthenticationToken(
                                                 userDetails,
                                                 null,
                                                 userDetails.getAuthorities());
                                 authToken.setDetails(
-                                                new WebAuthenticationDetailsSource()
-                                                                .buildDetails(request));
+                                        new WebAuthenticationDetailsSource()
+                                                .buildDetails(request));
                                 SecurityContextHolder.getContext()
-                                                .setAuthentication(authToken);
+                                        .setAuthentication(authToken);
                         }
                 }
                 filterChain.doFilter(request, response);
