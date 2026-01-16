@@ -255,6 +255,12 @@ pipeline {
         }
 
         stage('Deploy') {
+            when {
+                expression {
+                    // Only deploy if build is successful (no test failures)
+                    return currentBuild.result == null || currentBuild.result == 'SUCCESS'
+                }
+            }
             steps {
                 echo "🚀 Deploying to ${params.DEPLOY_ENV} environment..."
                 script {
@@ -360,17 +366,17 @@ pipeline {
 
         stage('Rollback on Failure') {
             when {
-                expression { return true }
+                expression {
+                    // Only run rollback if deployment stage was executed
+                    return currentBuild.result == 'FAILURE'
+                }
             }
             steps {
                 script {
-                    // Check if any previous stage failed
-                    def buildFailed = currentBuild.result == 'FAILURE' || currentBuild.currentResult == 'FAILURE'
+                    echo "⚡ Rollback triggered - Deployment ${env.BUILD_NUMBER} failed!"
+                    echo "🔄 Rolling back to build ${PREVIOUS_BUILD}..."
                     
-                    if (buildFailed) {
-                        echo "⚡ Rollback triggered - Build ${env.BUILD_NUMBER} failed!"
-                        echo "🔄 Rolling back to build ${PREVIOUS_BUILD}..."
-                        
+                    catchError(buildResult: 'FAILURE', stageResult: 'SUCCESS') {
                         sh """
                             # Retag cached images
                             docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest 2>/dev/null || true
@@ -386,11 +392,9 @@ pipeline {
                             sleep 2
                             docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
                         """
-                        sleep 3
-                        echo "✅ Rollback to build ${PREVIOUS_BUILD} completed successfully"
-                    } else {
-                        echo "✅ Build successful - No rollback needed"
                     }
+                    sleep 3
+                    echo "✅ Rollback to build ${PREVIOUS_BUILD} completed successfully"
                 }
             }
         }
