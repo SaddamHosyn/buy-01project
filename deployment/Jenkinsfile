@@ -333,11 +333,6 @@ pipeline {
                     // Smart deployment: Only restart app services, keep infrastructure running
                     echo "🚀 Deploying application services..."
                     
-                    // TEMPORARY: Simulate deployment failure to test rollback
-                    echo "⚠️ TESTING: Simulating deployment failure..."
-                    env.DEPLOYMENT_FAILED = 'true'
-                    error('❌ Simulated deployment failure - Testing rollback mechanism')
-                    
                     sh '''
                         cd deployment
                         
@@ -349,6 +344,11 @@ pipeline {
                         docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
                         sleep 3
                     '''
+                    
+                    // TEMPORARY: Simulate deployment failure to test rollback
+                    echo "⚠️ TESTING: Simulating deployment failure AFTER deployment..."
+                    env.DEPLOYMENT_FAILED = 'true'
+                    error('❌ Simulated deployment failure - Testing rollback mechanism')
                     
                     // Quick health verification
                     echo "🔍 Verifying deployment..."
