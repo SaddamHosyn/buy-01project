@@ -18,4 +18,10 @@ public class UserServiceTest {
         assertTrue(email.contains("@"));
         assertTrue(email.endsWith(".com"));
     }
+
+    @Test
+    public void testForcedBackendFailureForRollbackDemo() {
+        // Intentional failure to trigger pipeline rollback demo
+        assertEquals(1, 2, "Forcing backend test failure to verify rollback");
+    }
 }
