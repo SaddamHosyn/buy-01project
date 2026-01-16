@@ -387,17 +387,6 @@ pipeline {
     }
 
     post {
-                    )
-                    
-                    if (healthCheck != 0) {
-                        error('❌ Deployment health check failed!')
-                    }
-                }
-            }
-        }
-    }
-
-    post {
         success {
             echo "✅ Pipeline completed successfully!"
             echo "Build #${env.BUILD_NUMBER} - All stages passed"
