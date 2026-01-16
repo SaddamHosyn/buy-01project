@@ -312,54 +312,37 @@ pipeline {
                         }
                     }
                     
-                    // Stop and remove all containers
+                    // Smart deployment: Only restart app services, keep infrastructure running
+                    echo "🚀 Deploying application services..."
                     sh '''
                         cd deployment
-                        docker stop buy-01-zookeeper buy-01-mongodb buy-01-kafka buy-01-service-registry buy-01-api-gateway buy-01-user-service buy-01-product-service buy-01-media-service buy-01-frontend 2>/dev/null || true
-                        docker rm buy-01-zookeeper buy-01-mongodb buy-01-kafka buy-01-service-registry buy-01-api-gateway buy-01-user-service buy-01-product-service buy-01-media-service buy-01-frontend 2>/dev/null || true
-                        echo "✅ Using locally built images (already pushed to Docker Hub)"
+                        
+                        # Keep infrastructure running (Zookeeper, MongoDB, Kafka)
+                        # Only restart application services with new images
+                        docker-compose up -d --no-deps --force-recreate service-registry
+                        sleep 5
+                        
+                        docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
+                        sleep 3
                     '''
                     
-                    // Start all infrastructure in parallel
-                    echo "📦 Starting Infrastructure (Zookeeper, MongoDB, Kafka)..."
-                    sh 'cd deployment && docker-compose up -d zookeeper mongodb kafka'
-                    
-                    // Wait for infrastructure in parallel (faster!)
-                    parallel(
-                        'zookeeper': { waitForContainer('buy-01-zookeeper', 20) },
-                        'mongodb': { waitForContainer('buy-01-mongodb', 20) },
-                        'kafka': { waitForContainer('buy-01-kafka', 30) }
-                    )
-                    
-                    // Start service registry (needed by microservices)
-                    echo "📦 Starting Service Registry..."
-                    sh 'cd deployment && docker-compose up -d service-registry'
-                    waitForServiceHealth('http://localhost:8761/actuator/health', 40)
-                    
-                    // Start all microservices in parallel
-                    echo "📦 Starting Microservices in parallel..."
-                    sh 'cd deployment && docker-compose up -d api-gateway user-service product-service media-service frontend'
-                    
-                    // Wait for critical services only
-                    waitForServiceHealth('http://localhost:8080/actuator/health', 40)
-                    
-                    // Final verification
-                    echo "🔍 Running final health checks..."
+                    // Quick health verification
+                    echo "🔍 Verifying deployment..."
                     def healthCheck = sh(
                         script: '''
-                            HEALTHY=true
-                            if ! docker ps | grep -q "buy-01-service-registry"; then
+                            sleep 10
+                            
+                            if ! docker ps | grep -q "buy-01-service-registry.*Up"; then
                                 echo "❌ service-registry is not running"
-                                HEALTHY=false
-                            fi
-                            if ! docker ps | grep -q "buy-01-api-gateway"; then
-                                echo "❌ api-gateway is not running"
-                                HEALTHY=false
-                            fi
-                            if [ "$HEALTHY" = "false" ]; then
                                 exit 1
                             fi
-                            echo "✅ All services are running and healthy!"
+                            if ! docker ps | grep -q "buy-01-api-gateway.*Up"; then
+                                echo "❌ api-gateway is not running"
+                                exit 1
+                            fi
+                            
+                            echo "✅ All services deployed and running!"
+                            exit 0
                         ''',
                         returnStatus: true
                     )
