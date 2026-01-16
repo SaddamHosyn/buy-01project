@@ -413,15 +413,16 @@ pipeline {
                         // 3. Restart remaining app services with new images
                         // --no-deps: Don't restart dependencies
                         // --force-recreate: Replace containers even if config unchanged
+                        // -p buy-01: Use consistent project name to match existing containers
                         // =========================================================
                         echo "🚀 Deploying application services..."
                         sh '''
                             # Keep infrastructure running (Zookeeper, MongoDB, Kafka)
                             # Only restart application services with new images
-                            docker-compose up -d --no-deps --force-recreate service-registry
+                            docker-compose -p buy-01 up -d --no-deps --force-recreate service-registry
                             sleep 5
                             
-                            docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
+                            docker-compose -p buy-01 up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
                             sleep 3
                         '''
 
@@ -495,10 +496,12 @@ pipeline {
                     """
                     
                     // Restart services with rolled-back images
+                    // Use -p buy-01 to match existing container names (buy-01-service-registry, etc.)
+                    // --remove-orphans prevents conflicts with containers from different project contexts
                     sh """
-                        docker-compose up -d --no-deps --force-recreate service-registry &
+                        docker-compose -p buy-01 up -d --no-deps --force-recreate --remove-orphans service-registry &
                         sleep 2
-                        docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
+                        docker-compose -p buy-01 up -d --no-deps --force-recreate --remove-orphans api-gateway user-service product-service media-service frontend
                     """
                     sleep 3
                     echo "✅ Rollback to build ${PREVIOUS_BUILD} completed"
