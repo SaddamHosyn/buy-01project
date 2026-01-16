@@ -2,7 +2,7 @@
 # Jenkins CI/CD Server - Docker Compose Configuration
 # ==============================================================================
 # Purpose: Runs Jenkins server in a Docker container with full access to build,
-#          test, and deploy the Buy-01 microservices application.
+# test, and deploy the Buy-01 microservices application.
 # ==============================================================================
 
 services:
