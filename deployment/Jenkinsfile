@@ -376,30 +376,84 @@ pipeline {
                 expression { currentBuild.result == 'FAILURE' || currentBuild.result == 'UNSTABLE' }
             }
             steps {
-                echo "🔄 Rolling back to previous version: ${PREVIOUS_BUILD}..."
-                sh '''
-                    cd deployment
+                script {
+                    echo "🔄 Rolling back to previous version: ${PREVIOUS_BUILD}..."
                     
-                    docker-compose down || true
+                    // Helper function for container wait
+                    def waitForContainer = { containerName, maxAttempts = 30 ->
+                        def attempts = 0
+                        while (attempts < maxAttempts) {
+                            def running = sh(
+                                script: "docker ps --filter name=${containerName} --filter status=running -q",
+                                returnStdout: true
+                            ).trim()
+                            if (running) {
+                                echo "✅ ${containerName} is running"
+                                return true
+                            }
+                            attempts++
+                            sleep 1
+                        }
+                        return false
+                    }
                     
-                    docker pull hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} || echo "Previous build not found"
-                    docker pull hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} || echo "Previous build not found"
-                    docker pull hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} || echo "Previous build not found"
-                    docker pull hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} || echo "Previous build not found"
-                    docker pull hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} || echo "Previous build not found"
-                    docker pull hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} || echo "Previous build not found"
+                    // Stop all services
+                    sh 'cd deployment && docker-compose down || true'
                     
-                    docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest || true
-                    docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest || true
-                    docker tag hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-user-service:latest || true
-                    docker tag hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-product-service:latest || true
-                    docker tag hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-media-service:latest || true
-                    docker tag hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} hussainsaddam/buy-01-frontend:latest || true
+                    // Parallel image pull for speed
+                    echo "📦 Pulling previous build images in parallel..."
+                    parallel(
+                        'service-registry': {
+                            sh "docker pull hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} || echo 'Image not found'"
+                            sh "docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest || true"
+                        },
+                        'api-gateway': {
+                            sh "docker pull hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} || echo 'Image not found'"
+                            sh "docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest || true"
+                        },
+                        'user-service': {
+                            sh "docker pull hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} || echo 'Image not found'"
+                            sh "docker tag hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-user-service:latest || true"
+                        },
+                        'product-service': {
+                            sh "docker pull hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} || echo 'Image not found'"
+                            sh "docker tag hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-product-service:latest || true"
+                        },
+                        'media-service': {
+                            sh "docker pull hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} || echo 'Image not found'"
+                            sh "docker tag hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-media-service:latest || true"
+                        },
+                        'frontend': {
+                            sh "docker pull hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} || echo 'Image not found'"
+                            sh "docker tag hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} hussainsaddam/buy-01-frontend:latest || true"
+                        }
+                    )
                     
-                    docker-compose up -d --remove-orphans
+                    // Restart services with rollback images
+                    echo "🚀 Starting services with previous version..."
+                    sh 'cd deployment && docker-compose up -d --remove-orphans'
                     
-                    echo "✅ Rollback completed to build ${PREVIOUS_BUILD}"
-                '''
+                    // Verify rollback health
+                    echo "🏥 Verifying rollback health..."
+                    def rollbackHealthy = true
+                    
+                    if (!waitForContainer('buy-01-service-registry', 30)) {
+                        echo "⚠️ service-registry failed to start after rollback"
+                        rollbackHealthy = false
+                    }
+                    
+                    if (!waitForContainer('buy-01-api-gateway', 30)) {
+                        echo "⚠️ api-gateway failed to start after rollback"
+                        rollbackHealthy = false
+                    }
+                    
+                    if (rollbackHealthy) {
+                        echo "✅ Rollback to build ${PREVIOUS_BUILD} completed successfully"
+                    } else {
+                        echo "⚠️ Rollback completed but some services are unhealthy"
+                        echo "💡 Check logs: docker-compose -f deployment/docker-compose.yml logs"
+                    }
+                }
             }
         }
     }
