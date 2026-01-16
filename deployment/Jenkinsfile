@@ -357,39 +357,38 @@ pipeline {
         }
 
         stage('Rollback on Failure') {
+            when {
+                expression { 
+                    return currentBuild.result == 'FAILURE' || currentBuild.currentResult == 'FAILURE'
+                }
+            }
             steps {
                 script {
-                    // Check if any previous stage failed
-                    if (currentBuild.result == 'FAILURE' || currentBuild.currentResult == 'FAILURE') {
-                        echo "⚡ Rolling back to build ${PREVIOUS_BUILD}..."
+                    echo "⚡ Rolling back to build ${PREVIOUS_BUILD}..."
+                    
+                    sh """
+                        # Retag cached images
+                        docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest 2>/dev/null || true
+                        docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest 2>/dev/null || true
+                        docker tag hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-user-service:latest 2>/dev/null || true
+                        docker tag hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-product-service:latest 2>/dev/null || true
+                        docker tag hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-media-service:latest 2>/dev/null || true
+                        docker tag hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} hussainsaddam/buy-01-frontend:latest 2>/dev/null || true
                         
-                        sh """
-                            # Retag cached images
-                            docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest 2>/dev/null || true
-                            docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest 2>/dev/null || true
-                            docker tag hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-user-service:latest 2>/dev/null || true
-                            docker tag hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-product-service:latest 2>/dev/null || true
-                            docker tag hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-media-service:latest 2>/dev/null || true
-                            docker tag hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} hussainsaddam/buy-01-frontend:latest 2>/dev/null || true
-                            
-                            # Rolling restart
-                            cd deployment
-                            docker-compose up -d --no-deps --force-recreate service-registry &
-                            sleep 2
-                            docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
-                        """
-                        sleep 3
-                        echo "✅ Rollback to build ${PREVIOUS_BUILD} completed"
-                    } else {
-                        echo "✅ Build successful - no rollback needed"
-                    }
+                        # Rolling restart
+                        cd deployment
+                        docker-compose up -d --no-deps --force-recreate service-registry &
+                        sleep 2
+                        docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
+                    """
+                    sleep 3
+                    echo "✅ Rollback to build ${PREVIOUS_BUILD} completed"
                 }
             }
         }
     }
 
     post {
-        success {
             echo "✅ Pipeline completed successfully!"
             echo "Build #${env.BUILD_NUMBER} - All stages passed"
             
