@@ -9,9 +9,8 @@ A production-ready, full-stack microservices-based e-commerce platform built wit
 - **Smart Health Checks** - Intelligent retry logic replaces fixed sleep timers
 - **GitHub Webhook Support** - Instant builds (< 5 seconds) instead of 2-minute polling
 - **Matrix-Based Security** - Granular role-based permissions (Admin/Developer/Viewer)
-- **Comprehensive Documentation** - 2,700+ lines covering setup, security, and auditing
-
-**See:** [deployment/IMPROVEMENTS-GUIDE.md](deployment/IMPROVEMENTS-GUIDE.md) for implementation details
+- **Automated Rollback** - Pipeline automatically rolls back on deployment failure
+- **10-Stage Pipeline** - Complete CI/CD from checkout to deployment with visibility
 
 ## 🏗️ Architecture Overview
 
@@ -197,28 +196,41 @@ Code Push → GitHub → Jenkins Auto-Trigger → Build → Test → Docker Buil
 **Quick Start:**
 
 1. Clone the repository and navigate to project
-   git clone https://github.com/SaddamHosyn/buy-01project.git
-   cd buy-01project
 
-2. Create Docker network (first time only)
-   docker network create buy-01-network
+```bash
+git clone https://github.com/SaddamHosyn/buy-01project.git
+cd buy-01project
+```
 
-3. Navigate to deployment directory and start all services
-   cd deployment
-   docker-compose up -d
+2. Start the application services (from project root)
+
+```bash
+docker-compose up -d
+```
+
+3. Start Jenkins server (for CI/CD)
+
+```bash
+docker-compose -f deployment/docker-compose-jenkins.yml up -d
+```
 
 4. Wait 2-3 minutes for Jenkins to initialize, then access at http://localhost:8086
 
-**To stop all services:**
-cd deployment
+**To stop services:**
+
+```bash
+# Stop application
 docker-compose down
 
-**To restart Jenkins only:**
-cd deployment
-docker-compose restart jenkins-master
+# Stop Jenkins
+docker-compose -f deployment/docker-compose-jenkins.yml down
+```
 
 **To view Jenkins logs:**
+
+```bash
 docker logs jenkins-master
+```
 
 **Jenkins is now integrated with docker-compose and starts automatically with all other services.**
 
@@ -232,16 +244,12 @@ docker logs jenkins-master
    - Slack webhook URL (ID: `slack-webhook-url`, optional) - Secret text
    - Email SMTP credentials (ID: `email-credentials`, optional) - Username/Password
 
-   📖 **See detailed setup:** [CREDENTIALS-SETUP.md](deployment/CREDENTIALS-SETUP.md)
-
 3. **Create Pipeline Job**:
 
    - New Item → Pipeline
    - Git repository: `https://github.com/SaddamHosyn/buy-01project.git`
    - Branch: `main`
    - Script Path: `deployment/Jenkinsfile`
-
-   📖 **Or use automated setup:** Run `deployment/jenkins-config/jenkins-setup.sh`
 
 ### Pipeline Stages
 
@@ -265,27 +273,29 @@ docker logs jenkins-master
 
 ### Testing the Pipeline
 
-**Test Error Handling:**
-cd deployment
-./test-error-handling.sh
-
-Trigger build → Pipeline fails at test stage
-./restore-all.sh
-
-**Test Rollback:**
-cd deployment
-./test-rollback.sh
-
-Trigger build → Deployment fails → Auto-rollback
-./restore-all.sh
-
 **Test Auto-Trigger:**
+
+```bash
 echo "// Test" >> README.md
 git add README.md
 git commit -m "test: Jenkins auto-trigger"
 git push origin main
+```
 
-Wait 5 minutes → Jenkins auto-triggers
+Wait 5 minutes → Jenkins auto-triggers (or instant with webhook configured)
+
+**Manual Build:**
+
+1. Go to Jenkins Dashboard: http://localhost:8086
+2. Click "buy-01-cicd-pipeline" job
+3. Click "Build with Parameters"
+4. Configure options and click "Build"
+
+**Test Rollback:**
+The pipeline includes an automatic Rollback stage that triggers when deployment fails:
+
+- If Build Docker Images or Push to Registry fails → Pipeline continues to Rollback
+- Rollback stage restores previous working version using `docker-compose down/up`
 
 ### Build Results
 
@@ -327,22 +337,29 @@ Total: 6 tests, 0 failures
 ### CI/CD Workflow
 
 1. Developer pushes code → GitHub
-2. Jenkins auto-triggers (within 5 min)
-3. Pipeline executes all stages
+2. Jenkins auto-triggers (within 5 min or instant with webhook)
+3. Pipeline executes all 10 stages
 4. Tests run (6 backend + frontend)
 5. Docker images built and pushed
 6. Services deployed
-7. Slack notification sent
+7. Slack notification sent (if configured)
+8. On failure → Automatic rollback
 
 ---
 
-**For detailed CI/CD documentation, see:**
+**Deployment Folder Structure:**
 
-- 📘 **[Pipeline Documentation](deployment/README.md)** - Complete setup guide
-- 🔒 **[Security Guide](deployment/JENKINS-SECURITY.md)** - Permissions & credentials
-- 🔑 **[Credentials Setup](deployment/CREDENTIALS-SETUP.md)** - Quick credential guide
-- ✅ **[Audit Checklist](deployment/AUDIT-CHECKLIST.md)** - Complete audit answers
-- 🛠️ **[Jenkins Config](deployment/jenkins-config/README.md)** - Automated setup scripts
+```
+deployment/
+├── Jenkinsfile              # Main CI/CD pipeline definition (10 stages)
+├── docker-compose-jenkins.yml  # Jenkins server container setup
+└── Dockerfile.jenkins       # Custom Jenkins image with Docker support
+```
+
+**Key Files:**
+
+- **Jenkinsfile** - Complete pipeline with checkout, tests, build, deploy, and rollback
+- **docker-compose-jenkins.yml** - Starts Jenkins server at http://localhost:8086
 
 ## 📊 Service Ports & URLs
 

@@ -1,30 +1,84 @@
-version: '3.8'
+# ==============================================================================
+# Jenkins CI/CD Server - Docker Compose Configuration
+# ==============================================================================
+# Purpose: Runs Jenkins server in a Docker container with full access to build,
+#          test, and deploy the Buy-01 microservices application.
+# ==============================================================================
 
 services:
   jenkins-master:
+    # Build custom Jenkins image from Dockerfile.jenkins
+    # Includes: Docker, Maven, Node.js, Chromium for full CI/CD capability
     build:
       context: .
       dockerfile: Dockerfile.jenkins
     container_name: jenkins-master
+    
+    # ===========================================================================
+    # Security & Permissions
+    # ===========================================================================
+    # privileged: Required for Docker-in-Docker operations
+    # user: root: Needed to access Docker socket and manage containers
+    # ===========================================================================
     privileged: true
     user: root
+    
+    # ===========================================================================
+    # Port Mappings
+    # ===========================================================================
+    # 8086:8080 - Jenkins Web UI (mapped to 8086 to avoid conflicts with API Gateway)
+    # 50000:50000 - Jenkins agent communication port (for distributed builds)
+    # ===========================================================================
     ports:
       - "8086:8080"
       - "50000:50000"
+    
+    # ===========================================================================
+    # Volume Mounts
+    # ===========================================================================
+    # jenkins_home: Persists Jenkins configuration, jobs, plugins, and build history
+    # docker.sock: Enables Docker commands inside Jenkins (build/push images)
+    # ../:/workspace: Mounts entire project for pipeline access to source code
+    # ===========================================================================
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
       - ..:/workspace
+    
+    # Connect to the same network as application services
     networks:
       - buy-01-network
+    
+    # ===========================================================================
+    # Environment Variables
+    # ===========================================================================
+    # DOCKER_HOST: Points to Docker socket for container operations
+    # JAVA_OPTS: Enable setup wizard for initial admin password
+    # ===========================================================================
     environment:
       - DOCKER_HOST=unix:///var/run/docker.sock
       - JAVA_OPTS=-Djenkins.install.runSetupWizard=true
 
+# ==============================================================================
+# Named Volumes
+# ==============================================================================
+# jenkins_home: Persistent storage for Jenkins data
+#   - Job configurations and build history
+#   - Installed plugins
+#   - User credentials and settings
+#   - Workspace caches
+# ==============================================================================
 volumes:
   jenkins_home:
     driver: local
 
+# ==============================================================================
+# Networks
+# ==============================================================================
+# buy-01-network: External network shared with application services
+#   - Allows Jenkins to communicate with deployed containers
+#   - Must be created before starting: docker network create buy-01-network
+# ==============================================================================
 networks:
   buy-01-network:
     external: true
