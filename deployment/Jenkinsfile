@@ -215,30 +215,34 @@ pipeline {
                 )]) {
                     sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER_CRED --password-stdin'
                     script {
+                        def dockerUser = env.DOCKER_USER
+                        def buildVer = env.BUILD_VERSION
                         parallel(
                             'service-registry': {
-                                sh "docker push ${DOCKER_USER}/buy-01-service-registry:latest"
-                                sh "docker push ${DOCKER_USER}/buy-01-service-registry:${BUILD_VERSION}"
+                                sh "docker push '${dockerUser}/buy-01-service-registry:latest'"
+                                sh "docker push '${dockerUser}/buy-01-service-registry:${buildVer}'"
                             },
                             'api-gateway': {
-                                sh "docker push ${DOCKER_USER}/buy-01-api-gateway:latest"
-                                sh "docker push ${DOCKER_USER}/buy-01-api-gateway:${BUILD_VERSION}"
+                                sh "docker push '${dockerUser}/buy-01-api-gateway:latest'"
+                                sh "docker push '${dockerUser}/buy-01-api-gateway:${buildVer}'"
                             },
                             'user-service': {
-                                sh "docker push ${DOCKER_USER}/buy-01-user-service:latest"
-                                sh "docker push ${DOCKER_USER}/buy-01-user-service:${BUILD_VERSION}"
+                                sh "docker push '${dockerUser}/buy-01-user-service:latest'"
+                                sh "docker push '${dockerUser}/buy-01-user-service:${buildVer}'"
                             },
                             'product-service': {
-                                sh "docker push ${DOCKER_USER}/buy-01-product-service:latest"
-                                sh "docker push ${DOCKER_USER}/buy-01-product-service:${BUILD_VERSION}"
+                                sh "docker push '${dockerUser}/buy-01-product-service:latest'"
+                                sh "docker push '${dockerUser}/buy-01-product-service:${buildVer}'"
                             },
                             'media-service': {
-                                sh "docker push ${DOCKER_USER}/buy-01-media-service:latest"
-                                sh "docker push ${DOCKER_USER}/buy-01-media-service:${BUILD_VERSION}"
+                                retry(3) {
+                                    sh "docker push '${dockerUser}/buy-01-media-service:latest'"
+                                }
+                                sh "docker push '${dockerUser}/buy-01-media-service:${buildVer}'"
                             },
                             'frontend': {
-                                sh "docker push ${DOCKER_USER}/buy-01-frontend:latest"
-                                sh "docker push ${DOCKER_USER}/buy-01-frontend:${BUILD_VERSION}"
+                                sh "docker push '${dockerUser}/buy-01-frontend:latest'"
+                                sh "docker push '${dockerUser}/buy-01-frontend:${buildVer}'"
                             }
                         )
                     }
