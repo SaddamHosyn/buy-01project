@@ -21,7 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public final class ApplicationConfig {
 
     /** User repository for database access. */
-    private final UserRepository userRepository  // SYNTAX ERROR - missing semicolon
+    private final UserRepository userRepository;
 
     /**
      * Provides UserDetailsService for loading user-specific data.
