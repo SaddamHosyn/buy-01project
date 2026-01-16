@@ -210,6 +210,12 @@ pipeline {
         }
 
         stage('Push to Docker Hub') {
+            when {
+                expression {
+                    // Only push if all tests passed
+                    return currentBuild.result == null || currentBuild.result == 'SUCCESS'
+                }
+            }
             steps {
                 echo "🚀 Pushing images to Docker Hub in parallel..."
                 withCredentials([usernamePassword(
