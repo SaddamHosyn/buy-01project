@@ -1,22 +1,23 @@
 pipeline {
     agent any
-            echo "✅ Pipeline completed successfully!"
-            echo "Build #${env.BUILD_NUMBER} - All stages passed"
 
-            // Slack notification
-            script {
-                try {
-                    withCredentials([string(credentialsId: 'slack-webhook-url', variable: 'SLACK_URL')]) {
-                        sh '''
-                            curl -X POST -H 'Content-type: application/json' \
-                            --data "{\"text\":\"✅ *SUCCESS*: Job ${JOB_NAME} Build #${BUILD_NUMBER}\\n${BUILD_URL}\"}" \
-                            ${SLACK_URL}
-                        '''
-                    }
-                } catch (Exception e) {
-                    echo "⚠️ Slack notification skipped (credential not configured): ${e.message}"
-                }
-            }
+    parameters {
+        choice(name: 'DEPLOY_ENV', choices: ['local', 'staging', 'production'], description: 'Select deployment environment')
+        booleanParam(name: 'SKIP_TESTS', defaultValue: false, description: 'Skip tests (use with caution)')
+        booleanParam(name: 'FORCE_DEPLOY', defaultValue: false, description: 'Force deployment even if tests fail')
+    }
+
+    environment {
+        DOCKER_USER          = credentials('docker-hub-username') // Configurable from Jenkins credentials
+        REGISTRY_CREDENTIALS = 'docker-hub-credentials'
+        BUILD_VERSION        = "${env.BUILD_NUMBER}"
+        PREVIOUS_BUILD       = "${env.BUILD_NUMBER.toInteger() - 1}"
+        DEPLOYMENT_FAILED    = 'false'
+    }
+
+    triggers {
+        githubPush()
+    }
 
     stages {
 
@@ -69,67 +70,46 @@ pipeline {
         }
 
         stage('Backend Tests') {
-    when {
-        expression { params.SKIP_TESTS == false }
-    }
-    steps {
-        echo '🧪 Running backend tests...'
-            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                dir('user-service') {
-                    sh 'mvn clean test -Dmaven.test.failure.ignore=false'
-                }
-                dir('product-service') {
-                    sh 'mvn clean test -Dmaven.test.failure.ignore=false'
-                }
-                dir('media-service') {
-                    sh 'mvn clean test -Dmaven.test.failure.ignore=false'
+            when { expression { params.SKIP_TESTS == false } }
+            steps {
+                echo '🧪 Running backend tests...'
+                script {
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        dir('user-service') { sh 'mvn clean test -Dmaven.test.failure.ignore=false' }
+                        dir('product-service') { sh 'mvn clean test -Dmaven.test.failure.ignore=false' }
+                        dir('media-service') { sh 'mvn clean test -Dmaven.test.failure.ignore=false' }
+                    }
                 }
             }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+                    archiveArtifacts artifacts: '**/target/surefire-reports/**, **/target/site/jacoco/**', allowEmptyArchive: true
+                }
+                failure { echo '❌ Backend tests failed!' }
+                success { echo '✅ Backend tests passed!' }
+            }
         }
-    }
-    post {
-        always {
-            junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
-            // Archive test coverage reports
-            archiveArtifacts artifacts: '**/target/surefire-reports/**, **/target/site/jacoco/**', allowEmptyArchive: true
-        }
-        failure {
-            echo '❌ Backend tests failed!'
-        }
-        success {
-            echo '✅ Backend tests passed!'
-        }
-    }
-}
 
         stage('Frontend Tests') {
-    when {
-        expression { params.SKIP_TESTS == false }
-    }
-    steps {
-        echo '🧪 Running frontend tests (Karma/Jasmine)...'
-        dir('buy-01-ui') {
-            sh '''
-                export CHROME_BIN=/usr/bin/chromium
-                rm -rf node_modules package-lock.json
-                npm install --legacy-peer-deps
-                npx ng test --watch=false --browsers=ChromeHeadlessCI --code-coverage
-            '''
+            when { expression { params.SKIP_TESTS == false } }
+            steps {
+                echo '🧪 Running frontend tests (Karma/Jasmine)...'
+                dir('buy-01-ui') {
+                    sh '''
+                        export CHROME_BIN=/usr/bin/chromium
+                        rm -rf node_modules package-lock.json
+                        npm install --legacy-peer-deps
+                        npx ng test --watch=false --browsers=ChromeHeadlessCI --code-coverage
+                    '''
+                }
+            }
+            post {
+                always { archiveArtifacts artifacts: 'buy-01-ui/coverage/**', allowEmptyArchive: true }
+                failure { echo '❌ Frontend tests failed!' }
+                success { echo '✅ Frontend tests passed!' }
+            }
         }
-    }
-    post {
-        always {
-            // Archive frontend test coverage
-            archiveArtifacts artifacts: 'buy-01-ui/coverage/**', allowEmptyArchive: true
-        }
-        failure {
-            echo '❌ Frontend tests failed!'
-        }
-        success {
-            echo '✅ Frontend tests passed!'
-        }
-    }
-}
 
         stage('Code Quality Check') {
             when {
@@ -433,8 +413,6 @@ pipeline {
             echo "🧹 Cleaning up workspace..."
             // Archive build artifacts before cleanup
             archiveArtifacts artifacts: '**/target/*.jar', allowEmptyArchive: true, fingerprint: true
-        }
-        cleanup {
             cleanWs()
         }
     }

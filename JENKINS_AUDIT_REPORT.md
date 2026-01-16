@@ -1000,7 +1000,7 @@ git push
 cd /Users/saddam.hussain/Desktop/buy-01project/deployment
 ./test-rollback.sh
 # Trigger Jenkins build
-# Expected: Deployment fails, automatic rollback occurs
+# Expected: Deployment fails, automatic rollback occurs(make sure)
 cp docker-compose.yml.backup docker-compose.yml
 ```
 
