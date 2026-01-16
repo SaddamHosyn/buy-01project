@@ -169,10 +169,12 @@ pipeline {
             steps {
                 echo '📦 Building backend JAR files...'
                 script {
-                    def services = ['service-registry', 'user-service', 'product-service', 'media-service']
-                    for (service in services) {
-                        dir(service) {
-                            sh 'mvn clean package -DskipTests'
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        def services = ['service-registry', 'user-service', 'product-service', 'media-service']
+                        for (service in services) {
+                            dir(service) {
+                                sh 'mvn clean package -DskipTests'
+                            }
                         }
                     }
                 }
