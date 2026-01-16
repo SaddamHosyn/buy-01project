@@ -262,9 +262,8 @@ pipeline {
             steps {
                 echo "🚀 Deploying to ${params.DEPLOY_ENV} environment..."
                 script {
-                    if (env.DEPLOYMENT_FAILED != 'true') {
-                        env.DEPLOYMENT_FAILED = 'false'
-                    }
+                    // reset flag at stage start
+                    env.DEPLOYMENT_FAILED = 'false'
                     
                     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                         // Helper function: Wait for container to be running
@@ -366,40 +365,42 @@ pipeline {
                             error('❌ Deployment health check failed!')
                         }
                     }
-                    
-                    if (currentBuild.currentResult == 'FAILURE') {
-                        env.DEPLOYMENT_FAILED = 'true'
-                    }
+                }
+            }
+            post {
+                failure {
+                    script { env.DEPLOYMENT_FAILED = 'true' }
                 }
             }
         }
 
         stage('Rollback on Failure') {
-            when {
-                expression { env.DEPLOYMENT_FAILED == 'true' || currentBuild.currentResult == 'FAILURE' }
-            }
             steps {
                 script {
-                    echo "⚡ Rollback triggered - Build ${env.BUILD_NUMBER} failed!"
-                    echo "🔄 Rolling back to build ${PREVIOUS_BUILD}..."
-                    
-                    sh """
-                        # Retag cached images
-                        docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest 2>/dev/null || true
-                        docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest 2>/dev/null || true
-                        docker tag hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-user-service:latest 2>/dev/null || true
-                        docker tag hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-product-service:latest 2>/dev/null || true
-                        docker tag hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-media-service:latest 2>/dev/null || true
-                        docker tag hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} hussainsaddam/buy-01-frontend:latest 2>/dev/null || true
+                    if (env.DEPLOYMENT_FAILED == 'true' || currentBuild.currentResult == 'FAILURE') {
+                        echo "⚡ Rollback triggered - Build ${env.BUILD_NUMBER} failed!"
+                        echo "🔄 Rolling back to build ${PREVIOUS_BUILD}..."
                         
-                        # Rolling restart
-                        cd deployment
-                        docker-compose up -d --no-deps --force-recreate service-registry &
-                        sleep 2
-                        docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
-                    """
-                    sleep 3
-                    echo "✅ Rollback to build ${PREVIOUS_BUILD} completed successfully"
+                        sh """
+                            # Retag cached images
+                            docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest 2>/dev/null || true
+                            docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest 2>/dev/null || true
+                            docker tag hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-user-service:latest 2>/dev/null || true
+                            docker tag hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-product-service:latest 2>/dev/null || true
+                            docker tag hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-media-service:latest 2>/dev/null || true
+                            docker tag hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} hussainsaddam/buy-01-frontend:latest 2>/dev/null || true
+                            
+                            # Rolling restart
+                            cd deployment
+                            docker-compose up -d --no-deps --force-recreate service-registry &
+                            sleep 2
+                            docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
+                        """
+                        sleep 3
+                        echo "✅ Rollback to build ${PREVIOUS_BUILD} completed successfully"
+                    } else {
+                        echo "✅ Build healthy - Rollback skipped"
+                    }
                 }
             }
         }
