@@ -385,19 +385,17 @@ pipeline {
         }
 
         stage('Rollback on Failure') {
-            when {
-                expression {
-                    // Always run if deployment was attempted
-                    // Check deployment flag to decide if rollback needed
-                    return env.DEPLOYMENT_FAILED == 'true'
-                }
-            }
             steps {
                 script {
-                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                    echo "⚡ ROLLBACK TRIGGERED!"
-                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                    echo "❌ Build #${env.BUILD_NUMBER} deployment FAILED"
+                    if (env.DEPLOYMENT_FAILED == 'true') {
+                        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                        echo "⚡ ROLLBACK TRIGGERED!"
+                        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                        echo "❌ Build #${env.BUILD_NUMBER} deployment FAILED"
+                        echo "🔄 Rolling back to stable build #${PREVIOUS_BUILD}"
+                        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                        
+                        catchError(buildResult: 'FAILURE', stageResult: 'SUCCESS') {
                     echo "🔄 Rolling back to stable build #${PREVIOUS_BUILD}"
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                     
@@ -417,13 +415,16 @@ pipeline {
                             sleep 2
                             docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
                         """
+                        }
+                        sleep 3
+                        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                        echo "✅ Rollback completed successfully!"
+                        echo "🎯 System restored to build #${PREVIOUS_BUILD}"
+                        echo "📊 All services running stable version"
+                        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                    } else {
+                        echo "✅ No deployment failure - Rollback not needed"
                     }
-                    sleep 3
-                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                    echo "✅ Rollback completed successfully!"
-                    echo "🎯 System restored to build #${PREVIOUS_BUILD}"
-                    echo "📊 All services running stable version"
-                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                 }
             }
         }
