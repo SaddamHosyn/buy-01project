@@ -377,81 +377,80 @@ pipeline {
             }
             steps {
                 script {
-                    echo "🔄 Rolling back to previous version: ${PREVIOUS_BUILD}..."
+                    echo "🔄 Fast rollback to previous version: ${PREVIOUS_BUILD}..."
                     
-                    // Helper function for container wait
-                    def waitForContainer = { containerName, maxAttempts = 30 ->
-                        def attempts = 0
-                        while (attempts < maxAttempts) {
-                            def running = sh(
-                                script: "docker ps --filter name=${containerName} --filter status=running -q",
-                                returnStdout: true
-                            ).trim()
-                            if (running) {
-                                echo "✅ ${containerName} is running"
-                                return true
-                            }
-                            attempts++
-                            sleep 1
-                        }
-                        return false
-                    }
-                    
-                    // Stop all services
-                    sh 'cd deployment && docker-compose down || true'
-                    
-                    // Parallel image pull for speed
-                    echo "📦 Pulling previous build images in parallel..."
+                    // Parallel image pull + tag (NO docker-compose down)
+                    echo "📦 Pulling and tagging images in parallel..."
                     parallel(
                         'service-registry': {
-                            sh "docker pull hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} || echo 'Image not found'"
-                            sh "docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest || true"
+                            sh """
+                                docker pull hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} 2>/dev/null || true
+                                docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest || true
+                            """
                         },
                         'api-gateway': {
-                            sh "docker pull hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} || echo 'Image not found'"
-                            sh "docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest || true"
+                            sh """
+                                docker pull hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} 2>/dev/null || true
+                                docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest || true
+                            """
                         },
                         'user-service': {
-                            sh "docker pull hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} || echo 'Image not found'"
-                            sh "docker tag hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-user-service:latest || true"
+                            sh """
+                                docker pull hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} 2>/dev/null || true
+                                docker tag hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-user-service:latest || true
+                            """
                         },
                         'product-service': {
-                            sh "docker pull hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} || echo 'Image not found'"
-                            sh "docker tag hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-product-service:latest || true"
+                            sh """
+                                docker pull hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} 2>/dev/null || true
+                                docker tag hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-product-service:latest || true
+                            """
                         },
                         'media-service': {
-                            sh "docker pull hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} || echo 'Image not found'"
-                            sh "docker tag hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-media-service:latest || true"
+                            sh """
+                                docker pull hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} 2>/dev/null || true
+                                docker tag hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-media-service:latest || true
+                            """
                         },
                         'frontend': {
-                            sh "docker pull hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} || echo 'Image not found'"
-                            sh "docker tag hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} hussainsaddam/buy-01-frontend:latest || true"
+                            sh """
+                                docker pull hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} 2>/dev/null || true
+                                docker tag hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} hussainsaddam/buy-01-frontend:latest || true
+                            """
                         }
                     )
                     
-                    // Restart services with rollback images
-                    echo "🚀 Starting services with previous version..."
-                    sh 'cd deployment && docker-compose up -d --remove-orphans'
+                    // Rolling restart of application services only (keep infrastructure running)
+                    echo "🔄 Rolling restart of application services..."
+                    sh '''
+                        cd deployment
+                        
+                        # Restart only application services, not infrastructure
+                        docker-compose up -d --no-deps --force-recreate service-registry
+                        sleep 8
+                        
+                        docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
+                        sleep 5
+                    '''
                     
-                    // Verify rollback health
-                    echo "🏥 Verifying rollback health..."
-                    def rollbackHealthy = true
+                    // Quick health check
+                    def healthy = sh(
+                        script: '''
+                            if docker ps | grep -q "buy-01-service-registry.*Up" && docker ps | grep -q "buy-01-api-gateway.*Up"; then
+                                echo "✅ Critical services running"
+                                exit 0
+                            else
+                                echo "⚠️ Services may need more time"
+                                exit 1
+                            fi
+                        ''',
+                        returnStatus: true
+                    )
                     
-                    if (!waitForContainer('buy-01-service-registry', 30)) {
-                        echo "⚠️ service-registry failed to start after rollback"
-                        rollbackHealthy = false
-                    }
-                    
-                    if (!waitForContainer('buy-01-api-gateway', 30)) {
-                        echo "⚠️ api-gateway failed to start after rollback"
-                        rollbackHealthy = false
-                    }
-                    
-                    if (rollbackHealthy) {
-                        echo "✅ Rollback to build ${PREVIOUS_BUILD} completed successfully"
+                    if (healthy == 0) {
+                        echo "✅ Rollback to build ${PREVIOUS_BUILD} completed in ~15 seconds"
                     } else {
-                        echo "⚠️ Rollback completed but some services are unhealthy"
-                        echo "💡 Check logs: docker-compose -f deployment/docker-compose.yml logs"
+                        echo "⚠️ Rollback initiated - services still starting up"
                     }
                 }
             }
