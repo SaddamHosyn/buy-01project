@@ -21,7 +21,7 @@ public class UserServiceTest {
 
     @Test
     public void testForcedBackendFailureForRollbackDemo() {
-        // Intentional failure to trigger pipeline rollback demo
-        assertEquals(1, 2, "Forcing backend test failure to verify rollback");
+        // Test now passes - rollback demo completed
+        assertEquals(1, 1, "Rollback verification complete");
     }
 }
