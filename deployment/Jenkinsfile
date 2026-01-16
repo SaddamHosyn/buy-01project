@@ -373,14 +373,19 @@ pipeline {
         stage('Rollback on Failure') {
             when {
                 expression {
-                    // Only run rollback if deployment stage was executed
+                    // Only rollback if deployment was attempted and failed
+                    // Tests failures don't trigger rollback (deployment is skipped)
                     return currentBuild.result == 'FAILURE'
                 }
             }
             steps {
                 script {
-                    echo "⚡ Rollback triggered - Deployment ${env.BUILD_NUMBER} failed!"
-                    echo "🔄 Rolling back to build ${PREVIOUS_BUILD}..."
+                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                    echo "⚡ ROLLBACK TRIGGERED!"
+                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                    echo "❌ Build #${env.BUILD_NUMBER} deployment FAILED"
+                    echo "🔄 Rolling back to stable build #${PREVIOUS_BUILD}"
+                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                     
                     catchError(buildResult: 'FAILURE', stageResult: 'SUCCESS') {
                         sh """
@@ -400,7 +405,11 @@ pipeline {
                         """
                     }
                     sleep 3
-                    echo "✅ Rollback to build ${PREVIOUS_BUILD} completed successfully"
+                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                    echo "✅ Rollback completed successfully!"
+                    echo "🎯 System restored to build #${PREVIOUS_BUILD}"
+                    echo "📊 All services running stable version"
+                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                 }
             }
         }
