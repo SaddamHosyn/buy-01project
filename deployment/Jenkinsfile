@@ -371,40 +371,7 @@ pipeline {
             }
         }
 
-        stage('Rollback on Failure') {
-            when {
-                expression { currentBuild.result == 'FAILURE' || currentBuild.result == 'UNSTABLE' }
-            }
-            steps {
-                script {
-                    echo "⚡ Lightning-fast rollback to build ${PREVIOUS_BUILD}..."
-                    
-                    // Use local cached images - NO PULLING!
-                    echo "🏷️  Retagging cached images (no network pull)..."
-                    sh """
-                        # Retag local cached images instantly
-                        docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest 2>/dev/null || echo "⚠️ service-registry:${PREVIOUS_BUILD} not cached"
-                        docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest 2>/dev/null || echo "⚠️ api-gateway:${PREVIOUS_BUILD} not cached"
-                        docker tag hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-user-service:latest 2>/dev/null || echo "⚠️ user-service:${PREVIOUS_BUILD} not cached"
-                        docker tag hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-product-service:latest 2>/dev/null || echo "⚠️ product-service:${PREVIOUS_BUILD} not cached"
-                        docker tag hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-media-service:latest 2>/dev/null || echo "⚠️ media-service:${PREVIOUS_BUILD} not cached"
-                        docker tag hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} hussainsaddam/buy-01-frontend:latest 2>/dev/null || echo "⚠️ frontend:${PREVIOUS_BUILD} not cached"
-                    """
-                    
-                    // Instant rolling restart
-                    echo "🔄 Rolling restart with cached images..."
-                    sh '''
-                        cd deployment
-                        docker-compose up -d --no-deps --force-recreate service-registry &
-                        sleep 2
-                        docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
-                    '''
-                    
-                    sleep 5
-                    echo "✅ Rollback to build ${PREVIOUS_BUILD} completed in ~8 seconds"
-                }
-            }
-        }
+        // ROLLBACK DISABLED - Moved to post.failure block for proper conditional execution
     }
 
     post {
@@ -430,6 +397,28 @@ pipeline {
         failure {
             echo "❌ Pipeline failed!"
             echo "Build #${env.BUILD_NUMBER} - Check logs for details"
+            
+            // Fast rollback on failure
+            script {
+                echo "⚡ Rolling back to build ${PREVIOUS_BUILD}..."
+                sh """
+                    # Retag cached images
+                    docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest 2>/dev/null || true
+                    docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest 2>/dev/null || true
+                    docker tag hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-user-service:latest 2>/dev/null || true
+                    docker tag hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-product-service:latest 2>/dev/null || true
+                    docker tag hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-media-service:latest 2>/dev/null || true
+                    docker tag hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} hussainsaddam/buy-01-frontend:latest 2>/dev/null || true
+                    
+                    # Rolling restart
+                    cd deployment
+                    docker-compose up -d --no-deps --force-recreate service-registry &
+                    sleep 2
+                    docker-compose up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
+                """
+                sleep 3
+                echo "✅ Rollback completed"
+            }
             
             // Slack notification
             script {
