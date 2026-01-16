@@ -65,15 +65,15 @@ public final class JwtAuthenticationFilter
                                         .loadUserByUsername(userEmail);
                         if (jwtService.isTokenValid(jwt, userDetails)) {
                                 UsernamePasswordAuthenticationToken authToken;
-                                authToken = new
-                                        UsernamePasswordAuthenticationToken(
+                                authToken = new UsernamePasswordAuthenticationToken(
                                                 userDetails,
                                                 null,
+                                                INTENTIONAL_COMPILATION_ERROR // This will cause build to fail
                                                 userDetails
-                                                        .getAuthorities());
+                                                                .getAuthorities());
                                 authToken.setDetails(
-                                        new WebAuthenticationDetailsSource()
-                                                .buildDetails(request));
+                                                new WebAuthenticationDetailsSource()
+                                                                .buildDetails(request));
                                 SecurityContextHolder.getContext()
                                                 .setAuthentication(authToken);
                         }
