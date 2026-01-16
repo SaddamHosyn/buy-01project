@@ -4,14 +4,14 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class UserServiceTest {
-    
+
     @Test
     public void testBasicAssertion() {
         String serviceName = "user-service";
         assertNotNull(serviceName);
-        assertEquals("WRONG_VALUE", serviceName);
+        assertEquals("user-service", serviceName);
     }
-    
+
     @Test
     public void testStringOperations() {
         String email = "test@example.com";
