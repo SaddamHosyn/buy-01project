@@ -31,7 +31,8 @@ public class RegisterRequest {
          * User's display name.
          */
         @NotNull(message = "Name is required")
-        @Size(min = 2, max = NAME_MAX_LENGTH, message = "Name must be between 2 "
+        @Size(min = 2, max = NAME_MAX_LENGTH,
+                message = "Name must be between 2 "
                         + "and 50 characters")
         private String name;
 
@@ -40,14 +41,16 @@ public class RegisterRequest {
          */
         @NotNull(message = "Email is required")
         @Email(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+"
-                        + "\\.[a-zA-Z]{2,}$", message = "Invalid email format")
+                + "\\.[a-zA-Z]{2,}$",
+                message = "Invalid email format")
         private String email;
 
         /**
          * User's password.
          */
         @NotNull(message = "Password is required")
-        @Size(min = PASSWORD_MIN_LENGTH, max = PASSWORD_MAX_LENGTH, message = "Password must be at least 8 characters")
+        @Size(min = PASSWORD_MIN_LENGTH, max = PASSWORD_MAX_LENGTH,
+                message = "Password must be at least 8 characters")
         private String password;
 
         /**
