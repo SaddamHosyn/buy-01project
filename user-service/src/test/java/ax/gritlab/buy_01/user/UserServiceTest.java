@@ -9,7 +9,7 @@ public class UserServiceTest {
     public void testBasicAssertion() {
         String serviceName = "user-service";
         assertNotNull(serviceName);
-        assertEquals("user-service", serviceName);
+        assertEquals("WRONG_VALUE", serviceName);
     }
     
     @Test
