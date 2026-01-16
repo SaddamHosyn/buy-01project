@@ -25,7 +25,6 @@ This project demonstrates a **production-ready CI/CD pipeline** with comprehensi
 
 ### Minor Improvements Needed:
 
-⚠️ SCM polling only (webhooks would be instant)  
 ⚠️ Security could use Matrix-based permissions (currently simple RBAC)
 
 ---
