@@ -359,6 +359,9 @@ pipeline {
         }
 
         stage('Rollback on Failure') {
+            when {
+                expression { return true }
+            }
             steps {
                 script {
                     // Check if any previous stage failed
