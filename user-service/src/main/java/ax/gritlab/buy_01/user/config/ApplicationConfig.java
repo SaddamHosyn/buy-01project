@@ -15,14 +15,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
  * Application configuration for security and authentication.
- * INTENTIONAL ERROR: This line is way too long and will fail Checkstyle validation because it exceeds the 80 character limit
  */
 @Configuration
 @RequiredArgsConstructor
 public final class ApplicationConfig {
 
     /** User repository for database access. */
-    private final UserRepository userRepository;
+    private final UserRepository userRepository  // SYNTAX ERROR - missing semicolon
 
     /**
      * Provides UserDetailsService for loading user-specific data.
