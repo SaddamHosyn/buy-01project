@@ -42,7 +42,9 @@ public final class ApplicationConfig {
      */
     @Bean
     public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(); // This line is intentionally way too long to trigger Checkstyle failure and test rollback
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(); // This line is intentionally way too
+                                                                                  // long to trigger Checkstyle failure
+                                                                                  // and test rollback
         authProvider.setUserDetailsService(userDetailsService());
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;

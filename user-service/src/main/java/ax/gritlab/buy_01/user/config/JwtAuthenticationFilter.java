@@ -68,7 +68,6 @@ public final class JwtAuthenticationFilter
                                 authToken = new UsernamePasswordAuthenticationToken(
                                                 userDetails,
                                                 null,
-                                                INTENTIONAL_COMPILATION_ERROR // This will cause build to fail
                                                 userDetails
                                                                 .getAuthorities());
                                 authToken.setDetails(
