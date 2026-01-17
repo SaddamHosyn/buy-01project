@@ -1,10 +1,7 @@
 # ==============================================================================
 # Jenkins Docker Image with Full CI/CD Toolchain
 # ==============================================================================
-# Purpose: Custom Jenkins image pre-configured with all tools needed to build,
-#          test, and deploy the Buy-01 microservices application.
-#
-# ==============================================================================
+
 
 FROM jenkins/jenkins:lts
 
@@ -14,12 +11,7 @@ USER root
 # ==============================================================================
 # Install CI/CD Dependencies
 # ==============================================================================
-# - docker.io & docker-compose: Build and push container images
-# - maven: Compile and test Java microservices
-# - nodejs: Build Angular frontend application
-# - chromium: Run headless browser tests for frontend
-# - Supporting libs: Required for Chromium to run in headless mode
-# ==============================================================================
+
 RUN apt-get update && \
     apt-get install -y \
     docker.io \
@@ -52,19 +44,12 @@ RUN apt-get update && \
 # ==============================================================================
 # Chrome/Chromium Configuration for Headless Testing
 # ==============================================================================
-# CHROME_BIN: Tells Karma where to find Chrome binary
-# CHROMIUM_FLAGS: Required flags for running in containerized environment
-# ==============================================================================
+
 ENV CHROME_BIN=/usr/bin/chromium
 ENV CHROMIUM_FLAGS="--no-sandbox --disable-dev-shm-usage"
 
 # ==============================================================================
 # Docker Socket Permissions
-# ==============================================================================
-# Jenkins needs access to Docker socket to build/push images.
-# We create a docker group (GID 999) matching host's docker group,
-# then add jenkins user to both docker and root groups.
-# This enables Docker-in-Docker without running as root.
 # ==============================================================================
 RUN groupadd -g 999 docker || true && \
     usermod -aG docker jenkins && \

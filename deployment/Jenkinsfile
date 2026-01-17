@@ -2,8 +2,6 @@
 // Buy-01 E-Commerce Platform - Jenkins CI/CD Pipeline
 // =============================================================================
 // Purpose: Automated build, test, and deployment pipeline for microservices
-//
-//
 // =============================================================================
 
 pipeline {
@@ -37,9 +35,6 @@ pipeline {
     // =========================================================================
     // Triggers - How the pipeline gets started
     // =========================================================================
-    // githubPush(): Instant trigger via GitHub webhook (< 5 seconds)
-    // Requires webhook configured in GitHub: http://<jenkins>/github-webhook/
-    // =========================================================================
     triggers {
         githubPush()
     }
@@ -59,12 +54,7 @@ pipeline {
         // =====================================================================
         // Stage 2: Secret Scanning - Security check for leaked credentials
         // =====================================================================
-        // Scans source files for accidentally committed secrets:
-        //   - API keys (30+ character strings)
-        //   - Private key files (.pem, .key)
-        // Excludes: deployment/, target/, node_modules/ directories
-        // Result: FAILS build if secrets are detected
-        // =====================================================================
+ 
         stage('Secret Scanning') {
             steps {
                 echo '🔍 Scanning for accidentally committed secrets...'
@@ -97,11 +87,7 @@ pipeline {
         // =====================================================================
         // Stage 3: Backend Tests - JUnit tests for Java microservices
         // =====================================================================
-        // Runs: mvn clean test for user-service, product-service, media-service
-        // Reports: JUnit XML results archived for Jenkins test trend
-        // Coverage: JaCoCo reports archived for code coverage analysis
-        // Skip: Set SKIP_TESTS=true to bypass (for faster builds)
-        // =====================================================================
+  
         stage('Backend Tests') {
             when { expression { params.SKIP_TESTS == false } }
             steps {
@@ -129,10 +115,7 @@ pipeline {
         // =====================================================================
         // Stage 4: Frontend Tests - Karma/Jasmine tests for Angular app
         // =====================================================================
-        // Runs: Angular tests with headless Chromium browser
-        // Coverage: Istanbul/NYC coverage reports archived
-        // Browser: ChromeHeadlessCI (containerized, no sandbox)
-        // =====================================================================
+   
         stage('Frontend Tests') {
             when { expression { params.SKIP_TESTS == false } }
             steps {
@@ -160,11 +143,7 @@ pipeline {
         // =====================================================================
         // Stage 5: Code Quality Check - Static code analysis
         // =====================================================================
-        // Tool: Maven Checkstyle plugin with Sun Java coding standards
-        // Checks: Line length, indentation, naming conventions, Javadoc
-        // Result: UNSTABLE (yellow) on violations - does not fail build
-        // Reports: checkstyle-result.xml archived for review
-        // =====================================================================
+   
         stage('Code Quality Check') {
             when {
                 expression { params.SKIP_TESTS == false }
@@ -196,10 +175,7 @@ pipeline {
         // =====================================================================
         // Stage 6: Build Backend JARs - Compile Java microservices
         // =====================================================================
-        // Builds: service-registry, user-service, product-service, media-service
-        // Command: mvn clean package -DskipTests (tests already ran)
-        // Output: target/*.jar files for Docker image building
-        // =====================================================================
+     
         stage('Build Backend JARs') {
             steps {
                 echo '📦 Building backend JAR files...'
@@ -219,14 +195,7 @@ pipeline {
         // =====================================================================
         // Stage 7: Build Docker Images - Create container images
         // =====================================================================
-        // Builds 6 images in PARALLEL for speed:
-        //   - service-registry, api-gateway, user-service
-        //   - product-service, media-service, frontend
-        // Tags: Each image gets two tags:
-        //   - :latest (for easy deployment)
-        //   - :${BUILD_VERSION} (for rollback capability)
-        // catchError: Allows pipeline to continue to Rollback on failure
-        // =====================================================================
+   
         stage('Build Docker Images') {
             steps {
                 echo "🐳 Building Docker Images in parallel with tag: ${BUILD_VERSION}..."
@@ -260,12 +229,7 @@ pipeline {
         // =====================================================================
         // Stage 8: Push to Docker Hub - Upload images to registry
         // =====================================================================
-        // Authentication: Uses docker-hub-credentials from Jenkins
-        // Pushes: Both :latest and :${BUILD_VERSION} tags for each image
-        // Parallel: All 6 services pushed simultaneously
-        // Retry: media-service has retry(3) for large image uploads
-        // catchError: Allows pipeline to continue to Rollback on failure
-        // =====================================================================
+    
         stage('Push to Docker Hub') {
             steps {
                 echo "🚀 Pushing images to Docker Hub in parallel..."
@@ -319,12 +283,7 @@ pipeline {
         // =====================================================================
         // Stage 9: Deploy - Start services with docker-compose
         // =====================================================================
-        // Condition: Only runs if all previous stages succeeded
-        // Strategy: Smart deployment - only restarts app services, keeps
-        //           infrastructure (Zookeeper, MongoDB, Kafka) running
-        // Health Check: Verifies containers are running before completing
-        // Failure: Sets DEPLOYMENT_FAILED flag to trigger Rollback stage
-        // =====================================================================
+  
         stage('Deploy') {
             when {
                 expression { (currentBuild.currentResult == null || currentBuild.currentResult == 'SUCCESS') && env.DEPLOYMENT_FAILED != 'true' }
@@ -339,9 +298,7 @@ pipeline {
                         // =========================================================
                         // Helper: Wait for container to reach "Up" status
                         // =========================================================
-                        // Polls docker ps every 1 second up to maxAttempts times
-                        // Sets DEPLOYMENT_FAILED=true if container fails to start
-                        // =========================================================
+                   
                         def waitForContainer = { String containerName, int maxAttempts ->
                             def attempt = 0
                             def isRunning = false
@@ -374,9 +331,7 @@ pipeline {
                         // =========================================================
                         // Helper: Wait for HTTP health endpoint to respond
                         // =========================================================
-                        // Polls health URL every 2 seconds up to maxAttempts times
-                        // Non-blocking: Only logs warning if health check fails
-                        // =========================================================
+                     
                         def waitForServiceHealth = { String healthUrl, int maxAttempts ->
                             def attempt = 0
                             def isHealthy = false
@@ -408,13 +363,7 @@ pipeline {
                         // =========================================================
                         // Smart Deployment Strategy
                         // =========================================================
-                        // 1. Keep infrastructure running (Zookeeper, MongoDB, Kafka)
-                        // 2. Restart service-registry first (other services depend on it)
-                        // 3. Restart remaining app services with new images
-                        // --no-deps: Don't restart dependencies
-                        // --force-recreate: Replace containers even if config unchanged
-                        // -p buy-01: Use consistent project name to match existing containers
-                        // =========================================================
+            
                         echo "🚀 Deploying application services..."
                         sh '''
                             # Robust pre-clean: forcibly remove any containers with conflicting names
@@ -432,10 +381,7 @@ pipeline {
                         // =========================================================
                         // Quick Health Verification
                         // =========================================================
-                        // Verifies critical services are running before completing
-                        // Checks: service-registry, api-gateway container status
-                        // Sets DEPLOYMENT_FAILED=true on failure for Rollback
-                        // =========================================================
+                   
                         echo "🔍 Verifying deployment..."
                         def healthCheck = sh(
                             script: '''
@@ -473,13 +419,7 @@ pipeline {
         // =====================================================================
         // Stage 10: Rollback - Restore previous working version
         // =====================================================================
-        // Trigger: Executes when any previous stage has FAILURE result
-        // Strategy:
-        //   1. Re-tag previous build images as :latest
-        //   2. Restart services with docker-compose to use previous images
-        // Versioning: Uses PREVIOUS_BUILD number (current - 1)
-        // Note: Rollback images must exist from prior successful build
-        // =====================================================================
+     
         stage('Rollback') {
             when {
                 expression { currentBuild.result == 'FAILURE' || currentBuild.currentResult == 'FAILURE' }
