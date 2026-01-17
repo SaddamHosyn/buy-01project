@@ -1,9 +1,7 @@
 # ==============================================================================
 # Jenkins CI/CD Server - Docker Compose Configuration
 # ==============================================================================
-# Purpose: Runs Jenkins server in a Docker container with full access to build,
-# test, and deploy the Buy-01 microservices application.
-# ==============================================================================
+
 
 services:
   jenkins-master:
@@ -17,18 +15,14 @@ services:
     # ===========================================================================
     # Security & Permissions
     # ===========================================================================
-    # privileged: Required for Docker-in-Docker operations.
-    # user: root: Needed to access Docker socket and manage containers.
-    # ===========================================================================
+   
     privileged: true
     user: root
     
     # ===========================================================================
     # Port Mappings
     # ===========================================================================
-    # 8086:8080 - Jenkins Web UI (mapped to 8086 to avoid conflicts with API Gateway)
-    # 50000:50000 - Jenkins agent communication port (for distributed builds)
-    # ===========================================================================
+   
     ports:
       - "8086:8080"
       - "50000:50000"
