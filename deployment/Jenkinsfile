@@ -417,6 +417,8 @@ pipeline {
                         // =========================================================
                         echo "🚀 Deploying application services..."
                         sh '''
+                            # Remove any existing containers for a clean deploy
+                            docker-compose -p buy-01 down || true
                             # Keep infrastructure running (Zookeeper, MongoDB, Kafka)
                             # Only restart application services with new images
                             docker-compose -p buy-01 up -d --no-deps --force-recreate service-registry
@@ -499,6 +501,8 @@ pipeline {
                     // Use -p buy-01 to match existing container names (buy-01-service-registry, etc.)
                     // --remove-orphans prevents conflicts with containers from different project contexts
                     sh """
+                        # Remove any existing containers for a clean rollback
+                        docker-compose -p buy-01 down || true
                         docker-compose -p buy-01 up -d --no-deps --force-recreate --remove-orphans service-registry &
                         sleep 2
                         docker-compose -p buy-01 up -d --no-deps --force-recreate --remove-orphans api-gateway user-service product-service media-service frontend
