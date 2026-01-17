@@ -38,6 +38,10 @@ target/
 .vscode/
 *.iml
 
+# Local/utility scripts not needed in repo
+docker.sh
+build-for-mac.sh
+
 # OS files
 Thumbs.db
 .DS_Store
@@ -103,3 +107,13 @@ db.json
 *.pem
 server.crt
 server.key
+ 
+
+ **/uploads/
+*.wt
+*.bson
+mongod.lock
+diagnostic.data
+journal/
+node_modules/
+target/
