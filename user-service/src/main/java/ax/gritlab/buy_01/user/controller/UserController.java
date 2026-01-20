@@ -32,11 +32,25 @@ public final class UserController {
      * @param authentication authentication context
      * @return user profile response
      */
+
+    /*
+     * 
+     * 
+     * @GetMapping("/me")
+     * public ResponseEntity<UserProfileResponse> getMyProfile(
+     * final Authentication authentication) {
+     * User user = (User) authentication.getPrincipal();
+     * return ResponseEntity.ok(userService.getProfile(user));
+     * }
+     * 
+     * 
+     */
+
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getMyProfile(
             final Authentication authentication) {
-        User user = (User) authentication.getPrincipal();
-        return ResponseEntity.ok(userService.getProfile(user));
+        throw new RuntimeException("Intentional failure for rollback test");
+
     }
 
     /**
