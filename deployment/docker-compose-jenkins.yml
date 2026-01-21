@@ -1,64 +1,74 @@
-# ==============================================================================
-# Jenkins CI/CD Server - Docker Compose Configuration
-# ==============================================================================
-
+version: '3.8'
 
 services:
+  # ===========================================================================
+  # Jenkins Master (Existing + Configured for SafeZone)
+  # ===========================================================================
   jenkins-master:
-    # Build custom Jenkins image from Dockerfile.jenkins
-    # Includes: Docker, Maven, Node.js, Chromium for full CI/CD capability
     build:
       context: .
       dockerfile: Dockerfile.jenkins
     container_name: jenkins-master
-    
-    # ===========================================================================
-    # Security & Permissions
-    # ===========================================================================
-   
     privileged: true
     user: root
-    
-    # ===========================================================================
-    # Port Mappings
-    # ===========================================================================
-   
     ports:
-      - "8086:8080"
-      - "50000:50000"
-    
-    # ===========================================================================
-    # Volume Mounts
-    # ===========================================================================
-  
+      - "8086:8080"   # Jenkins UI
+      - "50000:50000" # Jenkins Agents
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
       - ..:/workspace
-    
-    # Connect to the same network as application services
     networks:
       - buy-01-network
-    
-    # ===========================================================================
-    # Environment Variables
-    # ===========================================================================
-
     environment:
       - DOCKER_HOST=unix:///var/run/docker.sock
-      - JAVA_OPTS=-Djenkins.install.runSetupWizard=true
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
 
-# ==============================================================================
-# Named Volumes
-# ==============================================================================
+  # ===========================================================================
+  # SonarQube Server (New - SafeZone Requirement)
+  # ===========================================================================
+  sonarqube:
+    image: sonarqube:lts-community
+    container_name: sonarqube
+    depends_on:
+      - sonarqube-db
+    ports:
+      - "9000:9000"   # SonarQube UI
+    networks:
+      - buy-01-network
+    environment:
+      - SONAR_JDBC_URL=jdbc:postgresql://sonarqube-db:5432/sonar
+      - SONAR_JDBC_USERNAME=sonar
+      - SONAR_JDBC_PASSWORD=sonar
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+
+  # ===========================================================================
+  # SonarQube Database (New - SafeZone Requirement)
+  # ===========================================================================
+  sonarqube-db:
+    image: postgres:15
+    container_name: sonarqube-db
+    networks:
+      - buy-01-network
+    environment:
+      - POSTGRES_USER=sonar
+      - POSTGRES_PASSWORD=sonar
+      - POSTGRES_DB=sonar
+    volumes:
+      - sonarqube_db:/var/lib/postgresql/data
+
 volumes:
   jenkins_home:
     external: true
     name: jenkins_home
-
-# ==============================================================================
-# Networks
-# ==============================================================================
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+  sonarqube_db:
 
 networks:
   buy-01-network:

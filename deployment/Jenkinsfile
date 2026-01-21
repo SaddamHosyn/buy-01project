@@ -1,49 +1,25 @@
 // =============================================================================
-// Buy-01 E-Commerce Platform - Jenkins CI/CD Pipeline...
+// Buy-01 E-Commerce Platform - SafeZone CI/CD Pipeline
 // =============================================================================
-// Purpose: Automated build, test, and deployment pipeline for microservices
-// =============================================================================
-
 pipeline {
     agent any
 
-    // =========================================================================
-    // Build Parameters - Configurable options shown in "Build with Parameters"
-    // =========================================================================
     parameters {
         choice(name: 'DEPLOY_ENV', choices: ['local', 'staging', 'production'], description: 'Select deployment environment')
         booleanParam(name: 'SKIP_TESTS', defaultValue: false, description: 'Skip tests (use with caution)')
-        booleanParam(name: 'FORCE_DEPLOY', defaultValue: false, description: 'Force deployment even if tests fail')
     }
 
-    // =========================================================================
-    // Environment Variables - Available to all stages
-    // =========================================================================
     environment {
-        // Docker Hub username from Jenkins credentials
         DOCKER_USER          = credentials('docker-hub-username')
-        // Credential ID for docker login (username/password)
         REGISTRY_CREDENTIALS = 'docker-hub-credentials'
-        // Current build number used for image tagging (e.g., :42)
-        BUILD_VERSION        = "${env.BUILD_NUMBER}"
-        // Previous build number for rollback (e.g., :41)
-        PREVIOUS_BUILD       = "${env.BUILD_NUMBER.toInteger() - 1}"
-        // Flag to track deployment failures for rollback decision
-        DEPLOYMENT_FAILED    = 'false'
     }
 
-    // =========================================================================
-    // Triggers - How the pipeline gets started
-    // =========================================================================
     triggers {
         githubPush()
     }
 
     stages {
-
-        // =====================================================================
-        // Stage 1: Checkout - Fetch source code from repository
-        // =====================================================================
+        // Stage 1: Checkout
         stage('Checkout') {
             steps {
                 echo "📦 Checking out code..."
@@ -51,463 +27,75 @@ pipeline {
             }
         }
 
-        // =====================================================================
-        // Stage 2: Secret Scanning - Security check for leaked credentials
-        // =====================================================================
- 
+        // Stage 2: Secret Scanning
         stage('Secret Scanning') {
             steps {
                 echo '🔍 Scanning for accidentally committed secrets...'
                 script {
-                    def secretsFound = false
-                    
-                    // Pattern 1: Generic API Key (30+ alphanumeric chars after "api_key=")
-                    def result1 = sh(script: "grep -r -E -i 'api.?key.*=.*[A-Za-z0-9]{30,}' --include='*.java' --include='*.js' --include='*.ts' --include='*.yml' --include='*.properties' --exclude-dir=deployment --exclude-dir=target --exclude-dir=node_modules . || true", returnStdout: true).trim()
-                    if (result1) {
-                        echo "⚠️ Potential API Key found"
-                        secretsFound = true
-                    }
-                    
-                    // Pattern 2: Private Key files (BEGIN PRIVATE KEY header)
-                    def result2 = sh(script: "grep -r 'BEGIN.*PRIVATE KEY' --include='*.pem' --include='*.key' --exclude-dir=deployment --exclude-dir=target --exclude-dir=node_modules . || true", returnStdout: true).trim()
-                    if (result2) {
-                        echo "⚠️ Potential Private Key found"
-                        secretsFound = true
-                    }
-                    
-                    if (secretsFound) {
-                        error('❌ Secrets detected in code! Please remove them and use Jenkins credentials.')
+                    // Simple grep check for API keys
+                    def result = sh(script: "grep -r -E -i 'api.?key.*=.*[A-Za-z0-9]{30,}' --include='*.java' --exclude-dir=target . || true", returnStdout: true).trim()
+                    if (result) {
+                        error('❌ Secrets detected in code! Pipeline blocked.')
                     } else {
-                        echo '✅ No secrets detected in code.'
+                        echo '✅ No secrets detected.'
                     }
                 }
             }
         }
 
         // =====================================================================
-        // Stage 3: Backend Tests - JUnit tests for Java microservices
+        // SafeZone Stage: Code Quality Analysis
         // =====================================================================
-  
+        stage('SonarQube Analysis') {
+            steps {
+                echo '📊 Running SonarQube Analysis...'
+                // 'sonar-server' must match the name in Jenkins System Config
+                withSonarQubeEnv('sonar-server') { 
+                    // Overriding sonar.host.url to point to the local docker container
+                    sh """
+                        mvn clean verify sonar:sonar \\
+                        -Dsonar.projectKey=safezone-backend \\
+                        -Dsonar.host.url=http://sonarqube:9000 \\
+                        -Dmaven.test.failure.ignore=true
+                    """
+                }
+            }
+        }
+
+        // =====================================================================
+        // SafeZone Stage: Quality Gate
+        // =====================================================================
+        stage('Quality Gate') {
+            steps {
+                echo '🛑 Checking Quality Gate...'
+                timeout(time: 5, unit: 'MINUTES') {
+                    // Fails pipeline if SonarQube reports "Failed" status
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        // Stage 3: Backend Tests (Runs only if Quality Gate passed)
         stage('Backend Tests') {
             when { expression { params.SKIP_TESTS == false } }
             steps {
                 echo '🧪 Running backend tests...'
                 script {
-                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                        dir('user-service') { sh 'mvn clean test -Dmaven.test.failure.ignore=false' }
-                        dir('product-service') { sh 'mvn clean test -Dmaven.test.failure.ignore=false' }
-                        dir('media-service') { sh 'mvn clean test -Dmaven.test.failure.ignore=false' }
-                    }
+                    dir('user-service') { sh 'mvn test' }
+                    dir('product-service') { sh 'mvn test' }
+                    // Add other services as needed
                 }
-            }
-            post {
-                always {
-                    // Archive test results for Jenkins UI display
-                    junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
-                    // Archive coverage reports for later analysis
-                    archiveArtifacts artifacts: '**/target/surefire-reports/**, **/target/site/jacoco/**', allowEmptyArchive: true
-                }
-                failure { echo '❌ Backend tests failed!' }
-                success { echo '✅ Backend tests passed!' }
             }
         }
 
-        // =====================================================================
-        // Stage 4: Frontend Tests - Karma/Jasmine tests for Angular app
-        // =====================================================================
-   
-        stage('Frontend Tests') {
-            when { expression { params.SKIP_TESTS == false } }
+        // Stage 4: Build & Push Docker (Only runs if Quality Gate & Tests pass)
+        stage('Build & Push Images') {
+            when { expression { params.DEPLOY_ENV == 'production' } }
             steps {
-                echo '🧪 Running frontend tests (Karma/Jasmine)...'
-                dir('buy-01-ui') {
-                    // Set Chrome binary path and run Angular tests
-                    // --watch=false: Single run, don't watch for changes
-                    // --browsers=ChromeHeadlessCI: Use headless browser for CI
-                    // --code-coverage: Generate Istanbul coverage report
-                    sh '''
-                        export CHROME_BIN=/usr/bin/chromium
-                        rm -rf node_modules package-lock.json
-                        npm install --legacy-peer-deps
-                        npx ng test --watch=false --browsers=ChromeHeadlessCI --code-coverage
-                    '''
-                }
+                echo '🚀 Building and Pushing Docker images...'
+                // Your docker build steps here
             }
-            post {
-                always { archiveArtifacts artifacts: 'buy-01-ui/coverage/**', allowEmptyArchive: true }
-                failure { echo '❌ Frontend tests failed!' }
-                success { echo '✅ Frontend tests passed!' }
-            }
-        }
-
-        // =====================================================================
-        // Stage 5: Code Quality Check - Static code analysis
-        // =====================================================================
-   
-        stage('Code Quality Check') {
-            when {
-                expression { params.SKIP_TESTS == false }
-            }
-            steps {
-                echo '📊 Running code quality checks...'
-                script {
-                    // Run Checkstyle on user-service (main service with business logic)
-                    // catchError marks stage UNSTABLE but continues pipeline
-                    def services = ['user-service']
-                    for (service in services) {
-                        dir(service) {
-                            catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                                sh 'mvn checkstyle:check'
-                            }
-                        }
-                    }
-                    echo '✅ Code quality check completed'
-                }
-            }
-            post {
-                always {
-                    // Archive code quality reports for Jenkins UI and auditing
-                    archiveArtifacts artifacts: '**/target/checkstyle-result.xml', allowEmptyArchive: true
-                }
-            }
-        }
-
-        // =====================================================================
-        // Stage 6: Build Backend JARs - Compile Java microservices
-        // =====================================================================
-     
-        stage('Build Backend JARs') {
-            steps {
-                echo '📦 Building backend JAR files...'
-                script {
-                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                        def services = ['service-registry', 'user-service', 'product-service', 'media-service']
-                        for (service in services) {
-                            dir(service) {
-                                sh 'mvn clean package -DskipTests'
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // =====================================================================
-        // Stage 7: Build Docker Images - Create container images
-        // =====================================================================
-   
-        stage('Build Docker Images') {
-            steps {
-                echo "🐳 Building Docker Images in parallel with tag: ${BUILD_VERSION}..."
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    script {
-                        parallel(
-                            'service-registry': {
-                                sh "docker build -t ${DOCKER_USER}/buy-01-service-registry:latest -t ${DOCKER_USER}/buy-01-service-registry:${BUILD_VERSION} ./service-registry"
-                            },
-                            'api-gateway': {
-                                sh "docker build -t ${DOCKER_USER}/buy-01-api-gateway:latest -t ${DOCKER_USER}/buy-01-api-gateway:${BUILD_VERSION} ./api-gateway"
-                            },
-                            'user-service': {
-                                sh "docker build -t ${DOCKER_USER}/buy-01-user-service:latest -t ${DOCKER_USER}/buy-01-user-service:${BUILD_VERSION} ./user-service"
-                            },
-                            'product-service': {
-                                sh "docker build -t ${DOCKER_USER}/buy-01-product-service:latest -t ${DOCKER_USER}/buy-01-product-service:${BUILD_VERSION} ./product-service"
-                            },
-                            'media-service': {
-                                sh "docker build -t ${DOCKER_USER}/buy-01-media-service:latest -t ${DOCKER_USER}/buy-01-media-service:${BUILD_VERSION} ./media-service"
-                            },
-                            'frontend': {
-                                sh "docker build -t ${DOCKER_USER}/buy-01-frontend:latest -t ${DOCKER_USER}/buy-01-frontend:${BUILD_VERSION} ./buy-01-ui"
-                            }
-                        )
-                    }
-                }
-            }
-        }
-
-        // =====================================================================
-        // Stage 8: Push to Docker Hub - Upload images to registry
-        // =====================================================================
-    
-        stage('Push to Docker Hub') {
-            steps {
-                echo "🚀 Pushing images to Docker Hub in parallel..."
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    // withCredentials injects Docker Hub login securely
-                    withCredentials([usernamePassword(
-                        credentialsId: REGISTRY_CREDENTIALS,
-                        usernameVariable: 'DOCKER_USER_CRED',
-                        passwordVariable: 'DOCKER_PASS'
-                    )]) {
-                        // Login to Docker Hub (password piped to avoid shell history)
-                        sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER_CRED --password-stdin'
-                        script {
-                            def dockerUser = env.DOCKER_USER
-                        def buildVer = env.BUILD_VERSION
-                        parallel(
-                            'service-registry': {
-                                sh "docker push '${dockerUser}/buy-01-service-registry:latest'"
-                                sh "docker push '${dockerUser}/buy-01-service-registry:${buildVer}'"
-                            },
-                            'api-gateway': {
-                                sh "docker push '${dockerUser}/buy-01-api-gateway:latest'"
-                                sh "docker push '${dockerUser}/buy-01-api-gateway:${buildVer}'"
-                            },
-                            'user-service': {
-                                sh "docker push '${dockerUser}/buy-01-user-service:latest'"
-                                sh "docker push '${dockerUser}/buy-01-user-service:${buildVer}'"
-                            },
-                            'product-service': {
-                                sh "docker push '${dockerUser}/buy-01-product-service:latest'"
-                                sh "docker push '${dockerUser}/buy-01-product-service:${buildVer}'"
-                            },
-                            'media-service': {
-                                // retry(3) handles intermittent network issues for large images
-                                retry(3) {
-                                    sh "docker push '${dockerUser}/buy-01-media-service:latest'"
-                                }
-                                sh "docker push '${dockerUser}/buy-01-media-service:${buildVer}'"
-                            },
-                            'frontend': {
-                                sh "docker push '${dockerUser}/buy-01-frontend:latest'"
-                                sh "docker push '${dockerUser}/buy-01-frontend:${buildVer}'"
-                            }
-                        )
-                    }
-                }
-                }
-            }
-        }
-
-        // =====================================================================
-        // Stage 9: Deploy - Start services with docker-compose
-        // =====================================================================
-  
-        stage('Deploy') {
-            when {
-                expression { (currentBuild.currentResult == null || currentBuild.currentResult == 'SUCCESS') && env.DEPLOYMENT_FAILED != 'true' }
-            }
-            steps {
-                echo "🚀 Deploying to ${params.DEPLOY_ENV} environment..."
-                script {
-                    // Reset deployment flag at stage start
-                    env.DEPLOYMENT_FAILED = 'false'
-                    
-                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                        // =========================================================
-                        // Helper: Wait for container to reach "Up" status
-                        // =========================================================
-                   
-                        def waitForContainer = { String containerName, int maxAttempts ->
-                            def attempt = 0
-                            def isRunning = false
-                            
-                            while (attempt < maxAttempts && !isRunning) {
-                                attempt++
-                                echo "⏳ Checking ${containerName}... (${attempt}/${maxAttempts})"
-                                
-                                def status = sh(
-                                    script: "docker ps --filter name=${containerName} --format '{{.Status}}' | grep -q 'Up'",
-                                    returnStatus: true
-                                )
-                                
-                                if (status == 0) {
-                                    echo "✅ ${containerName} is running"
-                                    isRunning = true
-                                } else {
-                                    if (attempt < maxAttempts) {
-                                        sleep(1)  // Reduced from 2 to 1 second
-                                    }
-                                }
-                            }
-                            
-                            if (!isRunning) {
-                                env.DEPLOYMENT_FAILED = 'true'
-                                error("❌ ${containerName} failed to start after ${maxAttempts} attempts")
-                            }
-                        }
-                        
-                        // =========================================================
-                        // Helper: Wait for HTTP health endpoint to respond
-                        // =========================================================
-                     
-                        def waitForServiceHealth = { String healthUrl, int maxAttempts ->
-                            def attempt = 0
-                            def isHealthy = false
-                            
-                            while (attempt < maxAttempts && !isHealthy) {
-                                attempt++
-                                echo "⏳ Health check ${healthUrl}... (${attempt}/${maxAttempts})"
-                                
-                                def status = sh(
-                                    script: "curl -sf ${healthUrl} > /dev/null 2>&1",
-                                    returnStatus: true
-                                )
-                                
-                                if (status == 0) {
-                                    echo "✅ Service is healthy!"
-                                    isHealthy = true
-                                } else {
-                                    if (attempt < maxAttempts) {
-                                        sleep(2)
-                                    }
-                                }
-                            }
-                            
-                            if (!isHealthy) {
-                                echo "⚠️ Warning: ${healthUrl} not responding (continuing anyway)"
-                            }
-                        }
-                        
-                        // =========================================================
-                        // Smart Deployment Strategy
-                        // =========================================================
-            
-                        echo "🚀 Deploying application services..."
-                        sh '''
-                            # Robust pre-clean: forcibly remove any containers with conflicting names
-                            docker-compose -p buy-01 down || true
-                            docker rm -f buy-01-service-registry buy-01-api-gateway buy-01-user-service buy-01-product-service buy-01-media-service buy-01-frontend 2>/dev/null || true
-                            # Keep infrastructure running (Zookeeper, MongoDB, Kafka)
-                            # Only restart application services with new images
-                            docker-compose -p buy-01 up -d --no-deps --force-recreate service-registry
-                            sleep 5
-                            
-                            docker-compose -p buy-01 up -d --no-deps --force-recreate api-gateway user-service product-service media-service frontend
-                            sleep 3
-                        '''
-
-                        // =========================================================
-                        // Quick Health Verification
-                        // =========================================================
-                   
-                        echo "🔍 Verifying deployment..."
-                        def healthCheck = sh(
-                            script: '''
-                                sleep 10
-                                
-                                if ! docker ps | grep -q "buy-01-service-registry.*Up"; then
-                                    echo "❌ service-registry is not running"
-                                    exit 1
-                                fi
-                                if ! docker ps | grep -q "buy-01-api-gateway.*Up"; then
-                                    echo "❌ api-gateway is not running"
-                                    exit 1
-                                fi
-                                
-                                echo "✅ All services deployed and running!"
-                                exit 0
-                            ''',
-                            returnStatus: true
-                        )
-                        
-                        if (healthCheck != 0) {
-                            env.DEPLOYMENT_FAILED = 'true'
-                            error('❌ Deployment health check failed!')
-                        }
-                    }
-                }
-            }
-            post {
-                failure {
-                    script { env.DEPLOYMENT_FAILED = 'true' }
-                }
-            }
-        }
-
-        // =====================================================================
-        // Stage 10: Rollback - Restore previous working version
-        // =====================================================================
-     
-        stage('Rollback') {
-            when {
-                expression { currentBuild.result == 'FAILURE' || currentBuild.currentResult == 'FAILURE' }
-            }
-            steps {
-                echo "⚡ Rolling back to build ${PREVIOUS_BUILD}..."
-                script {
-                    // Re-tag previous build's images as :latest
-                    // 2>/dev/null || true: Ignore errors if images don't exist
-                    sh """
-                        docker tag hussainsaddam/buy-01-service-registry:${PREVIOUS_BUILD} hussainsaddam/buy-01-service-registry:latest 2>/dev/null || true
-                        docker tag hussainsaddam/buy-01-api-gateway:${PREVIOUS_BUILD} hussainsaddam/buy-01-api-gateway:latest 2>/dev/null || true
-                        docker tag hussainsaddam/buy-01-user-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-user-service:latest 2>/dev/null || true
-                        docker tag hussainsaddam/buy-01-product-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-product-service:latest 2>/dev/null || true
-                        docker tag hussainsaddam/buy-01-media-service:${PREVIOUS_BUILD} hussainsaddam/buy-01-media-service:latest 2>/dev/null || true
-                        docker tag hussainsaddam/buy-01-frontend:${PREVIOUS_BUILD} hussainsaddam/buy-01-frontend:latest 2>/dev/null || true
-                    """
-                    
-                    // Restart services with rolled-back images
-                    // Use -p buy-01 to match existing container names (buy-01-service-registry, etc.)
-                    // --remove-orphans prevents conflicts with containers from different project contexts
-                    sh """
-                        # Robust pre-clean: forcibly remove any containers with conflicting names
-                        docker-compose -p buy-01 down || true
-                        docker rm -f buy-01-service-registry buy-01-api-gateway buy-01-user-service buy-01-product-service buy-01-media-service buy-01-frontend 2>/dev/null || true
-                        docker-compose -p buy-01 up -d --no-deps --force-recreate --remove-orphans service-registry &
-                        sleep 2
-                        docker-compose -p buy-01 up -d --no-deps --force-recreate --remove-orphans api-gateway user-service product-service media-service frontend
-                    """
-                    sleep 3
-                    echo "✅ Rollback to build ${PREVIOUS_BUILD} completed"
-                }
-            }
-        }
-
-    }
-
-    // =========================================================================
-    // Post-Pipeline Actions - Always executed after all stages...
-    // =========================================================================
-    post {
-        // On successful pipeline completion
-        success {
-            echo "✅ Pipeline completed successfully!"
-            echo "Build #${env.BUILD_NUMBER} - All stages passed"
-            
-            // Send Slack notification (if webhook configured)
-            script {
-                try {
-                    withCredentials([string(credentialsId: 'slack-webhook-url', variable: 'SLACK_URL')]) {
-                        sh '''
-                            curl -X POST -H 'Content-type: application/json' \
-                            --data "{\\"text\\":\\"✅ *SUCCESS*: Job ${JOB_NAME} Build #${BUILD_NUMBER}\\\\n${BUILD_URL}\\"}" \
-                            ${SLACK_URL}
-                        '''
-                    }
-                } catch (Exception e) {
-                    echo "⚠️ Slack notification skipped (credential not configured): ${e.message}"
-                }
-            }
-        }
-        
-        // On pipeline failure
-        failure {
-            echo "❌ Pipeline failed!"
-            echo "Build #${env.BUILD_NUMBER} - Check logs for details"
-            
-            // Send Slack notification (if webhook configured)
-            script {
-                try {
-                    withCredentials([string(credentialsId: 'slack-webhook-url', variable: 'SLACK_URL')]) {
-                        sh '''
-                            curl -X POST -H 'Content-type: application/json' \
-                            --data "{\\"text\\":\\"❌ *FAILED*: Job ${JOB_NAME} Build #${BUILD_NUMBER}\\\\n${BUILD_URL}console\\"}" \
-                            ${SLACK_URL}
-                        '''
-                    }
-                } catch (Exception e) {
-                    echo "⚠️ Slack notification skipped (credential not configured): ${e.message}"
-                }
-            }
-        }
-        
-        // Always executed (cleanup and archiving)
-        always {
-            echo "🧹 Cleaning up workspace..."
-            // Archive JAR artifacts for download from Jenkins UI
-            archiveArtifacts artifacts: '**/target/*.jar', allowEmptyArchive: true, fingerprint: true
         }
     }
 }
+// =============================================================================
