@@ -17,7 +17,7 @@ pipeline {
     }
 
     // =========================================================================
-    // Environment Variables - Available to all stages
+    // Environment Variables - Available to all stages...
     // =========================================================================
     environment {
         // Docker Hub username from Jenkins credentials
