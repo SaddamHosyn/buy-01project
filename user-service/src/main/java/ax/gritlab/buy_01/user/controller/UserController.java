@@ -27,7 +27,7 @@ public final class UserController {
     private final UserService userService;
 
     /**
-     * Gets current user's profile....
+     * Gets current user's profile..
      *
      * @param authentication authentication context
      * @return user profile response
