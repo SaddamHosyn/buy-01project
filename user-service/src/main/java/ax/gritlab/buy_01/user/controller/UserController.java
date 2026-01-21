@@ -35,8 +35,9 @@ public final class UserController {
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getMyProfile(
             final Authentication authentication) {
-        User usr = (User) authentication.getPrincipal();
+        User user = (User) authentication.getPrincipal();
         return ResponseEntity.ok(userService.getProfile(user));
+
     }
 
     /**
@@ -69,7 +70,7 @@ public final class UserController {
     /**
      * Deletes current user's account.
      *
-     * @param authentication authentication context
+     * @param authentication authentication context..
      * @return empty response
      */
     @DeleteMapping("/me")
