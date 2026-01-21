@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * REST controller for user operations....
+ * REST controller for user operations.
  */
 @RestController
 @RequestMapping("/users")
