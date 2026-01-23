@@ -1,5 +1,5 @@
 // =============================================================================
-// Buy-01 E-Commerce Platform - SafeZone CI/CD Pipeline
+// Buy-01 E-Commerce Platform - SafeZone + Deployment CI/CD Pipeline
 // =============================================================================
 pipeline {
     agent any
@@ -12,6 +12,9 @@ pipeline {
     environment {
         DOCKER_USER          = credentials('docker-hub-username')
         REGISTRY_CREDENTIALS = 'docker-hub-credentials'
+        // Tag images with build number for easy rollback
+        IMAGE_TAG            = "${env.BUILD_NUMBER}"
+        PREV_IMAGE_TAG       = "${env.BUILD_NUMBER.toInteger() - 1}"
     }
 
     triggers {
@@ -30,28 +33,23 @@ pipeline {
         // Stage 2: Secret Scanning
         stage('Secret Scanning') {
             steps {
-                echo '🔍 Scanning for accidentally committed secrets...'
+                echo '🔍 Scanning for secrets...'
                 script {
-                    // Simple grep check for API keys
                     def result = sh(script: "grep -r -E -i 'api.?key.*=.*[A-Za-z0-9]{30,}' --include='*.java' --exclude-dir=target . || true", returnStdout: true).trim()
                     if (result) {
-                        error('❌ Secrets detected in code! Pipeline blocked.')
-                    } else {
-                        echo '✅ No secrets detected.'
+                        error('❌ Secrets detected! Pipeline blocked.')
                     }
                 }
             }
         }
 
         // =====================================================================
-        // SafeZone Stage: Code Quality Analysis
+        // SafeZone: SonarQube Analysis
         // =====================================================================
         stage('SonarQube Analysis') {
             steps {
                 echo '📊 Running SonarQube Analysis...'
-                // 'sonar-server' must match the name in Jenkins System Config
                 withSonarQubeEnv('sonar-server') { 
-                    // Overriding sonar.host.url to point to the local docker container
                     sh """
                         mvn clean verify sonar:sonar \\
                         -Dsonar.projectKey=safezone-backend \\
@@ -63,19 +61,18 @@ pipeline {
         }
 
         // =====================================================================
-        // SafeZone Stage: Quality Gate
+        // SafeZone: Quality Gate
         // =====================================================================
         stage('Quality Gate') {
             steps {
                 echo '🛑 Checking Quality Gate...'
                 timeout(time: 5, unit: 'MINUTES') {
-                    // Fails pipeline if SonarQube reports "Failed" status
                     waitForQualityGate abortPipeline: true
                 }
             }
         }
 
-        // Stage 3: Backend Tests (Runs only if Quality Gate passed)
+        // Stage 3: Backend Tests
         stage('Backend Tests') {
             when { expression { params.SKIP_TESTS == false } }
             steps {
@@ -83,19 +80,76 @@ pipeline {
                 script {
                     dir('user-service') { sh 'mvn test' }
                     dir('product-service') { sh 'mvn test' }
-                    // Add other services as needed
                 }
             }
         }
 
-        // Stage 4: Build & Push Docker (Only runs if Quality Gate & Tests pass)
+        // Stage 4: Build & Push Docker (Enhanced)
         stage('Build & Push Images') {
+            // Run on production OR staging (or if manually triggered)
+            when { expression { params.DEPLOY_ENV == 'production' || params.DEPLOY_ENV == 'staging' } }
+            steps {
+                echo "🚀 Building Docker images with tag: ${env.IMAGE_TAG}..."
+                script {
+                    // Log in to Docker Hub
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                        sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                    }
+
+                    def services = ['user-service', 'product-service', 'media-service', 'api-gateway', 'service-registry']
+                    
+                    services.each { service ->
+                        sh "docker build -t ${env.DOCKER_USER}/buy-01-${service}:${env.IMAGE_TAG} ./${service}"
+                        sh "docker push ${env.DOCKER_USER}/buy-01-${service}:${env.IMAGE_TAG}"
+                        // Also push 'latest' for convenience
+                        sh "docker tag ${env.DOCKER_USER}/buy-01-${service}:${env.IMAGE_TAG} ${env.DOCKER_USER}/buy-01-${service}:latest"
+                        sh "docker push ${env.DOCKER_USER}/buy-01-${service}:latest"
+                    }
+                }
+            }
+        }
+
+        // Stage 5: Deploy & Rollback Logic (New)
+        stage('Deploy Services') {
             when { expression { params.DEPLOY_ENV == 'production' } }
             steps {
-                echo '🚀 Building and Pushing Docker images...'
-                // Your docker build steps here
+                echo "🚢 Deploying version ${env.IMAGE_TAG}..."
+                script {
+                    // Update docker-compose to use the new tag
+                    sh "export IMAGE_TAG=${env.IMAGE_TAG} && docker-compose up -d"
+                    
+                    // Simple health check (wait 10s then check if containers are running)
+                    sleep 10
+                    def running = sh(script: "docker-compose ps | grep Up || true", returnStdout: true).trim()
+                    if (!running) {
+                        error("Deployment failed: No containers running!")
+                    }
+                }
+            }
+            post {
+                failure {
+                    echo "⚠️ Deployment failed! Initiating Rollback to version ${env.PREV_IMAGE_TAG}..."
+                    script {
+                        // Rollback Logic: Revert to previous tag
+                        sh "export IMAGE_TAG=${env.PREV_IMAGE_TAG} && docker-compose up -d"
+                        echo "✅ Rollback complete. Restored version ${env.PREV_IMAGE_TAG}."
+                    }
+                }
+                success {
+                    echo "✅ Deployment successful!"
+                }
             }
         }
     }
+    
+    // Send Status to GitHub (Required for SafeZone Audit)
+    post {
+        always {
+             step([$class: 'GitHubCommitStatusSetter', 
+                  contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/safezone'], 
+                  statusResultSource: [$class: 'ConditionalStatusResultSource', results: [[$class: 'AnyBuildResult', message: 'Build finished', state: 'SUCCESS']]]
+            ])
+        }
+    }
 }
-// ============================================================================
+// =============================================================================

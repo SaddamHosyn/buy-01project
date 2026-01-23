@@ -9,7 +9,7 @@ FROM jenkins/jenkins:lts
 USER root
 
 # ==============================================================================
-# Install CI/CD Dependencies
+# Install CI/CD Dependencies...
 # ==============================================================================
 
 RUN apt-get update && \
