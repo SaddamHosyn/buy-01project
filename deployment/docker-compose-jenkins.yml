@@ -47,7 +47,7 @@ services:
       - sonarqube_logs:/opt/sonarqube/logs
 
   # ===========================================================================
-  # SonarQube Database (New - SafeZone Requirement)
+  # SonarQube Database (New - SafeZone Requirement)...
   # ===========================================================================
   sonarqube-db:
     image: postgres:15
