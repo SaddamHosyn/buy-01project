@@ -12,9 +12,8 @@ pipeline {
     environment {
         DOCKER_USER          = credentials('docker-hub-username')
         REGISTRY_CREDENTIALS = 'docker-hub-credentials'
-        // Tag images with build number for easy rollback
-        IMAGE_TAG            = "${env.BUILD_NUMBER}"
-        PREV_IMAGE_TAG       = "${env.BUILD_NUMBER.toInteger() - 1}"
+            IMAGE_TAG            = "${env.GIT_COMMIT ?: env.BUILD_NUMBER}"
+            PREV_IMAGE_TAG       = "latest" // You can set this dynamically or as a parameter
     }
 
     triggers {
@@ -99,11 +98,11 @@ pipeline {
                     def services = ['user-service', 'product-service', 'media-service', 'api-gateway', 'service-registry']
                     
                     services.each { service ->
-                        sh "docker build -t ${env.DOCKER_USER}/buy-01-${service}:${env.IMAGE_TAG} ./${service}"
-                        sh "docker push ${env.DOCKER_USER}/buy-01-${service}:${env.IMAGE_TAG}"
-                        // Also push 'latest' for convenience
-                        sh "docker tag ${env.DOCKER_USER}/buy-01-${service}:${env.IMAGE_TAG} ${env.DOCKER_USER}/buy-01-${service}:latest"
-                        sh "docker push ${env.DOCKER_USER}/buy-01-${service}:latest"
+                            sh "docker build -t ${DOCKER_USER}/buy-01-${service}:${IMAGE_TAG} ./${service}"
+                            sh "docker push ${DOCKER_USER}/buy-01-${service}:${IMAGE_TAG}"
+                            // Also push 'latest' for convenience
+                            sh "docker tag ${DOCKER_USER}/buy-01-${service}:${IMAGE_TAG} ${DOCKER_USER}/buy-01-${service}:latest"
+                            sh "docker push ${DOCKER_USER}/buy-01-${service}:latest"
                     }
                 }
             }
@@ -116,7 +115,7 @@ pipeline {
                 echo "🚢 Deploying version ${env.IMAGE_TAG}..."
                 script {
                     // Update docker-compose to use the new tag
-                    sh "export IMAGE_TAG=${env.IMAGE_TAG} && docker-compose up -d"
+                        sh "IMAGE_TAG=${IMAGE_TAG} docker-compose up -d"
                     
                     // Simple health check (wait 10s then check if containers are running)
                     sleep 10
@@ -131,7 +130,7 @@ pipeline {
                     echo "⚠️ Deployment failed! Initiating Rollback to version ${env.PREV_IMAGE_TAG}..."
                     script {
                         // Rollback Logic: Revert to previous tag
-                        sh "export IMAGE_TAG=${env.PREV_IMAGE_TAG} && docker-compose up -d"
+                            sh "IMAGE_TAG=${PREV_IMAGE_TAG} docker-compose up -d"
                         echo "✅ Rollback complete. Restored version ${env.PREV_IMAGE_TAG}."
                     }
                 }
