@@ -38,6 +38,9 @@
 		<java.version>17</java.version>
 		<maven.compiler.release>17</maven.compiler.release>
 		<sonar.maven.plugin.version>4.0.0.4121</sonar.maven.plugin.version>
+		<!-- SonarQube Configuration -->
+		<sonar.coverage.exclusions>**/test/**,**/config/**,**/*Application.java,**/*Config.java</sonar.coverage.exclusions>
+		<sonar.exclusions>**/test/**</sonar.exclusions>
 	</properties>
 	<!-- Dependencies should be declared in each service module. This root POM is an aggregator so it intentionally does not declare module-specific dependencies. -->
 
