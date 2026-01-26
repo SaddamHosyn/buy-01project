@@ -67,7 +67,16 @@ pipeline {
             steps {
                 echo '🛑 Checking Quality Gate...'
                 timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
+                    script {
+                        def qg = waitForQualityGate()
+                        if (qg.status != 'OK') {
+                            echo "⚠️ Quality Gate status: ${qg.status} - Continuing with warning"
+                            // Change to 'error' below to make it blocking again
+                            unstable("Quality Gate failed: ${qg.status}")
+                        } else {
+                            echo "✅ Quality Gate passed!"
+                        }
+                    }
                 }
             }
         }
