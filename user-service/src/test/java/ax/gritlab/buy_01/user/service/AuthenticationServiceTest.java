@@ -179,8 +179,8 @@ class AuthenticationServiceTest {
         @Test
         @DisplayName("Should call authentication manager with correct credentials")
         void authenticate_CallsAuthManager() {
-            ArgumentCaptor<UsernamePasswordAuthenticationToken> tokenCaptor =
-                    ArgumentCaptor.forClass(UsernamePasswordAuthenticationToken.class);
+            ArgumentCaptor<UsernamePasswordAuthenticationToken> tokenCaptor = ArgumentCaptor
+                    .forClass(UsernamePasswordAuthenticationToken.class);
 
             when(authenticationManager.authenticate(tokenCaptor.capture())).thenReturn(null);
             when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
