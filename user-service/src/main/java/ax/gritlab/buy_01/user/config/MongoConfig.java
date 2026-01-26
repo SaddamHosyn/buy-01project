@@ -15,7 +15,7 @@ import ax.gritlab.buy_01.user.model.User;
  */
 @Configuration
 @RequiredArgsConstructor
-public final class MongoConfig {
+public class MongoConfig {
 
     /** MongoDB template for database operations. */
     private final MongoTemplate mongoTemplate;

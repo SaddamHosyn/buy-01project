@@ -20,7 +20,7 @@ import java.util.function.Function;
  * JWT service for token generation and validation.
  */
 @Service
-public final class JwtService {
+public class JwtService {
 
     /** Milliseconds in one second. */
     private static final int MILLIS_PER_SECOND = 1000;

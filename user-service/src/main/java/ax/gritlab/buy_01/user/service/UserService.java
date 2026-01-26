@@ -14,7 +14,7 @@ import org.springframework.kafka.core.KafkaTemplate;
  */
 @Service
 @RequiredArgsConstructor
-public final class UserService {
+public class UserService {
 
     /** Kafka template for messaging. */
     private final KafkaTemplate<String, String> kafkaTemplate;

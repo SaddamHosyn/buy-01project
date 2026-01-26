@@ -25,7 +25,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
  */
 @Service
 @RequiredArgsConstructor
-public final class ProductService {
+public class ProductService {
 
     /**
      * HTTP status code for not found.

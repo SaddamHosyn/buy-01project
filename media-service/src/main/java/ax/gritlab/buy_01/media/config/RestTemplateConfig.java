@@ -8,7 +8,7 @@ import org.springframework.web.client.RestTemplate;
  * Configuration for RestTemplate bean.
  */
 @Configuration
-public final class RestTemplateConfig {
+public class RestTemplateConfig {
 
    /**
     * Creates a RestTemplate bean for making HTTP requests.

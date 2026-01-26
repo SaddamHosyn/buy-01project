@@ -9,7 +9,7 @@ import org.springframework.kafka.config.TopicBuilder;
  * Configuration for Kafka topics.
  */
 @Configuration
-public final class KafkaTopicConfig {
+public class KafkaTopicConfig {
    /**
     * Creates the product.deleted topic.
     *

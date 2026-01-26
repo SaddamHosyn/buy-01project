@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @RequiredArgsConstructor
-public final class AuthenticationService {
+public class AuthenticationService {
 
         /** User repository for database access. */
         private final UserRepository userRepository;

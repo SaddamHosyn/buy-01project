@@ -19,7 +19,7 @@ import java.util.Map;
  * Handles all exceptions and converts them to appropriate HTTP responses.
  */
 @RestControllerAdvice
-public final class GlobalExceptionHandler {
+public class GlobalExceptionHandler {
 
     /**
      * Handle duplicate key exceptions (e.g., duplicate email).

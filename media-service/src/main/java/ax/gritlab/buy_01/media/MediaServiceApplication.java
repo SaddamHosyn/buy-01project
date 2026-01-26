@@ -10,14 +10,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
  */
 @SpringBootApplication
 @EnableConfigurationProperties(StorageProperties.class)
-public final class MediaServiceApplication {
-    /**
-     * Private constructor to prevent instantiation.
-     */
-    private MediaServiceApplication() {
-        throw new UnsupportedOperationException("Utility class");
-    }
-
+public class MediaServiceApplication {
     /**
      * Main method to start the application.
      *

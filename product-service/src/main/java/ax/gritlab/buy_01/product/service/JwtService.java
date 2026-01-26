@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
  * Service for JWT token operations.
  */
 @Service
-public final class JwtService {
+public class JwtService {
 
     /**
      * Secret key for JWT signing.

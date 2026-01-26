@@ -7,15 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * Main application class for Product Service.
  */
 @SpringBootApplication
-public final class ProductServiceApplication {
-
-    /**
-     * Private constructor to prevent instantiation.
-     */
-    private ProductServiceApplication() {
-        throw new UnsupportedOperationException(
-                "Utility class cannot be instantiated");
-    }
+public class ProductServiceApplication {
 
     /**
      * Main method to start the Product Service application.

@@ -17,7 +17,7 @@ import java.util.Map;
  * Global exception handler for the media service.
  */
 @RestControllerAdvice
-public final class GlobalExceptionHandler {
+public class GlobalExceptionHandler {
 
     /**
      * Handles MaxUploadSizeExceededException.

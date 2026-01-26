@@ -27,7 +27,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/media")
 @RequiredArgsConstructor
-public final class MediaController {
+public class MediaController {
 
     /**
      * Media service for business logic.

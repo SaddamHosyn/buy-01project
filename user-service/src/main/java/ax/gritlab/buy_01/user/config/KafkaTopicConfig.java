@@ -9,7 +9,7 @@ import org.springframework.kafka.config.TopicBuilder;
  * Kafka topic configuration for user events.
  */
 @Configuration
-public final class KafkaTopicConfig {
+public class KafkaTopicConfig {
    /**
     * Creates Kafka topic for user deletion events.
     *

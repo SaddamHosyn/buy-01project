@@ -16,7 +16,7 @@ import java.util.Map;
  * Global exception handler for Product Service.
  */
 @RestControllerAdvice
-public final class GlobalExceptionHandler {
+public class GlobalExceptionHandler {
 
     /**
      * Handle validation exceptions.
