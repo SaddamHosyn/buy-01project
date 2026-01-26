@@ -5,7 +5,8 @@ pipeline {
     agent any
 
     parameters {
-        choice(name: 'DEPLOY_ENV', choices: ['production', 'staging', 'local'], description: 'Select deployment environment')
+        choice(name: 'DEPLOY_ENV', choices: ['local', 'staging', 'production'], description: 'Select deployment environment')
+        booleanParam(name: 'SKIP_TESTS', defaultValue: false, description: 'Skip tests (use with caution)')
     }
 
     environment {
@@ -100,7 +101,7 @@ pipeline {
 
         // Stage 4: Build & Push Docker (Run for Staging/Prod)
         stage('Build & Push Images') {
-            when { expression { params.DEPLOY_ENV == 'production' || params.DEPLOY_ENV == 'staging' } }
+            
             steps {
                 echo "🚀 Building Docker images with tag: ${env.IMAGE_TAG}..."
                 script {
@@ -123,7 +124,7 @@ pipeline {
 
         // Stage 5: Deploy & Rollback Logic
         stage('Deploy Services') {
-            when { expression { params.DEPLOY_ENV == 'production' } }
+            
             steps {
                 echo "🚢 Deploying version ${env.IMAGE_TAG}..."
                 script {
