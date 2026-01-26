@@ -44,7 +44,7 @@ pipeline {
         }
 
         // =====================================================================
-        // SafeZone: SonarQube Analysis...
+        // SafeZone: SonarQube Analysis.
         // =====================================================================
         stage('SonarQube Analysis') {
             steps {
