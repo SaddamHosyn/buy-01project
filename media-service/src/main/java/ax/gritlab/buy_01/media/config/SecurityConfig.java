@@ -20,51 +20,51 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    /**
-     * JWT authentication filter.
-     */
-    private final JwtAuthenticationFilter jwtAuthFilter;
+        /**
+         * JWT authentication filter.
+         */
+        private final JwtAuthenticationFilter jwtAuthFilter;
 
-    /**
-     * Configures the security filter chain.
-     *
-     * @param http the HttpSecurity to configure
-     * @return the configured SecurityFilterChain
-     * @throws Exception if configuration fails
-     */
-    @Bean
-    public SecurityFilterChain securityFilterChain(
-            final HttpSecurity http) throws Exception {
-        http
-                .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
-                        // Public endpoints - anyone can VIEW
-                        // images
-                        .requestMatchers(HttpMethod.GET,
-                                "/media/images/**")
-                        .permitAll()
-                        .requestMatchers("/actuator/**")
-                        .permitAll()
+        /**
+         * Configures the security filter chain.
+         *
+         * @param http the HttpSecurity to configure
+         * @return the configured SecurityFilterChain
+         * @throws Exception if configuration fails
+         */
+        @Bean
+        public SecurityFilterChain securityFilterChain(
+                        final HttpSecurity http) throws Exception {
+                http
+                                .csrf(csrf -> csrf.disable())
+                                .authorizeHttpRequests(auth -> auth
+                                                // Public endpoints - anyone can VIEW
+                                                // images
+                                                .requestMatchers(HttpMethod.GET,
+                                                                "/media/images/**")
+                                                .permitAll()
+                                                .requestMatchers("/actuator/**")
+                                                .permitAll()
 
-                        // Protected endpoints - authenticated
-                        // users can upload/modify images
-                        .requestMatchers(HttpMethod.POST,
-                                "/media/images/**")
-                        .authenticated()
-                        .requestMatchers(HttpMethod.PUT,
-                                "/media/images/**")
-                        .authenticated()
-                        .requestMatchers(HttpMethod.DELETE,
-                                "/media/images/**")
-                        .authenticated()
+                                                // Protected endpoints - authenticated
+                                                // users can upload/modify images
+                                                .requestMatchers(HttpMethod.POST,
+                                                                "/media/images/**")
+                                                .authenticated()
+                                                .requestMatchers(HttpMethod.PUT,
+                                                                "/media/images/**")
+                                                .authenticated()
+                                                .requestMatchers(HttpMethod.DELETE,
+                                                                "/media/images/**")
+                                                .authenticated()
 
-                        .anyRequest().authenticated())
-                .sessionManagement(sess -> sess
-                        .sessionCreationPolicy(
-                                SessionCreationPolicy.STATELESS))
-                .addFilterBefore(jwtAuthFilter,
-                        UsernamePasswordAuthenticationFilter.class);
+                                                .anyRequest().authenticated())
+                                .sessionManagement(sess -> sess
+                                                .sessionCreationPolicy(
+                                                                SessionCreationPolicy.STATELESS))
+                                .addFilterBefore(jwtAuthFilter,
+                                                UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+                return http.build();
+        }
 }

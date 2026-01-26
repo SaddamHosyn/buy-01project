@@ -20,40 +20,40 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    /**
-     * JWT authentication filter.
-     */
-    /**
-     * JWT authentication filter.
-     */
-    private final JwtAuthenticationFilter jwtAuthFilter;
+        /**
+         * JWT authentication filter.
+         */
+        /**
+         * JWT authentication filter.
+         */
+        private final JwtAuthenticationFilter jwtAuthFilter;
 
-    /**
-     * Configure security filter chain.
-     *
-     * @param http the HTTP security configuration
-     * @return configured security filter chain
-     * @throws Exception if configuration fails
-     */
-    @Bean
-    public SecurityFilterChain securityFilterChain(
-            final HttpSecurity http) throws Exception {
-        http
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(
-                                SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        // Public endpoints
-                        .requestMatchers("/products").permitAll()
-                        .requestMatchers("/products/*").permitAll()
-                        .requestMatchers(
-                                "/products/*/remove-media/*")
-                        .permitAll()
-                        .anyRequest().authenticated())
-                .addFilterBefore(jwtAuthFilter,
-                        UsernamePasswordAuthenticationFilter.class);
+        /**
+         * Configure security filter chain.
+         *
+         * @param http the HTTP security configuration
+         * @return configured security filter chain
+         * @throws Exception if configuration fails
+         */
+        @Bean
+        public SecurityFilterChain securityFilterChain(
+                        final HttpSecurity http) throws Exception {
+                http
+                                .csrf(csrf -> csrf.disable())
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(
+                                                                SessionCreationPolicy.STATELESS))
+                                .authorizeHttpRequests(auth -> auth
+                                                // Public endpoints
+                                                .requestMatchers("/products").permitAll()
+                                                .requestMatchers("/products/*").permitAll()
+                                                .requestMatchers(
+                                                                "/products/*/remove-media/*")
+                                                .permitAll()
+                                                .anyRequest().authenticated())
+                                .addFilterBefore(jwtAuthFilter,
+                                                UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+                return http.build();
+        }
 }
