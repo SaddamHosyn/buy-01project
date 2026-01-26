@@ -1,5 +1,5 @@
 // =============================================================================
-// Buy-01 E-Commerce Platform - SafeZone + Deployment CI/CD Pipeline.
+// Buy-01 E-Commerce Platform - SafeZone + Deployment CI/CD Pipeline
 // =============================================================================
 pipeline {
     agent any
@@ -14,6 +14,7 @@ pipeline {
         REGISTRY_CREDENTIALS = 'docker-hub-credentials'
         // Tag images with build number for easy rollback
         IMAGE_TAG            = "${env.BUILD_NUMBER}"
+        // Calculate previous tag for rollback (Simple strategy: BuildNum - 1)
         PREV_IMAGE_TAG       = "${env.BUILD_NUMBER.toInteger() - 1}"
     }
 
@@ -44,7 +45,7 @@ pipeline {
         }
 
         // =====================================================================
-        // SafeZone: SonarQube Analysis..
+        // SafeZone: SonarQube Analysis
         // =====================================================================
         stage('SonarQube Analysis') {
             steps {
@@ -61,7 +62,7 @@ pipeline {
         }
 
         // =====================================================================
-        // SafeZone: Quality Gate...
+        // SafeZone: Quality Gate
         // =====================================================================
         stage('Quality Gate') {
             steps {
@@ -91,24 +92,19 @@ pipeline {
                 echo '🎨 Running frontend tests...'
                 script {
                     dir('buy-01-ui') {
-                            // Use legacy-peer-deps to avoid ERESOLVE in CI
-                            sh 'npm ci --legacy-peer-deps'
-                            // Use the CI-specific launcher from karma.conf.js which
-                            // includes --no-sandbox for headless Chrome in containers
-                            sh 'npm run test -- --watch=false --browsers=ChromeHeadlessCI --code-coverage'
+                        sh 'npm ci --legacy-peer-deps'
+                        sh 'npm run test -- --watch=false --browsers=ChromeHeadlessCI --code-coverage'
                     }
                 }
             }
         }
 
-        // Stage 4: Build & Push Docker (Enhanced)
+        // Stage 4: Build & Push Docker (Run for Staging/Prod)
         stage('Build & Push Images') {
-            // Run on production OR staging (or if manually triggered)
             when { expression { params.DEPLOY_ENV == 'production' || params.DEPLOY_ENV == 'staging' } }
             steps {
                 echo "🚀 Building Docker images with tag: ${env.IMAGE_TAG}..."
                 script {
-                    // Log in to Docker Hub
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
                         sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                     }
@@ -118,7 +114,7 @@ pipeline {
                     services.each { service ->
                         sh "docker build -t ${env.DOCKER_USER}/buy-01-${service}:${env.IMAGE_TAG} ./${service}"
                         sh "docker push ${env.DOCKER_USER}/buy-01-${service}:${env.IMAGE_TAG}"
-                        // Also push 'latest' for convenience
+                        // Also push 'latest'
                         sh "docker tag ${env.DOCKER_USER}/buy-01-${service}:${env.IMAGE_TAG} ${env.DOCKER_USER}/buy-01-${service}:latest"
                         sh "docker push ${env.DOCKER_USER}/buy-01-${service}:latest"
                     }
@@ -126,115 +122,106 @@ pipeline {
             }
         }
 
-        // Stage 5: Deploy & Rollback Logic (implemented below)
-                stage('Deploy Services') {
-                        when { expression { params.DEPLOY_ENV == 'production' } }
-                        steps {
-                                echo "🚢 Deploying version ${env.IMAGE_TAG}..."
-                                script {
-                                        // Robust deploy flow:
-                                        // 1. Pull and start new images with IMAGE_TAG
-                                        // 2. Wait for containers to be running
-                                        // 3. Run smoke tests (HTTP health endpoints)
-                                        // 4. If any step fails, exit non-zero to trigger rollback in post/failure
-                                        sh '''
-set -euo pipefail
-echo "Using IMAGE_TAG=${IMAGE_TAG}"
+        // Stage 5: Deploy & Rollback Logic
+        stage('Deploy Services') {
+            when { expression { params.DEPLOY_ENV == 'production' } }
+            steps {
+                echo "🚢 Deploying version ${env.IMAGE_TAG}..."
+                script {
+                    // This script handles: Pull, Up, Wait for Health, Smoke Test
+                    sh '''
+                        set -euo pipefail
+                        echo "Using IMAGE_TAG=${IMAGE_TAG}"
 
-# Optional: save current state
-mkdir -p /tmp/deploy-backup
-docker-compose -f docker-compose.yml config > /tmp/deploy-backup/compose_config.yml || true
-docker-compose ps -q > /tmp/deploy-backup/containers_before.txt || true
+                        # 1. Pull new images
+                        echo "Pulling images..."
+                        docker-compose pull || true
 
-echo "Pulling images..."
-docker-compose pull || true
+                        # 2. Deploy
+                        echo "Starting services with IMAGE_TAG=${IMAGE_TAG}"
+                        IMAGE_TAG=${IMAGE_TAG} docker-compose up -d --remove-orphans
 
-echo "Starting services with IMAGE_TAG=${IMAGE_TAG}"
-IMAGE_TAG=${IMAGE_TAG} docker-compose up -d --remove-orphans
+                        # 3. Wait for containers to be healthy
+                        timeout=90
+                        interval=5
+                        elapsed=0
+                        all_running=0
+                        while [ $elapsed -lt $timeout ]; do
+                            running_count=$(docker-compose ps --services --filter "status=running" | wc -l)
+                            total_count=$(docker-compose ps --services | wc -l)
+                            if [ "$running_count" -eq "$total_count" ] && [ "$total_count" -ne "0" ]; then
+                                all_running=1
+                                break
+                            fi
+                            sleep $interval
+                            elapsed=$((elapsed+interval))
+                        done
 
-# Wait for containers to be running (timeout)
-timeout=90
-interval=5
-elapsed=0
-all_running=0
-while [ $elapsed -lt $timeout ]; do
-    running_count=$(docker-compose ps --services --filter "status=running" | wc -l)
-    total_count=$(docker-compose ps --services | wc -l)
-    if [ "$running_count" -eq "$total_count" ] && [ "$total_count" -ne "0" ]; then
-        all_running=1
-        break
-    fi
-    sleep $interval
-    elapsed=$((elapsed+interval))
-done
+                        if [ $all_running -ne 1 ]; then
+                            echo "ERROR: Not all services reached running state within ${timeout}s"
+                            exit 2
+                        fi
 
-if [ $all_running -ne 1 ]; then
-    echo "ERROR: Not all services reached running state within ${timeout}s"
-    exit 2
-fi
+                        # 4. Smoke Test (Check API Gateway Health)
+                        echo "Running smoke tests against API gateway..."
+                        smoke_ok=0
+                        for i in 1 2 3; do
+                            # Checking actuator health endpoint (common in Spring Boot)
+                            if curl -sSf http://localhost:8080/actuator/health >/dev/null 2>&1; then
+                                smoke_ok=1
+                                break
+                            fi
+                            sleep 3
+                        done
 
-echo "Running smoke tests against API gateway..."
-# Example smoke endpoint - adjust if your gateway exposes a different health path
-smoke_ok=0
-for i in 1 2 3; do
-    if curl -sSf http://localhost:8080/actuator/health >/dev/null 2>&1; then
-        smoke_ok=1
-        break
-    fi
-    sleep 3
-done
+                        if [ $smoke_ok -ne 1 ]; then
+                            echo "ERROR: Smoke tests failed"
+                            exit 3
+                        fi
 
-if [ $smoke_ok -ne 1 ]; then
-    echo "ERROR: Smoke tests failed"
-    exit 3
-fi
-
-echo "Deployment steps completed successfully for ${IMAGE_TAG}"
-'''
-                                }
-                        }
-                        post {
-                                failure {
-                                        echo "⚠️ Deployment failed — running rollback to ${env.PREV_IMAGE_TAG}..."
-                                        script {
-                                                // Stronger rollback: bring services back with PREV_IMAGE_TAG,
-                                                // verify health, and fail the build if rollback cannot restore.
-                                                sh '''
-set -euo pipefail
-echo "Rolling back to ${PREV_IMAGE_TAG}"
-IMAGE_TAG=${PREV_IMAGE_TAG} docker-compose up -d --remove-orphans
-
-# Wait for rollback health
-timeout=90
-interval=5
-elapsed=0
-rolled_ok=0
-while [ $elapsed -lt $timeout ]; do
-    if curl -sSf http://localhost:8080/actuator/health >/dev/null 2>&1; then
-        rolled_ok=1
-        break
-    fi
-    sleep $interval
-    elapsed=$((elapsed+interval))
-done
-
-if [ $rolled_ok -ne 1 ]; then
-    echo "ERROR: Rollback did not restore service health within ${timeout}s"
-    echo "Collecting diagnostics..."
-    docker-compose ps || true
-    docker-compose logs --tail=200 || true
-    exit 1
-fi
-
-echo "✅ Rollback successful. Restored to ${PREV_IMAGE_TAG}."
-'''
-                                        }
-                                }
-                                success {
-                                        echo "✅ Deployment successful and verified!"
-                                }
-                        }
+                        echo "Deployment steps completed successfully for ${IMAGE_TAG}"
+                    '''
                 }
+            }
+            post {
+                failure {
+                    echo "⚠️ Deployment failed — running rollback to ${env.PREV_IMAGE_TAG}..."
+                    script {
+                        // Rollback Logic: Revert to PREV_IMAGE_TAG
+                        sh '''
+                            set -euo pipefail
+                            echo "Rolling back to ${PREV_IMAGE_TAG}"
+                            IMAGE_TAG=${PREV_IMAGE_TAG} docker-compose up -d --remove-orphans
+
+                            # Verify Rollback Health
+                            timeout=90
+                            interval=5
+                            elapsed=0
+                            rolled_ok=0
+                            while [ $elapsed -lt $timeout ]; do
+                                if curl -sSf http://localhost:8080/actuator/health >/dev/null 2>&1; then
+                                    rolled_ok=1
+                                    break
+                                fi
+                                sleep $interval
+                                elapsed=$((elapsed+interval))
+                            done
+
+                            if [ $rolled_ok -ne 1 ]; then
+                                echo "CRITICAL: Rollback failed to restore service health."
+                                docker-compose logs --tail=50
+                                exit 1
+                            fi
+
+                            echo "✅ Rollback successful. Restored to ${PREV_IMAGE_TAG}."
+                        '''
+                    }
+                }
+                success {
+                    echo "✅ Deployment successful and verified!"
+                }
+            }
+        }
     }
     
     // Send Status to GitHub (Required for SafeZone Audit)
@@ -247,4 +234,3 @@ echo "✅ Rollback successful. Restored to ${PREV_IMAGE_TAG}."
         }
     }
 }
-// =============================================================================
