@@ -84,6 +84,20 @@ pipeline {
             }
         }
 
+        // Stage 3b: Frontend Tests
+        stage('Frontend Tests') {
+            when { expression { params.SKIP_TESTS == false } }
+            steps {
+                echo '🎨 Running frontend tests...'
+                script {
+                    dir('buy-01-ui') {
+                        sh 'npm ci'
+                        sh 'npm run test -- --watch=false --browsers=ChromeHeadless --code-coverage'
+                    }
+                }
+            }
+        }
+
         // Stage 4: Build & Push Docker (Enhanced)
         stage('Build & Push Images') {
             // Run on production OR staging (or if manually triggered)
