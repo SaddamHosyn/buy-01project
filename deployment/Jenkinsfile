@@ -157,6 +157,114 @@ pipeline {
                 }
             }
         }
+                stage('Deploy Services') {
+                        when { expression { params.DEPLOY_ENV == 'production' } }
+                        steps {
+                                echo "🚢 Deploying version ${env.IMAGE_TAG}..."
+                                script {
+                                        // Robust deploy flow:
+                                        // 1. Pull and start new images with IMAGE_TAG
+                                        // 2. Wait for containers to be running
+                                        // 3. Run smoke tests (HTTP health endpoints)
+                                        // 4. If any step fails, exit non-zero to trigger rollback in post/failure
+                                        sh '''
+set -euo pipefail
+echo "Using IMAGE_TAG=${IMAGE_TAG}"
+
+# Optional: save current state
+mkdir -p /tmp/deploy-backup
+docker-compose -f docker-compose.yml config > /tmp/deploy-backup/compose_config.yml || true
+docker-compose ps -q > /tmp/deploy-backup/containers_before.txt || true
+
+echo "Pulling images..."
+docker-compose pull || true
+
+echo "Starting services with IMAGE_TAG=${IMAGE_TAG}"
+IMAGE_TAG=${IMAGE_TAG} docker-compose up -d --remove-orphans
+
+# Wait for containers to be running (timeout)
+timeout=90
+interval=5
+elapsed=0
+all_running=0
+while [ $elapsed -lt $timeout ]; do
+    running_count=$(docker-compose ps --services --filter "status=running" | wc -l)
+    total_count=$(docker-compose ps --services | wc -l)
+    if [ "$running_count" -eq "$total_count" ] && [ "$total_count" -ne "0" ]; then
+        all_running=1
+        break
+    fi
+    sleep $interval
+    elapsed=$((elapsed+interval))
+done
+
+if [ $all_running -ne 1 ]; then
+    echo "ERROR: Not all services reached running state within ${timeout}s"
+    exit 2
+fi
+
+echo "Running smoke tests against API gateway..."
+# Example smoke endpoint - adjust if your gateway exposes a different health path
+smoke_ok=0
+for i in 1 2 3; do
+    if curl -sSf http://localhost:8080/actuator/health >/dev/null 2>&1; then
+        smoke_ok=1
+        break
+    fi
+    sleep 3
+done
+
+if [ $smoke_ok -ne 1 ]; then
+    echo "ERROR: Smoke tests failed"
+    exit 3
+fi
+
+echo "Deployment steps completed successfully for ${IMAGE_TAG}"
+'''
+                                }
+                        }
+                        post {
+                                failure {
+                                        echo "⚠️ Deployment failed — running rollback to ${env.PREV_IMAGE_TAG}..."
+                                        script {
+                                                // Stronger rollback: bring services back with PREV_IMAGE_TAG,
+                                                // verify health, and fail the build if rollback cannot restore.
+                                                sh '''
+set -euo pipefail
+echo "Rolling back to ${PREV_IMAGE_TAG}"
+IMAGE_TAG=${PREV_IMAGE_TAG} docker-compose up -d --remove-orphans
+
+# Wait for rollback health
+timeout=90
+interval=5
+elapsed=0
+rolled_ok=0
+while [ $elapsed -lt $timeout ]; do
+    if curl -sSf http://localhost:8080/actuator/health >/dev/null 2>&1; then
+        rolled_ok=1
+        break
+    fi
+    sleep $interval
+    elapsed=$((elapsed+interval))
+done
+
+if [ $rolled_ok -ne 1 ]; then
+    echo "ERROR: Rollback did not restore service health within ${timeout}s"
+    echo "Collecting diagnostics..."
+    docker-compose ps || true
+    docker-compose logs --tail=200 || true
+    exit 1
+fi
+
+echo "✅ Rollback successful. Restored to ${PREV_IMAGE_TAG}."
+'''
+                                        }
+                                }
+                                success {
+                                        echo "✅ Deployment successful and verified!"
+                                }
+                        }
+                }
     }
     
     // Send Status to GitHub (Required for SafeZone Audit)
