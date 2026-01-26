@@ -5,8 +5,7 @@ pipeline {
     agent any
 
     parameters {
-        choice(name: 'DEPLOY_ENV', choices: ['local', 'staging', 'production'], description: 'Select deployment environment')
-        booleanParam(name: 'SKIP_TESTS', defaultValue: false, description: 'Skip tests (use with caution)')
+        choice(name: 'DEPLOY_ENV', choices: ['production', 'staging', 'local'], description: 'Select deployment environment')
     }
 
     environment {
