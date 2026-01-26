@@ -91,8 +91,11 @@ pipeline {
                 echo '🎨 Running frontend tests...'
                 script {
                     dir('buy-01-ui') {
-                        sh 'npm ci'
-                        sh 'npm run test -- --watch=false --browsers=ChromeHeadless --code-coverage'
+                            // Use legacy-peer-deps to avoid ERESOLVE in CI
+                            sh 'npm ci --legacy-peer-deps'
+                            // Use the CI-specific launcher from karma.conf.js which
+                            // includes --no-sandbox for headless Chrome in containers
+                            sh 'npm run test -- --watch=false --browsers=ChromeHeadlessCI --code-coverage'
                     }
                 }
             }
