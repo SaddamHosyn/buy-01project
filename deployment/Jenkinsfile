@@ -126,37 +126,7 @@ pipeline {
             }
         }
 
-        // Stage 5: Deploy & Rollback Logic (New)
-        stage('Deploy Services') {
-            when { expression { params.DEPLOY_ENV == 'production' } }
-            steps {
-                echo "🚢 Deploying version ${env.IMAGE_TAG}..."
-                script {
-                    // Update docker-compose to use the new tag
-                    sh "export IMAGE_TAG=${env.IMAGE_TAG} && docker-compose up -d"
-                    
-                    // Simple health check (wait 10s then check if containers are running)
-                    sleep 10
-                    def running = sh(script: "docker-compose ps | grep Up || true", returnStdout: true).trim()
-                    if (!running) {
-                        error("Deployment failed: No containers running!")
-                    }
-                }
-            }
-            post {
-                failure {
-                    echo "⚠️ Deployment failed! Initiating Rollback to version ${env.PREV_IMAGE_TAG}..."
-                    script {
-                        // Rollback Logic: Revert to previous tag
-                        sh "export IMAGE_TAG=${env.PREV_IMAGE_TAG} && docker-compose up -d"
-                        echo "✅ Rollback complete. Restored version ${env.PREV_IMAGE_TAG}."
-                    }
-                }
-                success {
-                    echo "✅ Deployment successful!"
-                }
-            }
-        }
+        // Stage 5: Deploy & Rollback Logic (implemented below)
                 stage('Deploy Services') {
                         when { expression { params.DEPLOY_ENV == 'production' } }
                         steps {
